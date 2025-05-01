@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-br">
+<head>    
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">    
+    <meta name="robots" content="noimageindex, noarchive"> 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/default.css') }}">
+    <title>OCI Pizza [{% block title %}{% endblock %}]</title>
+    <script type="text/javascript" defer>
+        const webHost = '{{ web_config.scheme }}://{{ web_config.host }}:{{ web_config.port }}';            
+        const apiHost = '{{ api_config.scheme }}://{{ api_config.host }}:{{ api_config.port }}';             
+    </script> 
+    {% block head %}
+    {% endblock %}          
+</head>
+<body>    
+    {% block body_header %}        
+    {% endblock %}    
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-12 col-md-12 d-flex justify-content-center">
+                <a href="{{ url_for('main.home') }}">
+                    <img src="{{ url_for('static', filename='img/pizzaria-logo.png') }}" alt="OCI Pizza" class="img-fluid pizza-logo">                    
+                </a>                
+            </div>
+        </div>
+    </div>    
+    {% block body %}
+    {% endblock %}   
+    {% include "__modal_chat.html" %}  
+    {% include "__modal_message.html" %}  
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>       
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script> 
+    {% block body_scripts %}
+    {% endblock %}        
+</body>
+</html>

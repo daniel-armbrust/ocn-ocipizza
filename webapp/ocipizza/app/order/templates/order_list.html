@@ -1,0 +1,76 @@
+{% extends "__base.html" %}
+{% block title %}Meus Pedidos{% endblock %}
+{% block body_header %}        
+    {% include "__top_menu.html" %}
+{% endblock %}
+{% block body %} 
+    {% include "__flash_message.html" %}    
+    <div class="container" id="app">  
+        <br>
+        {% if orders %}  
+            <div class="table-responsive-sm table-responsive-md">           
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">Pedido #</th>
+                            <th scope="col">Data / Hora</th>
+                            <th scope="col">Endereço de Entrega</th>
+                            <th scope="col"> Pizza </th>
+                            <th scope="col"> Preço </th>
+                            <th scope="col"> Status </th>
+                        </tr>
+                    </thead> 
+                    <tbody class="table-group-divider">
+                        {% for order in orders %}
+                            <tr>
+                                <th scope="row"> {{ order.order_id }} </th>
+                                <td> {{ order.order_datetime }} </td>
+                                <td>
+                                    <p> CEP: {{ order['address']['zipcode'] }} </p>                         
+                                    <p class="text-capitalize"> {{ order['address']['address'] }}, {{ order['address']['address_number'] }} </p>                                   
+                                    <p class="text-capitalize"> {{ order['address']['address_neighborhood'] }} </p>                               
+                                    {% if order['address']['address_complement'] %}
+                                        <p class="text-capitalize"> {{ order['address']['address_complement'] }} </p>
+                                    {% endif %}                               
+                                </td>  
+                                <td>
+                                    {% for pizza in order['pizza'] %}                                                               
+                                        <p class="text-capitalize"> {{ pizza.pizza }} </p>
+                                    {% endfor %}                            
+                                </td>
+                                <td>
+                                    {% for pizza in order['pizza'] %}                                                               
+                                        <p class="text-success fw-bold"> R$ {{ pizza.price }} </p>
+                                    {% endfor %}                            
+                                </td>    
+                                <td>
+                                    {% if order['status'] == 'DELIVERED' %}
+                                       <p class="text-success fw-bold"> Entregue </p>
+                                    {% elif order['status'] == 'CANCELED' %}
+                                       <p class="text-danger fw-bold"> Entregue </p>
+                                    {% elif order['status'] == 'PREPARING' %}
+                                       <p class="text-info fw-bold blink"> Em preparação </p>
+                                    {% elif order['status'] == 'OUT_FOR_DELIVERY' %}
+                                       <p class="text-info fw-bold blink"> Saiu para entrega </p>                                                                            
+                                    {% endif %}
+                                </td>                    
+                            </tr>
+                        {% endfor %}              
+                    </tbody>
+                </table>                
+            </div>
+        {% else %}
+            <div class="row">
+                <div class="col">
+                    <p class="fw-bold fs-4"> Não há pedido(s) recente(s) </p>
+                </div>
+            </div>
+        {% endif %}      
+    </div>    
+{% endblock %}
+{% block body_scripts %}        
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>    
+    <script type="text/javascript">
+         sessionStorage.clear();
+    </script>       
+{% endblock %}

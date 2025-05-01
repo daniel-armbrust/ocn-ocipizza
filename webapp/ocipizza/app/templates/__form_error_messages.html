@@ -1,0 +1,13 @@
+{% if form.errors %}
+        <div class="container">
+            <div class="row align-items-center text-center pt-1">
+                <div class="col-12">
+                    <div class="alert alert-danger fw-bold fs-5" role="alert">
+                        {% for form_field, form_field_list in form.errors.items() %}
+                            {{ form_field_list.0 }} <br>
+                        {% endfor %}
+                    </div>                
+                </div>            
+            </div>
+        </div>        
+{% endif %}  

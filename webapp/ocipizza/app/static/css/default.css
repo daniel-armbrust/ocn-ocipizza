@@ -1,0 +1,59 @@
+body {
+    background-color: #C4C5C6;       
+}
+
+.pizza-logo {
+    margin-top: 100px;
+    max-height: 200px;
+}
+
+.price { 
+   color: green;
+   font-weight: bold;
+}
+
+.chat-icon {
+    position: fixed;        
+    z-index: 1000;
+    font-size: 24px;
+    background-color: #007bff;
+    color: white;
+    padding: 15px;
+    border-radius: 50%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.pizza-card-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.pizza-card-link:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.pizza-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 10px 20px rgba(170, 3, 3, 0.822);
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+.blink {
+    animation: blink 1s infinite;
+}
+
+.custom-form-invalid {
+    border-color: red;
+}
+
+.readonly-gray {
+    background-color: #e9ecef; 
+    opacity: 1;
+}

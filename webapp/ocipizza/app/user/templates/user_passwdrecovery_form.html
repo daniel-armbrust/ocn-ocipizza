@@ -1,0 +1,48 @@
+{% extends "__base.html" %}
+{% block title %}Redefinição de Senha{% endblock %}
+{% block body_header %}        
+    {% include "__top_menu.html" %}
+{% endblock %}
+{% block body %} 
+    {% include "__flash_message.html" %}
+    {% include "__form_error_messages.html" %}   
+    <div class="container" id="app">  
+        <br>
+        <div class="row">
+            <div class="col-sm-2 col-md-2"><p>&nbsp;</p></div>
+            <div class="col-sm-8 col-md-8 d-flex justify-content-center">
+                <div class="card w-100 rounded">
+                    <div class="card-body rounded" style="border-top: 5px solid gray;">
+                        <h5 class="card-title fw-bold fs-4 pb-3">Redefinição de Senha</h5>
+                        <form method="post" id="id_form" novalidate
+                              action="{{ url_for('user.password_recovery_form_view') }}" class="needs-validation">
+                            {{ form.hidden_tag() }}                            
+                            <div class="mb-3"> 
+                                {{ form.email(class_="form-control form-control-lg", placeholder="E-mail", id="id_form_email") }}                                                               
+                                <div class="invalid-feedback">
+                                    É necessário informar o e-mail.
+                                </div>  
+                            </div>                            
+                            <div class="row">
+                                <div class="col d-flex justify-content-center pt-3">
+                                    <div class="mb-3">                                           
+                                        <button class="btn btn-success btn-lg fw-bold" 
+                                                type="button" onclick="validateAndsubmitButton()"> 
+                                            &nbsp;&nbsp;&nbsp;
+                                            Recuperar Senha
+                                            &nbsp;&nbsp;&nbsp;
+                                        </button>                                                             
+                                    </div>               
+                                </div>                                
+                            </div>                                                                                
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>    
+{% endblock %}
+{% block body_scripts %}    
+    <script type="text/javascript" src="{{ url_for('static', filename='js/jquery.blockUI.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>        
+{% endblock %}

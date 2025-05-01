@@ -1,0 +1,99 @@
+{% extends "__base.html" %}
+{% block title %}Novo Usuário{% endblock %}
+{% block body_header %}        
+    {% include "__top_menu.html" %}
+{% endblock %}
+{% block body %}      
+    {% include "__flash_message.html" %}
+    {% include "__form_error_messages.html" %}   
+    <div class="container" id="app">  
+        <br>
+        <div class="row">
+            <div class="col-sm-2 col-md-2"><p>&nbsp;</p></div>
+            <div class="col-sm-8 col-md-8 d-flex justify-content-center">
+                <div class="card w-100 rounded">
+                    <div class="card-body rounded" style="border-top: 5px solid gray;">
+                        <h5 class="card-title fw-bold fs-4 pb-3">Novo Usuário</h5>
+                        <form class="row g-3 needs-validation" id="id_form"
+                              method="post" action="{{ url_for('user.add_user_form_view') }}" novalidate>
+                            {{ form.hidden_tag() }}                         
+                            <div class="mb-3">   
+                                <div class="input-group has-validation">
+                                    {{ form.email(class_="form-control form-control-lg", placeholder="E-mail", id="id_form_email") }}
+                                    <div class="invalid-feedback">
+                                        É necessário um e-mail válido.                                       
+                                    </div>                                
+                                </div>                                                             
+                            </div>  
+                            <div class="mb-3">     
+                                <div class="input-group has-validation">
+                                    {{ form.password(class_="form-control form-control-lg", placeholder="Senha", id="id_form_password") }}
+                                    <div class="invalid-feedback">
+                                        É necessário uma senha válida.                                      
+                                    </div>   
+                                </div> 
+                            </div> 
+                            <div class="mb-3">   
+                                <div class="input-group has-validation">
+                                    {{ form.name(class_="form-control form-control-lg", placeholder="Nome", id="id_form_name") }}
+                                    <div class="invalid-feedback">
+                                        É necessário um nome válido.                                   
+                                    </div>   
+                                </div>
+                            </div> 
+                            <div class="mb-3">    
+                                <div class="input-group has-validation">
+                                    {{ form.telephone(class_="form-control form-control-lg", placeholder="Telefone / WhatsApp", id="id_form_telephone") }}                                    
+                                    <div class="invalid-feedback">
+                                        É necessário telefone válido.                                       
+                                    </div>  
+                                </div>
+                            </div>   
+                            <div class="row">
+                                <div class="col d-flex justify-content-center text-center">
+                                    <p>Ao continuar, você concorda com os 
+                                       <a href="">Termos de Uso</a> e 
+                                       <a href="">Políticas de Privacidade</a>.
+                                    </p>
+                                </div>
+                            </div> 
+                            <div class="row">
+                                <div class="col d-flex justify-content-center pt-2">
+                                    <div class="mb-3">   
+                                        <button class="btn btn-success btn-lg fw-bold"
+                                                id="id_form_submit_button" type="button"
+                                                onclick="validateAndsubmitButton()">
+                                            &nbsp;&nbsp;&nbsp;
+                                            <i class="fa-solid fa-check"></i> &nbsp; Confirmar 
+                                            &nbsp;&nbsp;&nbsp;
+                                        </button>                                                             
+                                    </div>               
+                                </div>                                
+                            </div>                                                     
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br>
+{% endblock %}
+{% block body_scripts %}    
+    <script type="text/javascript" src="{{ url_for('static', filename='js/jquery.blockUI.min.js') }}"></script>    
+    <script type="text/javascript" src="{{ url_for('static', filename='js/jquery.maskedinput.min.js') }}"></script>    
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <script type="text/javascript">
+        $('#id_form_telephone').mask('(99) 9999-9999?9').focusout(function (event) {  
+                var target, phone, element;                  
+                target = (event.currentTarget) ? event.currentTarget : event.srcElement;                 
+                phone = target.value.replace(/\D/g, '');                
+                element = $(target);  
+                element.unmask();  
+                if(phone.length > 10)
+                    element.mask('(99) 99999-999?9');  
+                else 
+                    element.mask('(99) 9999-9999?9');                    
+        }); 
+    </script>    
+    <script src="{{ url_for('static', filename='js/user.js') }}"></script>
+{% endblock %}

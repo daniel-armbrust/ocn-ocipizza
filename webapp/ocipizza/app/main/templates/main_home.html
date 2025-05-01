@@ -1,0 +1,52 @@
+{% extends "__base.html" %}
+{% block title %}Home{% endblock %}
+{% block body_header %}        
+    {% include "__top_menu.html" %}
+{% endblock %}
+{% block body %}    
+    {% include "__flash_message.html" %}
+    <div class="container" id="app">
+         {% include "__center_ajax_loading.html" %}
+    </div>       
+    <br>  
+    <div class="modal fade" id="id_modal_pizza_details" tabindex="-1" 
+          aria-labelledby="id_modal_pizza_details_title" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">              
+                        <h1 class="modal-title fw-bold fs-3 text-capitalize" id="id_modal_pizza_details_title"></h1>              
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="id_modal_pizza_details_body">
+                        <div class="d-flex justify-content-center">
+                            <img src="" alt="" title="" class="img-fluid" id="id_modal_pizza_details_image">              
+                        </div>
+                        <br>
+                        <p class="h5 text-capitalize" id="id_modal_pizza_details_description"></p>
+                    </div>
+                    <div class="modal-footer d-flex justify-content-center">             
+                        <button type="button" class="btn btn-success btn-lg w-75 fw-bold" onclick="addPizzaCart();">
+                            Adicionar <br>
+                            <span id="id_modal_pizza_details_price"></span>
+                        </button>
+                        <input type="hidden" id="id_modal_pizza_details_id" value="">
+                    </div>
+                </div>
+            </div>
+    </div> 
+{% endblock %}
+{% block body_scripts %}
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>  
+    <script src="{{ url_for('static', filename='js/pizza.js') }}"></script>  
+    <script type="text/javascript">
+        $(document).ready(function() {    
+            $('#id_ajax_message_1').html('');
+            $('#id_ajax_message_1').append('Carregando pizzas ...');
+            $('#id_ajax_message_2').html('');              
+            $('#id_ajax_message_2').append('Carregando pizzas ...');
+            
+            updatePizzaCartItemCount();            
+            listOfPizzas(apiHost);
+        });
+    </script>
+{% endblock %}

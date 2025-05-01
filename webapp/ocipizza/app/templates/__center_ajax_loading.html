@@ -1,0 +1,20 @@
+<div class="row d-none d-sm-block">
+    <div class="col-sm-12 d-flex justify-content-center"> 
+        <p>
+            <img src="{{ url_for('static', filename='img/ajax-load-1.gif') }}" alt="Loading..." class="img-fluid">            
+            <span class="h3 fw-bold fst-italic blink" id="id_ajax_message_1"></span>
+        </p>  
+    </div>   
+</div>
+<div class="d-sm-none">
+    <div class="row">
+        <div class="col-sm-12 d-flex justify-content-center"> 
+            <img src="{{ url_for('static', filename='img/ajax-load-1.gif') }}" alt="Loading..." class="img-fluid"> 
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12 d-flex justify-content-center"> 
+            <p class="h1 fw-bold fst-italic blink" id="id_ajax_message_2"></p>                    
+        </div>
+    </div>
+</div>   

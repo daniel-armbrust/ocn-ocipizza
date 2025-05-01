@@ -1,0 +1,235 @@
+{% extends "__base.html" %}
+{% block title %}Meu carrinho{% endblock %}
+{% block head %}
+<style type="text/css">    
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+</style>
+{% endblock %}   
+{% block body_header %}        
+    {% include "__top_menu.html" %}
+{% endblock %}
+{% block body %}   
+    {% include "__flash_message.html" %}
+    {% include "__form_error_messages.html" %}   
+    <div class="container" id="app">           
+        {% include "__center_ajax_loading.html" %}             
+    </div>    
+    {% if current_user.is_authenticated %} 
+        <div class="container invisible" id="id_delivery_options">
+            <div class="d-none d-sm-block">
+                <br>
+            </div>
+            <div class="row" id="id_delivery_options">            
+                <div class="col-sm-2 col-md-2"><p>&nbsp;</p></div>
+                <div class="col-sm-8 col-md-8">
+                    <div class="d-grid gap-2">
+                        <button type="button" 
+                                class="btn btn-info btn-lg fs-3"
+                                data-bs-toggle="modal" data-bs-target="#id_delivery_options_modal">
+                            Ver opções de entrega
+                        </button>
+                    </div>
+                </div>            
+            </div>
+        </div>
+        <div class="modal fade" id="id_delivery_options_modal" 
+             data-bs-backdrop="static"  data-bs-keyboard="false" 
+             tabindex="-1" aria-labelledby="id_delivery_options_modalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-3 fw-bold" id="id_delivery_options_modalLabel">
+                            Escolha sua opção
+                        </h1>
+                        <button type="button" class="btn-close" 
+                                data-bs-dismiss="modal" aria-label="Close">
+                        </button>
+                    </div>
+                    <div class="modal-body">              
+                        <div class="row">
+                            <div class="col">
+                                <h2 class="fs-4"> 
+                                    Entregar em 
+                                </h2>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col pt-2">
+                                <div class="input-group mb-3">
+                                    <input type="text" class="form-control" 
+                                        placeholder="Informe o CEP" 
+                                        aria-label="CEP" aria-describedby="button-addon2"
+                                        id="id_input_zipcode">
+                                    <button class="btn btn-success" type="button" 
+                                            id="id_button_zipcode"
+                                            onclick="pizzaDeliveryOptions();">
+                                        &nbsp; Buscar &nbsp;
+                                    </button>
+                                </div>                          
+                            </div>
+                        </div>
+                        <div class="row d-none" id="id_zipcode_notfound_message">
+                            <div class="col text-center">
+                                <p class="text-danger fw-bold fs-5"> CEP não encontrado! </p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col d-flex justify-content-center">
+                                <a href="#" class="fs-6 text-decoration-none"> Não sei meu CEP </a>
+                            </div>
+                        </div>         
+                        <div class="row pt-3">
+                            <div class="col d-flex justify-content-center">
+                                <p class="fs-4"> Possui endereços cadastrados? </p>
+                            </div>
+                        </div>                                       
+                        <div class="row pb-3">
+                            <div class="col d-flex justify-content-center">
+                                <a href="{{ url_for('user.login_view') }}" class="fs-4 text-decoration-none"> 
+                                    <i class="fa-solid fa-user"></i> Meu Cadastro
+                                </a>
+                            </div>
+                        </div>
+                    </div>            
+                </div>
+            </div>
+        </div> 
+        <form class="row g-3 needs-validation" id="id_form"
+              method="post" action="{{ url_for('order.new') }}" novalidate>
+             {{ form.hidden_tag() }}   
+             <input type="hidden" name="next" value="{{ next_url }}">
+             <input type="hidden" id="id_zipcode" name="zipcode" value="">
+             <input type="hidden" id="id_pizza_list" name="pizza_list" value="">
+            <div class="modal fade" id="id_your_address_modal" 
+                 data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" 
+                 aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-3 fw-bold" id="staticBackdropLabel"> 
+                                Seu endereço de entrega 
+                            </h1>
+                            <button type="button" class="btn-close" 
+                                    data-bs-dismiss="modal" aria-label="Close">
+                            </button>
+                        </div>               
+                        <div class="modal-body">    
+                            <fieldset disabled>
+                                <div class="row">                                
+                                    <div class="col-4">      
+                                        <label for="id_state" class="form-label"> Estado </label>
+                                        <input type="text" class="form-control" name="state" id="id_state" value="">
+                                        <div class="invalid-feedback">
+                                            É necessário um estado válido.                                       
+                                        </div>                                   
+                                    </div>
+                                    <div class="col-8">
+                                        <label for="id_city" class="form-label"> Cidade </label>
+                                        <input type="text" class="form-control" name="city" id="id_city" value="">                                        
+                                        <div class="invalid-feedback">
+                                            É necessário uma cidade válida.                                        
+                                        </div>                                             
+                                    </div>                            
+                                </div>    
+                            </fieldset>
+                            <div class="row pt-3">
+                                <div class="col-12">
+                                    {{ form.address.label(class="form-label", for="id_address") }}
+                                    {{ form.address(class_="form-control", id="id_address") }}
+                                    <div class="invalid-feedback">
+                                        É necessário um endereço válido.                                       
+                                    </div>                                     
+                                </div>
+                            </div> 
+                            <div class="row pt-3">
+                                <div class="col-3">
+                                    {{ form.address_number.label(class="form-label", for="id_address_number") }}
+                                    {{ form.address_number(class_="form-control", id="id_address_number") }}
+                                    <div class="invalid-feedback">
+                                        É necessário um número válido.                                       
+                                    </div>       
+                                </div>
+                                <div class="col-9">
+                                    {{ form.address_neighborhood.label(class="form-label", for="id_address_neighborhood") }}
+                                    {{ form.address_neighborhood(class_="form-control", id="id_address_neighborhood") }}
+                                    <div class="invalid-feedback">
+                                        É necessário um bairro válido.                                       
+                                    </div> 
+                                </div>
+                            </div>
+                            <div class="row pt-3">
+                                <div class="col-12">
+                                    {{ form.address_complement.label(class="form-label", for="id_address_complement") }}
+                                    {{ form.address_complement(class_="form-control", id="id_address_complement") }}                                    
+                                </div>
+                            </div>                    
+                            <div class="row pt-3">
+                                <div class="col-12 pt-2">
+                                    {{ form.address_refpoint.label(class="form-label", for="id_address_refpoint") }}
+                                    {{ form.address_refpoint(class_="form-control", id="id_address_refpoint") }}                                     
+                                </div>
+                            </div>  
+                            <br>
+                            <div class="row">
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-lg fw-bold btn-secondary w-100 btn-success" 
+                                            onclick="validateAndsubmitButton()">
+                                        <i class="fa-solid fa-check"></i> &nbsp; Confirmar endereço
+                                    </button> 
+                                </div>
+                            </div>       
+                        </div>                
+                    </div>
+                </div>
+            </div>
+        </form>
+    {% else %}
+        <div class="container invisible" id="id_delivery_options">
+            <div class="d-none d-sm-block">
+                <br>
+            </div>
+            <div class="row" id="id_delivery_options">            
+                <div class="col-sm-2 col-md-2"><p>&nbsp;</p></div>
+                <div class="col-sm-8 col-md-8">
+                    <div class="d-grid gap-2">                                               
+                        <a href="{{ url_for('user.login_view') }}?next={{ request.url_rule }}" role="button"
+                                class="btn btn-secondary btn-lg fs-3">
+                            É necessário realizar Login para fazer o pedido
+                        </a>
+                    </div>
+                </div>            
+            </div>
+        </div>
+    {% endif %}       
+{% endblock %}
+{% block body_scripts %}
+    <script type="text/javascript" src="{{ url_for('static', filename='js/jquery.blockUI.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pizza.js') }}"></script>
+    <script type="text/javascript">
+        $(document).ready(function() { 
+            $('#id_ajax_message_1').html('');
+            $('#id_ajax_message_1').append('Carregando carrinho ...');
+            $('#id_ajax_message_2').html('');              
+            $('#id_ajax_message_2').append('Carregando carrinho ...');
+
+            updatePizzaCartItemCount(); 
+            listPizzaCart(apiHost);
+
+            let pizzaArray = new Array();
+
+            for (let i = 0 ; i < sessionStorage.length ; i++)
+                pizzaArray.push(sessionStorage.key(i));
+
+            $('#id_pizza_list').val(pizzaArray);
+        });
+    </script>
+{% endblock %}

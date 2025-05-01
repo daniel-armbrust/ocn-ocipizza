@@ -1,0 +1,46 @@
+#
+# docker-compose.yml
+#
+version: '3.3'
+
+services:  
+  nosql-db:
+    image: nosql-db:1.0    
+    networks:
+       ocipizza_network:
+         ipv4_address: 10.100.1.10    
+    build:      
+      context: ./nosql/nosql-db
+      dockerfile: Dockerfile    
+    environment:
+      NOSQL_CLOUDSIM_IP: 10.100.1.10
+      NOSQL_CLOUDSIM_PORT: 8080
+
+  nosql-init:
+    image: nosql-init:1.0
+    networks:
+       ocipizza_network:
+         ipv4_address: 10.100.1.20
+    build:
+      context: ./nosql/nosql-init
+      dockerfile: Dockerfile
+    environment:
+      NOSQL_CLOUDSIM_IP: 10.100.1.10
+      NOSQL_CLOUDSIM_PORT: 8080
+    depends_on:
+      - nosql-db
+  
+  bucket:
+    image: bucket:1.0
+    ports:
+      - "8050:8050"
+    build:
+      context: ./bucket
+      dockerfile: Dockerfile
+
+networks:
+   ocipizza_network:
+     driver: bridge
+     ipam:
+       config:
+         - subnet: 10.100.1.0/24
