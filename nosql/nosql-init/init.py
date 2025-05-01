@@ -17,10 +17,12 @@ ORDERED_DLL_FILES_LIST = ('user.ddl', 'user-order.ddl', 'pizza.ddl',)
 # Nome da Table e Arquivo JSON contendo os dados para inserção.
 TABLE_DATA = {'pizza': 'pizza.json'}
 
-# IP e Porta para conexão com o Oracle Cloud NoSQL Simulator
+# IP e Porta para conexão com o Oracle Cloud NoSQL Simulator.
 NOSQL_CLOUDSIM_IP = os.getenv('NOSQL_CLOUDSIM_IP')
 NOSQL_CLOUDSIM_PORT = os.getenv('NOSQL_CLOUDSIM_PORT')
 
+# Prefixo URL utilizado para salvar as imagens.
+BUCKET_URL_PREFIX = os.getenv('BUCKET_URL_PREFIX')
 
 class CloudsimAuthorizationProvider(AuthorizationProvider):
     """
@@ -90,6 +92,11 @@ def insert_data():
 
             for line in f:
                 json_line = json.loads(line)
+                image_file = json_line['image']
+
+                # Atualiza para a URL da imagem.
+                json_line['image'] = f'{BUCKET_URL_PREFIX}/{image_file}'
+
                 put_request.set_value(json_line)
                 
                 for i in range(3):

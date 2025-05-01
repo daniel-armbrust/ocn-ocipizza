@@ -5,7 +5,9 @@ version: '3.3'
 
 services:  
   nosql-db:
-    image: nosql-db:1.0    
+    image: nosql-db:1.0
+    ports:
+      - "8080:8080"    
     networks:
        ocipizza_network:
          ipv4_address: 10.100.1.10    
@@ -27,6 +29,7 @@ services:
     environment:
       NOSQL_CLOUDSIM_IP: 10.100.1.10
       NOSQL_CLOUDSIM_PORT: 8080
+      BUCKET_URL_PREFIX: http://127.0.0.1:8050/img
     depends_on:
       - nosql-db
   
@@ -37,6 +40,25 @@ services:
     build:
       context: ./bucket
       dockerfile: Dockerfile
+  
+  webapp:
+    image: ocipizza:1.0
+    ports:
+      - "5000:5000"
+    networks:
+       ocipizza_network:
+         ipv4_address: 10.100.1.30
+    build:
+      context: ./webapp
+      dockerfile: Dockerfile
+    environment:
+      ENV: dev
+      NOSQL_CLOUDSIM_IP: 10.100.1.10
+      NOSQL_CLOUDSIM_PORT: 8080       
+    depends_on:
+      - nosql-db
+      - nosql-init
+      - bucket
 
 networks:
    ocipizza_network:

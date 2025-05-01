@@ -52,7 +52,7 @@ def login_form_view():
                 # JWT
                 resp.set_cookie(key=app.__settings.jwt_cookie_name, 
                                 value=access_token,
-                                max_age=app.__settings.jwt_cookie_expire_ts, 
+                                max_age=app.__settings.expire_ts, 
                                 expires=app.__settings.jwt_cookie_expire_ts, 
                                 domain=app.__settings.domain, path='/', 
                                 secure=app.__settings.cookie_secure, 

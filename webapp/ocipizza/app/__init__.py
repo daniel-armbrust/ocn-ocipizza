@@ -9,6 +9,7 @@ from flask_jwt_extended import JWTManager
 
 from app.settings import Settings
 from app.user.user import MyUserMixin
+from app.modules.nosql import NoSQL
 
 def create_app():
     app = Flask(__name__)
@@ -60,7 +61,14 @@ def create_app():
         }
         
         minify(app=app)       
-
+    
+    # Init and get the OCI NoSQL handle.
+    # A handle has memory and network resources associated with it. To minimize 
+    # network activity as well as resource allocation and deallocation overheads, 
+    # it’s best to avoid repeated creation and closing of handles. So we create 
+    # and globalize the handle here for the entire app.
+    app._nosql_handle = NoSQL.create_handler(settings.env)
+  
     from app.main import main_blueprint
     from app.pizza import pizza_blueprint, api_pizza_blueprint 
     from app.order import order_blueprint, api_order_blueprint
