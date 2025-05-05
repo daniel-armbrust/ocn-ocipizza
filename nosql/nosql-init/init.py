@@ -6,13 +6,19 @@ import os
 import sys
 import json
 import time
+import logging
 
 from borneo import AuthorizationProvider, NoSQLHandle, \
                    NoSQLHandleConfig, PutRequest, PutOption, \
                    TableLimits, TableRequest
 
 # Lista de arquivos DDL que devem ser processados em ordem.
-ORDERED_DLL_FILES_LIST = ('user.ddl', 'user-order.ddl', 'pizza.ddl',)
+ORDERED_DLL_FILES_LIST = (
+    'user.ddl', 
+    'user-order.ddl', 
+    'pizza.ddl', 
+    'email-verification.ddl'
+)
 
 # Nome da Table e Arquivo JSON contendo os dados para inserção.
 TABLE_DATA = {'pizza': 'pizza.json'}
@@ -110,6 +116,10 @@ def insert_data():
         print(f' Done.')
 
 
+log_stdout = logging.basicConfig(level=logging.INFO,
+                                 format='%(asctime)s - %(levelname)s - %(message)s',
+                                 handlers=[logging.StreamHandler()])
+
 cloudsim_endpoint = f'{NOSQL_CLOUDSIM_IP}:{NOSQL_CLOUDSIM_PORT}'
 kvstore_endpoint = f'{NOSQL_CLOUDSIM_IP}:80'
 cloudsim_id = 'cloudsim'
@@ -117,7 +127,9 @@ cloudsim_id = 'cloudsim'
 endpoint = cloudsim_endpoint
 provider = CloudsimAuthorizationProvider(cloudsim_id)
 
-nosql_handle = NoSQLHandle(NoSQLHandleConfig(endpoint, provider))
+nosql_handle_config = NoSQLHandleConfig(endpoint, provider)
+nosql_handle_config.set_logger(log_stdout)
+nosql_handle = NoSQLHandle(nosql_handle_config)  
 
 exec_ddl_statement()
 insert_data()

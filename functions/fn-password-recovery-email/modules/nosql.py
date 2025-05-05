@@ -1,16 +1,20 @@
 #
-# modules/nosql.py
+# fn-password-recovery-email/modules/nosql.py
 #
 
 import os
 import logging
 
-from flask import current_app as app
-
+from borneo import AuthorizationProvider, NoSQLHandle, NoSQLHandleConfig, \
+    QueryRequest, PutRequest, PutOption
 from borneo.iam import SignatureProvider
-from borneo import AuthorizationProvider, NoSQLHandleConfig, NoSQLHandle
-from borneo import Consistency, QueryRequest
-from borneo import PutRequest, PutOption
+
+# Globals
+ENV = os.environ.get('ENV')
+NOSQL_COMPARTMENT_OCID = os.environ.get('NOSQL_COMPARTMENT_OCID')
+OCI_REGION = os.environ.get('OCI_REGION')
+NOSQL_CLOUDSIM_IP = os.getenv('NOSQL_CLOUDSIM_IP')
+NOSQL_CLOUDSIM_PORT = os.getenv('NOSQL_CLOUDSIM_PORT') 
 
 class CloudsimAuthorizationProvider(AuthorizationProvider):
     """
@@ -31,19 +35,13 @@ class CloudsimAuthorizationProvider(AuthorizationProvider):
         return 'Bearer ' + self._tenant_id
 
 class NoSQL():
-    _nosql_handle = None
-    
-    @staticmethod
-    def create_handler(env: str):
-        if env == 'development':    
-            nosql_cloudsim_ip = os.getenv('NOSQL_CLOUDSIM_IP', '127.0.0.1')        
-            nosql_cloudsim_port = os.getenv('NOSQL_CLOUDSIM_PORT', '8080')        
-          
+    def __init__(self):
+        if ENV == 'development':
             log_stdout = logging.basicConfig(level=logging.INFO, 
                                              format='%(asctime)s - %(levelname)s - %(message)s',
                                              handlers=[logging.StreamHandler()])
-
-            cloudsim_endpoint = f'{nosql_cloudsim_ip}:{nosql_cloudsim_port}'
+            
+            cloudsim_endpoint = f'{NOSQL_CLOUDSIM_IP}:{NOSQL_CLOUDSIM_PORT}'
             cloudsim_id = 'cloudsim'
 
             endpoint = cloudsim_endpoint
@@ -52,56 +50,34 @@ class NoSQL():
             nosql_handle_config = NoSQLHandleConfig(endpoint, provider)
             nosql_handle_config.set_logger(log_stdout)
 
-            nosql_handle = NoSQLHandle(nosql_handle_config)            
-
+            self.__nosql = NoSQLHandle(nosql_handle_config)            
         else:
             provider = SignatureProvider.create_with_resource_principal()        
             nosql_handle_config = NoSQLHandleConfig(os.getenv('NOSQL_REGION'), provider).set_logger(None).set_default_compartment(NOSQL_COMPARTMENT_OCID)
             
-            nosql_handle = NoSQLHandle(nosql_handle_config)
-
-        return nosql_handle
-
-    def __init__(self):
-         self._nosql_handle = app._nosql_handle 
+            self.__nosql = NoSQLHandle(nosql_handle_config)
     
     def query(self, sql: str):
-        result = []
-
-        query_request = QueryRequest()
-        query_request.set_consistency(Consistency.EVENTUAL)        
-        nosql_request = query_request.set_statement(sql)
-
+        query_request = QueryRequest().set_statement(sql)
         query_request.close()
-        
-        while True:
-            query = self._nosql_handle.query(query_request)
-            result = query.get_results()
-      
-            if len(result) > 0:          
-                break        
 
-            if nosql_request.is_done():
-                break
-            
-        return result        
+        query_result = self.__nosql.query(query_request)
+
+        return query_result.get_results()
     
-    def save(self, table_name: str, data: dict):
+    def add(self, data: dict):        
         put_request = PutRequest()
-        
-        put_request.set_table_name(table_name)
+        put_request.set_table_name('email_verification')
         put_request.set_option(PutOption.IF_ABSENT)
         put_request.set_value(data)
 
-        result = self._nosql_handle.put(put_request)
+        result = self.__nosql.put(put_request)
 
         # A successful put returns a non-empty version.
         if result.get_version() is not None:
-            generated_value = result.get_generated_value()
-
-            if generated_value:
-                return generated_value              
-            else:
-                return True
+            return True
         else:
             return False
+    
+    def close(self):
+        self.__nosql.close()

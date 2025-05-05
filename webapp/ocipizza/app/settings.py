@@ -7,9 +7,9 @@ from datetime import datetime, timedelta
 
 class Settings():
     def __init__(self):
-        self.env = os.environ.get('ENV') or 'dev'          
+        self.env = os.environ.get('FLASK_ENV')
 
-        if self.env == 'dev':
+        if self.env == 'development':
             import secrets
 
             self.secret_key = secrets.token_hex(32)
@@ -20,6 +20,11 @@ class Settings():
             self.domain = None
             self.cookie_secure = False
             self.html_minify = False                    
+
+            #self.oci_config_file = os.environ.get('OCI_CONFIG_FILE') or '~/.oci/config'
+
+            self.fn_user_register_endpoint = os.environ.get('FN_USER_REGISTER_ENDPOINT')
+            self.fn_password_recovery_endpoint = os.environ.get('FN_PASSWORD_RECOVERY_ENDPOINT')
         else:
             self.secret_key = os.environ.get('SECRET_KEY')
             
@@ -30,12 +35,11 @@ class Settings():
 
             self.domain = self.web_config['host']
             self.cookie_secure = True                    
-            
-        self.oci_config_file = os.environ.get('OCI_CONFIG_FILE') or '~/.oci/config'
-        self.nosql_compartment_ocid = os.environ.get('NOSQL_COMPARTMENT_OCID')   
-        self.fn_user_register_ocid = os.environ.get('FN_USER_REGISTER_OCID')
-        self.fn_password_recovery_ocid = os.environ.get('FN_PASSWORD_RECOVERY_OCID')
 
+            self.fn_user_register_ocid = os.environ.get('FN_USER_REGISTER_OCID')
+            self.fn_password_recovery_ocid = os.environ.get('FN_PASSWORD_RECOVERY_OCID')
+            self.nosql_compartment_ocid = os.environ.get('NOSQL_COMPARTMENT_OCID')        
+        
         self.user_min_password_length = 8    
         self.user_max_password_length = 16
 

@@ -1,7 +1,7 @@
 {% extends "__base.html" %}
 {% block title %}Novo Usuário{% endblock %}
 {% block body_header %}        
-    {% include "__top_menu.html" %}
+    {% include "__top_menu.html" %}    
 {% endblock %}
 {% block body %}      
     {% include "__flash_message.html" %}
@@ -14,9 +14,9 @@
                 <div class="card w-100 rounded">
                     <div class="card-body rounded" style="border-top: 5px solid gray;">
                         <h5 class="card-title fw-bold fs-4 pb-3">Novo Usuário</h5>
-                        <form class="row g-3 needs-validation" id="id_form"
+                        <form class="row g-3 needs-validation" id="id_form" 
                               method="post" action="{{ url_for('user.add_user_form_view') }}" novalidate>
-                            {{ form.hidden_tag() }}                         
+                              {{ form.hidden_tag() }}                         
                             <div class="mb-3">   
                                 <div class="input-group has-validation">
                                     {{ form.email(class_="form-control form-control-lg", placeholder="E-mail", id="id_form_email") }}
@@ -61,7 +61,7 @@
                                 <div class="col d-flex justify-content-center pt-2">
                                     <div class="mb-3">   
                                         <button class="btn btn-success btn-lg fw-bold"
-                                                id="id_form_submit_button" type="button"
+                                                id="id_form_submit_button" type="submit"
                                                 onclick="validateAndsubmitButton()">
                                             &nbsp;&nbsp;&nbsp;
                                             <i class="fa-solid fa-check"></i> &nbsp; Confirmar 

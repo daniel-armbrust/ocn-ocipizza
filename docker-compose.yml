@@ -35,31 +35,57 @@ services:
   
   bucket:
     image: bucket:1.0
+    networks:
+       ocipizza_network:
+         ipv4_address: 10.100.1.30
     ports:
       - "8050:8050"
     build:
       context: ./bucket
       dockerfile: Dockerfile
+    environment:
+      HTTP_PORT: 8050
+  
+  smtp:
+    image: smtp:1.0
+    networks:
+       ocipizza_network:
+         ipv4_address: 10.100.1.40
+    ports:
+      - "8025:8025"
+    build:
+      context: ./smtp
+      dockerfile: Dockerfile
+    environment:
+      SMTP_IP: 127.0.0.1
+      SMTP_PORT: 8025      
   
   webapp:
-    image: ocipizza:1.0
+    image: webapp:1.0
     ports:
       - "5000:5000"
     networks:
        ocipizza_network:
-         ipv4_address: 10.100.1.30
+         ipv4_address: 10.100.1.50
     build:
       context: ./webapp
       dockerfile: Dockerfile
-    environment:
-      ENV: dev
+    environment:      
+      FLASK_ENV: development
+      FLASK_DEBUG: 1            
       NOSQL_CLOUDSIM_IP: 10.100.1.10
-      NOSQL_CLOUDSIM_PORT: 8080       
+      NOSQL_CLOUDSIM_PORT: 8080      
+      FN_USER_REGISTER_ENDPOINT: http://localhost:8090/t/ocipizza-app/fn-user-register-email
+      FN_PASSWORD_RECOVERY_ENDPOINT: http://localhost:8090/t/ocipizza-app/fn-password-recovery-email         
+    volumes:
+      # Volume utilizado para desenvolvimento dentro do contêiner.
+      - ~/ocn-ocipizza/webapp/ocipizza:/home/ocipizza
     depends_on:
       - nosql-db
       - nosql-init
       - bucket
-
+      - smtp
+  
 networks:
    ocipizza_network:
      driver: bridge

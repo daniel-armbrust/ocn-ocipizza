@@ -10,14 +10,12 @@ ENV CLOUDSIM_DIR="/cloudsim/oracle-nosql-cloud-simulator-5.11.6"
 
 WORKDIR /
 
-COPY ./cloudsim ./cloudsim
+ADD ./cloudsim/oracle-nosql-cloud-simulator-5.11.6.tar.gz ./cloudsim
 COPY docker-entrypoint.sh ./
 
 RUN microdnf update -y && \
-    microdnf install -y gzip java-11-openjdk && \ 
-    cd /cloudsim && tar zxf "$CLODSIM_TAR_FILE" && \    
-    microdnf clean all && \
-    rm -rf /var/cache/yum && rm -f "$CLODSIM_TAR_FILE"
+    microdnf install -y java-11-openjdk && \ 
+    microdnf clean all && rm -rf /var/cache/yum
 
 EXPOSE 8080
 

@@ -8,12 +8,12 @@ LABEL maintainer="Daniel Armbrust <darmbrust@gmail.com>"
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-WORKDIR /bucket
+WORKDIR /smtpd
 
+COPY ./smtp-server.py ./
 COPY ./docker-entrypoint.sh ./
-COPY ./img ./img
 
-RUN microdnf install -y python3.8 && \    
+RUN microdnf install -y python3.8 && \
     microdnf clean all && rm -rf /var/cache/yum
 
 ENTRYPOINT ["./docker-entrypoint.sh"]

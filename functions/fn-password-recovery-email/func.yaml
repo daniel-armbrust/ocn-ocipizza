@@ -1,6 +1,6 @@
 schema_version: 20180708
-name: fn-user-register-email
-version: 0.0.1
+name: fn-password-recovery-email
+version: 1.0.0
 runtime: python3.8
 build_image: fnproject/python:3.8-dev
 run_image: fnproject/python:3.8

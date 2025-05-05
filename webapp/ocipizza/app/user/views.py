@@ -10,8 +10,7 @@ from flask import current_app as app
 from flask_jwt_extended import create_access_token
 
 from . import user_blueprint
-from .user import User, MyUserMixin
-from .password import Password
+from .user import User, UserRegister, UserPassword, MyUserMixin
 from .forms import LoginForm, NewUserForm, PasswordRecoveryForm, \
     NewPasswordForm
 
@@ -100,19 +99,19 @@ def add_user_form_view():
 
                 return redirect(url_for('user.add_user_form_view', next=None))               
             else:
-                fn = Functions()
-                fn.fn_ocid = app.__settings.fn_user_register_ocid
-                invoke_status = fn.invoke(json_message=form_dict)
-                                
+                user_register = UserRegister()
+                resp = user_register.add(user_data=form_dict)
+                                                
                 # TODO: log
-                if invoke_status is True:
+                if resp is True:
                     flask_flash(u'Cadastro efetuado com sucesso! Aguarde o e-mail para confirmar o seu cadastro.', 'success')
                 else:
                     flask_flash(u'Erro ao cadastrar o usuário. Tente novamente mais tarde.', 'error')
+                
+        else:
+            flask_flash(u'Erro ao cadastrar o novo usuário.', 'error')       
 
-                return redirect(url_for('main.home', next=None))                        
-        
-        flask_flash(u'Erro ao cadastrar o novo usuário.', 'error')       
+        return redirect(url_for('main.home', next=None))                        
             
     return render_template('user_add_form.html', form=form,
                            web_config=app.__settings.web_config,
@@ -130,10 +129,10 @@ def user_confirm_view():
     is_email_valid = utils.check_email(email)
 
     if is_email_valid and token:
-        user = User()
-        activated = user.activate(email=email, token=token)
+        user_register = UserRegister()
+        resp = user_register.activate(email=email, token=token)
 
-        if activated:
+        if resp is True:
             flask_flash(u'Conta ativada com sucesso.', 'success')            
 
             return redirect(url_for('user.login_form_view', next=None))  
@@ -158,13 +157,12 @@ def password_recovery_form_view():
             user = User()
             is_email_valid = user.check_email(email=form_dict['email'])
 
-            if is_email_valid:                                                
-                fn = Functions()
-                fn.fn_ocid = app.__settings.fn_password_recovery_ocid
-                invoke_status = fn.invoke(json_message=form_dict)
+            if is_email_valid:    
+                user_password = UserPassword()
+                resp = user_password.recovery(json_message=form_dict)
                 
                 # TODO: log
-                if invoke_status is True:
+                if resp is True:
                     flask_flash(u'Foi enviado um e-mail para a recuperação da sua senha.', 'success')
                 else:
                     flask_flash(u'Erro ao processar a solicitação. Tente novamente mais tarde.', 'error')    
@@ -204,12 +202,14 @@ def new_password_form_view():
             if is_email_valid:
                 user_id = user.get_id(email=form_dict['email'])
 
-                password = Password()
-                password.user_id = user_id
-                password.email = form_dict['email']
-                password.token = form_dict['token']
-                password.password = form_dict['password']
-                password_set = password.set()
+                user_password = UserPassword()
+                
+                user_password.user_id = user_id
+                user_password.email = form_dict['email']
+                user_password.token = form_dict['token']
+                user_password.password = form_dict['password']
+
+                password_set = user_password.set()
 
                 if password_set is True:
                     flask_flash(u'Nova senha definida com sucesso.', 'success')            

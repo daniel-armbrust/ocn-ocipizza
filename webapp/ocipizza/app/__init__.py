@@ -19,7 +19,7 @@ def create_app():
 
     app.config['SECRET_KEY'] = settings.secret_key
     app.config['JWT_SECRET_KEY'] = settings.secret_key
-
+    
     app.config['SESSION_COOKIE_NAME'] = settings.session_cookie_name    
     app.config['PERMANENT_SESSION_LIFETIME'] = settings.session_cookie_expire_ts
     app.config['SESSION_COOKIE_DOMAIN'] = settings.domain
@@ -27,7 +27,7 @@ def create_app():
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'        
     
-    if settings.env != 'dev':        
+    if settings.env != 'development':        
         app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'        
         app.config['SERVER_NAME'] = f"{settings.web_config['scheme']}://{settings.web_config['host']}"
     
