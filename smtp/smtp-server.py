@@ -2,8 +2,8 @@ import os
 import smtpd
 import asyncore
 
-SMTP_IP = os.getenv('SMTP_IP', '127.0.0.1')
-SMTP_PORT = os.getenv('SMTP_PORT', 8025)
+SMTP_IP = os.getenv('SMTP_IP')
+SMTP_PORT = os.getenv('SMTP_PORT')
 
 class CustomSMTPServer(smtpd.SMTPServer):
     def process_message(self, peer, mailfrom, rcpttos, data, 
@@ -21,5 +21,5 @@ class CustomSMTPServer(smtpd.SMTPServer):
 
 if __name__ == '__main__':
     server = CustomSMTPServer((SMTP_IP, int(SMTP_PORT)), None)
-    print(f'Running mail server on localhost:{SMTP_PORT}')
+    print(f'Running mail server on {SMTP_IP}:{SMTP_PORT}')
     asyncore.loop()

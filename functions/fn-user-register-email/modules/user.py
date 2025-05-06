@@ -52,7 +52,8 @@ class User():
             SELECT email, telephone 
                 FROM user 
             WHERE
-                email = "{email}" OR telephone = "{telephone_num}" LIMIT 1
+                email = "{email}" OR telephone = "{telephone_num}" 
+            LIMIT 1
         '''
 
         result = self.__nosql.query(sql)        

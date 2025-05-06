@@ -62,7 +62,7 @@ class NoSQL():
             self.__nosql = NoSQLHandle(nosql_handle_config)            
         else:
             provider = SignatureProvider.create_with_resource_principal()        
-            nosql_handle_config = NoSQLHandleConfig(os.getenv('NOSQL_REGION'), provider).set_logger(None).set_default_compartment(NOSQL_COMPARTMENT_OCID)
+            nosql_handle_config = NoSQLHandleConfig(OCI_REGION, provider).set_logger(None).set_default_compartment(NOSQL_COMPARTMENT_OCID)
             
             self.__nosql = NoSQLHandle(nosql_handle_config)
         

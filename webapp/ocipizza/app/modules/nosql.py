@@ -2,10 +2,10 @@
 # modules/nosql.py
 #
 
-import os
 import logging
 
 from flask import current_app as app
+from app.settings import Settings
 
 from borneo.iam import SignatureProvider
 from borneo import AuthorizationProvider, NoSQLHandleConfig, NoSQLHandle
@@ -35,15 +35,14 @@ class NoSQL():
     
     @staticmethod
     def create_handler(env: str):
-        if env == 'development':    
-            nosql_cloudsim_ip = os.getenv('NOSQL_CLOUDSIM_IP', '127.0.0.1')        
-            nosql_cloudsim_port = os.getenv('NOSQL_CLOUDSIM_PORT', '8080')        
-          
+        settings = Settings() 
+
+        if env == 'development':         
             log_stdout = logging.basicConfig(level=logging.INFO, 
                                              format='%(asctime)s - %(levelname)s - %(message)s',
                                              handlers=[logging.StreamHandler()])
 
-            cloudsim_endpoint = f'{nosql_cloudsim_ip}:{nosql_cloudsim_port}'
+            cloudsim_endpoint = f'{settings.nosql_cloudsim_ip}:{settings.nosql_cloudsim_port}'
             cloudsim_id = 'cloudsim'
 
             endpoint = cloudsim_endpoint
@@ -55,8 +54,10 @@ class NoSQL():
             nosql_handle = NoSQLHandle(nosql_handle_config)            
 
         else:
-            provider = SignatureProvider.create_with_resource_principal()        
-            nosql_handle_config = NoSQLHandleConfig(os.getenv('NOSQL_REGION'), provider).set_logger(None).set_default_compartment(NOSQL_COMPARTMENT_OCID)
+            provider = SignatureProvider.create_with_resource_principal()  
+
+            nosql_handle_config = NoSQLHandleConfig(
+                settings.nosql_region, provider).set_logger(None).set_default_compartment(settings.nosql_compartment_ocid)
             
             nosql_handle = NoSQLHandle(nosql_handle_config)
 

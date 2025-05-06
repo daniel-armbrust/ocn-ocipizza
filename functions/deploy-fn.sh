@@ -3,15 +3,8 @@
 # functions/deploy-fn.sh
 #
 
-export ENV="development"
-export FN_PORT=8090
-export OCIPIZZA_APP_NAME="ocipizza-app"
-export NOSQL_CLOUDSIM_IP="10.100.1.10"
-export NOSQL_CLOUDSIM_PORT=8080      
-export SMTP_IP="127.0.0.1"
-export SMTP_PORT=8025
-export HTTP_IP="127.0.0.1"
-export HTTP_PORT=5000
+OCIPIZZA_APP_NAME="ocipizza-app"
+FN_PORT=8090
 
 function start_fnserver() {
     # Inicia o servidor local Fn server. Um loop é utilizado para monitorar 
@@ -23,7 +16,8 @@ function start_fnserver() {
     fn use context default &>/dev/null
 
     # Inicia o servidor local Fn server em background.
-    fn start --port "$FN_PORT" &>/dev/null &
+    fn start --log-level debug \
+             --port "$FN_PORT" &>/dev/null &
 
     # Aguarda a inicialização completa do servidor.
     while [ $count -lt $max_tries ]; do
@@ -61,18 +55,15 @@ function create_app() {
 }
 
 function fn_deploy() {
-    # Executa a implantação das funções presentes neste diretório.
-    
+    # Executa a implantação das funções presentes neste diretório.    
+    fn deploy --all --local --no-bump
+
     ls -1 | while read funcname; do
 
         if [ -d "$funcname" ]; then        
-            echo -e "\n[INFO] Executando o processo de deployment da função: $funcname\n"                
-            cd "$funcname"
-            fn deploy --app "$OCIPIZZA_APP_NAME" --local --no-bump
-            cd - 1>/dev/null
-
-            echo -e "\n[INFO] Criando a trigger para a função: $funcname"                
-            fn create trigger --type http --source "$funcname" "$OCIPIZZA_APP_NAME" "$funcname" "trigger-$funcname" &>/dev/null
+            echo -e "\n[INFO] Criando a trigger para a função: $funcname"
+            fn create trigger --type http \
+                              --source "$funcname" "$OCIPIZZA_APP_NAME" "$funcname" "trigger-$funcname" &>/dev/null
         fi
 
     done

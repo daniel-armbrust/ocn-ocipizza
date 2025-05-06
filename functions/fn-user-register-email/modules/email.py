@@ -21,10 +21,10 @@ ENV = os.environ.get('ENV')
 EMAIL_COMPARTMENT_OCID = os.environ.get('EMAIL_COMPARTMENT_OCID')
 TOKEN_LEN = 22
 EXPIRATION_SECS = 600 # 10 minutos
-SMTP_IP = os.environ.get('SMTP_IP', '127.0.0.1')
-SMTP_PORT = os.environ.get('SMTP_PORT', 8025)
-HTTP_PORT = os.environ.get('HTTP_PORT', 5000)
-HTTP_IP = os.environ.get('HTTP_IP', '127.0.0.1')
+SMTP_IP = os.environ.get('SMTP_IP')
+SMTP_PORT = os.environ.get('SMTP_PORT')
+HTTP_PORT = os.environ.get('HTTP_PORT')
+HTTP_IP = os.environ.get('HTTP_IP')
 
 class Email():
     @property
@@ -44,14 +44,14 @@ class Email():
         self.__name = value
 
     def __init__(self):
+        self.__token = self.__get_token()
+        self.__expiration_ts = self.__get_expiration_ts()
+
         if ENV == 'development':
             pass
         else:
             signer = oci_signers.get_resource_principals_signer()        
             self.__email_client = EmailDPClient(config={}, signer=signer)
-            
-            self.__token = self.__get_token()
-            self.__expiration_ts = self.__get_expiration_ts()
     
     def __get_token(self):
         """Retorna um token."""
@@ -123,15 +123,15 @@ class Email():
         html_email = self.__get_html_email()
 
         if ENV == 'development':
-            smtp_server = smtplib.SMTP(SMTP_IP, SMTP_PORT)
+            smtp = smtplib.SMTP(SMTP_IP, SMTP_PORT)
 
-            smtp_server.sendmail(
+            smtp.sendmail(
                 f'{self.__address}', 
                 [f'no-reply@ocipizza.com.br'], 
                 html_email
             )
 
-            smtp_server.quit()
+            smtp.quit()
 
             return True            
         else:

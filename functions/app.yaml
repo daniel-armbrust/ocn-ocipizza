@@ -1,0 +1,9 @@
+name: ocipizza-app
+config:
+  ENV: development
+  NOSQL_CLOUDSIM_IP: 172.18.182.47
+  NOSQL_CLOUDSIM_PORT: 8080
+  SMTP_IP: 172.18.182.47
+  SMTP_PORT: 8025
+  HTTP_IP: 127.0.0.1
+  HTTP_PORT: 5000

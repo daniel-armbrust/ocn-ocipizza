@@ -4,13 +4,11 @@
 from decimal import Decimal
 from datetime import datetime
 
-from app.settings import Settings
 from app.modules.nosql import NoSQL
 from app.pizza.pizza import Pizza
 
 class Order():
-    def __init__(self):
-        self.__settings = Settings()
+    def __init__(self):        
         self.__nosql = NoSQL()
     
     def add(self, data: dict):
@@ -37,7 +35,7 @@ class Order():
 
         data['pizza'] = pizza_list
         data['total'] = float(total)
-        data['order_datetime'] = datetime.now()
+        data['order_datetime'] = int(datetime.now().timestamp())
 
         try:
             data['address'] = {'zipcode': data.pop('zipcode'), 
@@ -50,7 +48,7 @@ class Order():
             return False
 
         added = self.__nosql.save(
-            table_name=self.__settings.nosql_order_table_name, 
+            table_name='user.order', 
             data=data)
         
         # TODO: log errors
@@ -68,19 +66,16 @@ class Order():
 
         data_list = self.__nosql.query(sql) 
              
-        datetime_format = '%Y-%m-%dT%H:%M:%SZ'     
-
         i = 0
         while i < len(data_list):
             data = data_list[i]
 
             order_datetime = data['order_datetime']
-            datetime_obj = datetime.strptime(order_datetime, datetime_format)
+            datetime_obj = datetime.fromtimestamp(order_datetime)
+            datetime_str = datetime_obj.strftime("%d/%m/%Y %H:%M")
 
-            data['order_datetime'] = \
-                f'{datetime_obj.day}/{datetime_obj.month}/{datetime_obj.year} ' + \
-                f'{datetime_obj.hour}:{datetime_obj.minute}'
-            
+            data['order_datetime'] = datetime_str
+                      
             data_list[i] = data
             i += 1
 

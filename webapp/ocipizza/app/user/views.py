@@ -1,6 +1,7 @@
 #
 # app/user/views.py
 #
+from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
 from flask import render_template, request, make_response, redirect, url_for
@@ -14,7 +15,6 @@ from .user import User, UserRegister, UserPassword, MyUserMixin
 from .forms import LoginForm, NewUserForm, PasswordRecoveryForm, \
     NewPasswordForm
 
-from app.modules.functions import Functions
 from app.modules import utils
 
 @user_blueprint.route('/login/form', methods=['GET', 'POST'])
@@ -49,10 +49,14 @@ def login_form_view():
                     resp = make_response(redirect(url_for('main.home')))
 
                 # JWT
+                datetime_now = datetime.now()
+                expire_timedelta = datetime_now + timedelta(hours=2)
+                expire_ts = int(expire_timedelta.strftime('%s'))
+
                 resp.set_cookie(key=app.__settings.jwt_cookie_name, 
                                 value=access_token,
-                                max_age=app.__settings.expire_ts, 
-                                expires=app.__settings.jwt_cookie_expire_ts, 
+                                max_age=expire_ts, 
+                                expires=expire_ts, 
                                 domain=app.__settings.domain, path='/', 
                                 secure=app.__settings.cookie_secure, 
                                 httponly=True)
@@ -95,7 +99,7 @@ def add_user_form_view():
             )
 
             if user_exists:
-                flask_flash(u'E-mail ou telefone já existem.', 'error')  
+                flask_flash(u'E-mail ou Telefone já existem.', 'error')  
 
                 return redirect(url_for('user.add_user_form_view', next=None))               
             else:

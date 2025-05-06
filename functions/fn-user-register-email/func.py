@@ -32,7 +32,7 @@ def handler(ctx, data: io.BytesIO = None):
     except Exception as ex:       
         error = f'Error parsing json payload: {ex}'
         raise Exception(error)
-    
+        
     resp = {}
         
     user = User()   

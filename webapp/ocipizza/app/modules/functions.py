@@ -26,7 +26,7 @@ class Functions():
         return self.__fn_endpoint
     
     @fn_endpoint.setter
-    def fn_ocid(self, value: str):
+    def fn_endpoint(self, value: str):
         self.__fn_endpoint = value
         
     def __init__(self):

@@ -41,7 +41,7 @@ def create_app():
     # https://flask-login.readthedocs.io/en/latest/
     login_manager = LoginManager()    
     login_manager.init_app(app)
-    login_manager.login_view = 'user.login_view'
+    login_manager.login_view = 'user.login_form_view'
     login_manager.login_message = 'É necessário realizar o login para acessar essa página.'
 
     @login_manager.user_loader

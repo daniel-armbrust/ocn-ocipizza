@@ -57,7 +57,7 @@ services:
       context: ./smtp
       dockerfile: Dockerfile
     environment:
-      SMTP_IP: 127.0.0.1
+      SMTP_IP: 10.100.1.40
       SMTP_PORT: 8025      
   
   webapp:
@@ -74,9 +74,10 @@ services:
       FLASK_ENV: development
       FLASK_DEBUG: 1            
       NOSQL_CLOUDSIM_IP: 10.100.1.10
-      NOSQL_CLOUDSIM_PORT: 8080      
-      FN_USER_REGISTER_ENDPOINT: http://localhost:8090/t/ocipizza-app/fn-user-register-email
-      FN_PASSWORD_RECOVERY_ENDPOINT: http://localhost:8090/t/ocipizza-app/fn-password-recovery-email         
+      NOSQL_CLOUDSIM_PORT: 8080
+      # Utilizar o Endereço IP da máquina onde o FN-Server está em execução.
+      FN_USER_REGISTER_ENDPOINT: http://172.18.182.47:8090/t/ocipizza-app/fn-user-register-email
+      FN_PASSWORD_RECOVERY_ENDPOINT: http://172.18.182.47:8090/t/ocipizza-app/fn-password-recovery-email         
     volumes:
       # Volume utilizado para desenvolvimento dentro do contêiner.
       - ~/ocn-ocipizza/webapp/ocipizza:/home/ocipizza

@@ -21,7 +21,8 @@ class Settings():
             self.cookie_secure = False
             self.html_minify = False                    
 
-            #self.oci_config_file = os.environ.get('OCI_CONFIG_FILE') or '~/.oci/config'
+            self.nosql_cloudsim_ip = os.getenv('NOSQL_CLOUDSIM_IP')
+            self.nosql_cloudsim_port = os.getenv('NOSQL_CLOUDSIM_PORT') 
 
             self.fn_user_register_endpoint = os.environ.get('FN_USER_REGISTER_ENDPOINT')
             self.fn_password_recovery_endpoint = os.environ.get('FN_PASSWORD_RECOVERY_ENDPOINT')
@@ -38,7 +39,9 @@ class Settings():
 
             self.fn_user_register_ocid = os.environ.get('FN_USER_REGISTER_OCID')
             self.fn_password_recovery_ocid = os.environ.get('FN_PASSWORD_RECOVERY_OCID')
-            self.nosql_compartment_ocid = os.environ.get('NOSQL_COMPARTMENT_OCID')        
+
+            self.nosql_compartment_ocid = os.environ.get('NOSQL_COMPARTMENT_OCID')
+            self.nosql_region = os.getenv('NOSQL_REGION') 
         
         self.user_min_password_length = 8    
         self.user_max_password_length = 16
@@ -47,8 +50,10 @@ class Settings():
         expire_timedelta = datetime_now + timedelta(hours=2)
         expire_ts = int(expire_timedelta.strftime('%s'))
 
+        # JWT
         self.jwt_cookie_name = 'ocipzjwt'
-        self.jwt_cookie_expire_ts = expire_ts
+        #self.jwt_cookie_expire_ts = expire_ts
 
+        # Flask Session
         self.session_cookie_name = 'ocipzsess'
         self.session_cookie_expire_ts = expire_ts

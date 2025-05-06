@@ -27,6 +27,7 @@ class User():
                 FROM user 
             WHERE
                 email = "{email}"
+            LIMIT 1
         '''
 
         result = self.__nosql.query(sql)      
@@ -42,6 +43,7 @@ class User():
                 FROM user 
             WHERE 
                 email = "{email}"
+            LIMIT 1
         '''
 
         data = self.__nosql.query(sql)        
@@ -60,6 +62,7 @@ class User():
                 FROM user
             WHERE
                 email = "{email}"
+            LIMIT 1
         '''
         data = self.__nosql.query(sql)
 
@@ -83,7 +86,7 @@ class User():
         '''
 
         result = self.__nosql.query(sql)
-
+       
         if result:
             if result[0]['email'] == email or result[0]['telephone'] == telephone_num:
                 return True
@@ -99,8 +102,9 @@ class UserRegister():
     def __init__(self):
         self.__settings = Settings()
         self.__fn = Functions()
+        self.__nosql = NoSQL()
 
-        if self.__settings.env == 'development':
+        if self.__settings.env == 'development':            
             self.__fn.fn_endpoint = self.__settings.fn_user_register_endpoint 
         else:
             self.__fn.fn_ocid = self.__settings.fn_user_register_ocid
@@ -117,6 +121,8 @@ class UserRegister():
     def activate(self, email: str, token: str):
         """Ativa e confirma a conta do usuário."""
 
+        user = User()
+
         sql_select = f'''
             SELECT email, token, expiration_ts 
                 FROM email_verification
@@ -129,7 +135,7 @@ class UserRegister():
         if result:            
             if result[0]['email'] == email and result[0]['token'] == token:
                 # TODO: verificar "expiration_ts"
-                user_id = self.get_id(email=email)
+                user_id = user.get_id(email=email)
 
                 sql_update = f'''
                     UPDATE user SET verified = True WHERE id = {user_id}
@@ -141,8 +147,7 @@ class UserRegister():
                     sql_delete = f'''
                         DELETE 
                             FROM email_verification
-                        WHERE email = "{email}" AND token = "{token}"
-                        LIMIT 1
+                        WHERE email = "{email}" AND token = "{token}"                        
                     '''
 
                     self.__nosql.query(sql_delete)
@@ -252,9 +257,4 @@ class UserPassword():
             if password_update is True:
                 return True
 
-        return False    
-
-
-
-
-
+        return False
