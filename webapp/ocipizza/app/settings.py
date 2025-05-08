@@ -21,8 +21,8 @@ class Settings():
             self.cookie_secure = False
             self.html_minify = False                    
 
-            self.nosql_cloudsim_ip = os.getenv('NOSQL_CLOUDSIM_IP')
-            self.nosql_cloudsim_port = os.getenv('NOSQL_CLOUDSIM_PORT') 
+            self.nosql_ip = os.getenv('NOSQL_IP')
+            self.nosql_port = os.getenv('NOSQL_PORT') 
 
             self.fn_user_register_endpoint = os.environ.get('FN_USER_REGISTER_ENDPOINT')
             self.fn_password_recovery_endpoint = os.environ.get('FN_PASSWORD_RECOVERY_ENDPOINT')

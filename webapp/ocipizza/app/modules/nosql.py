@@ -8,27 +8,10 @@ from flask import current_app as app
 from app.settings import Settings
 
 from borneo.iam import SignatureProvider
-from borneo import AuthorizationProvider, NoSQLHandleConfig, NoSQLHandle
+from borneo import NoSQLHandleConfig, NoSQLHandle
 from borneo import Consistency, QueryRequest
 from borneo import PutRequest, PutOption
-
-class CloudsimAuthorizationProvider(AuthorizationProvider):
-    """
-    NoSQL Cloud Simulator Only.
-
-    This class is used as an AuthorizationProvider when using the Cloud
-    Simulator, which has no security configuration. It accepts a string
-    tenant_id that is used as a simple namespace for tables.
-    """
-    def __init__(self, tenant_id):
-        super(CloudsimAuthorizationProvider, self).__init__()
-        self._tenant_id = tenant_id
-
-    def close(self):
-        pass
-
-    def get_authorization_string(self, request=None):
-        return 'Bearer ' + self._tenant_id
+from borneo.kv import StoreAccessTokenProvider
 
 class NoSQL():
     _nosql_handle = None
@@ -41,18 +24,10 @@ class NoSQL():
             log_stdout = logging.basicConfig(level=logging.INFO, 
                                              format='%(asctime)s - %(levelname)s - %(message)s',
                                              handlers=[logging.StreamHandler()])
-
-            cloudsim_endpoint = f'{settings.nosql_cloudsim_ip}:{settings.nosql_cloudsim_port}'
-            cloudsim_id = 'cloudsim'
-
-            endpoint = cloudsim_endpoint
-            provider = CloudsimAuthorizationProvider(cloudsim_id) 
-
-            nosql_handle_config = NoSQLHandleConfig(endpoint, provider)
-            nosql_handle_config.set_logger(log_stdout)
-
+            
+            provider = StoreAccessTokenProvider()
+            nosql_handle_config = NoSQLHandleConfig(f'http://{settings.nosql_ip}:{settings.nosql_port}', provider).set_logger(log_stdout)
             nosql_handle = NoSQLHandle(nosql_handle_config)            
-
         else:
             provider = SignatureProvider.create_with_resource_principal()  
 

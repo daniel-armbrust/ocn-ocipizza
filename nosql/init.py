@@ -8,9 +8,9 @@ import json
 import time
 import logging
 
-from borneo import AuthorizationProvider, NoSQLHandle, \
-                   NoSQLHandleConfig, PutRequest, PutOption, \
-                   TableLimits, TableRequest
+from borneo import NoSQLHandle, NoSQLHandleConfig, PutRequest, \
+                   PutOption, TableLimits, TableRequest
+from borneo.kv import StoreAccessTokenProvider
 
 # Lista de arquivos DDL que devem ser processados em ordem.
 ORDERED_DLL_FILES_LIST = (
@@ -24,31 +24,11 @@ ORDERED_DLL_FILES_LIST = (
 TABLE_DATA = {'pizza': 'pizza.json'}
 
 # IP e Porta para conexão com o Oracle Cloud NoSQL Simulator.
-NOSQL_CLOUDSIM_IP = os.getenv('NOSQL_CLOUDSIM_IP')
-NOSQL_CLOUDSIM_PORT = os.getenv('NOSQL_CLOUDSIM_PORT')
+NOSQL_IP = os.getenv('NOSQL_IP')
+NOSQL_PORT = os.getenv('NOSQL_PORT')
 
 # Prefixo URL utilizado para salvar as imagens.
 BUCKET_URL_PREFIX = os.getenv('BUCKET_URL_PREFIX')
-
-class CloudsimAuthorizationProvider(AuthorizationProvider):
-    """
-    Cloud Simulator Only.
-
-    This class is used as an AuthorizationProvider when using the Cloud
-    Simulator, which has no security configuration. It accepts a string
-    tenant_id that is used as a simple namespace for tables.
-    """
-
-    def __init__(self, tenant_id):
-        super(CloudsimAuthorizationProvider, self).__init__()
-        self._tenant_id = tenant_id
-
-    def close(self):
-        pass
-
-    def get_authorization_string(self, request=None):
-        return 'Bearer ' + self._tenant_id
-
 
 def exec_ddl_statement():
     """Executa os arquivos DDL.
@@ -120,16 +100,9 @@ log_stdout = logging.basicConfig(level=logging.INFO,
                                  format='%(asctime)s - %(levelname)s - %(message)s',
                                  handlers=[logging.StreamHandler()])
 
-cloudsim_endpoint = f'{NOSQL_CLOUDSIM_IP}:{NOSQL_CLOUDSIM_PORT}'
-kvstore_endpoint = f'{NOSQL_CLOUDSIM_IP}:80'
-cloudsim_id = 'cloudsim'
-
-endpoint = cloudsim_endpoint
-provider = CloudsimAuthorizationProvider(cloudsim_id)
-
-nosql_handle_config = NoSQLHandleConfig(endpoint, provider)
-nosql_handle_config.set_logger(log_stdout)
-nosql_handle = NoSQLHandle(nosql_handle_config)  
+provider = StoreAccessTokenProvider()
+config = NoSQLHandleConfig(f'http://{NOSQL_IP}:{NOSQL_PORT}', provider).set_logger(log_stdout)
+nosql_handle = NoSQLHandle(config)
 
 exec_ddl_statement()
 insert_data()

@@ -5,34 +5,17 @@
 import os
 import logging
 
-from borneo import AuthorizationProvider, NoSQLHandle, NoSQLHandleConfig, \
+from borneo import NoSQLHandle, NoSQLHandleConfig, \
     QueryRequest, PutRequest, PutOption
 from borneo.iam import SignatureProvider
+from borneo.kv import StoreAccessTokenProvider
 
 # Globals
 ENV = os.environ.get('ENV')
 NOSQL_COMPARTMENT_OCID = os.environ.get('NOSQL_COMPARTMENT_OCID')
 OCI_REGION = os.environ.get('OCI_REGION')
-NOSQL_CLOUDSIM_IP = os.getenv('NOSQL_CLOUDSIM_IP')
-NOSQL_CLOUDSIM_PORT = os.getenv('NOSQL_CLOUDSIM_PORT') 
-
-class CloudsimAuthorizationProvider(AuthorizationProvider):
-    """
-    NoSQL Cloud Simulator Only.
-
-    This class is used as an AuthorizationProvider when using the Cloud
-    Simulator, which has no security configuration. It accepts a string
-    tenant_id that is used as a simple namespace for tables.
-    """
-    def __init__(self, tenant_id):
-        super(CloudsimAuthorizationProvider, self).__init__()
-        self._tenant_id = tenant_id
-
-    def close(self):
-        pass
-
-    def get_authorization_string(self, request=None):
-        return 'Bearer ' + self._tenant_id
+NOSQL_IP = os.getenv('NOSQL_IP')
+NOSQL_PORT = os.getenv('NOSQL_PORT') 
 
 class NoSQL():
     @property
@@ -50,15 +33,9 @@ class NoSQL():
                                              format='%(asctime)s - %(levelname)s - %(message)s',
                                              handlers=[logging.StreamHandler()])
             
-            cloudsim_endpoint = f'{NOSQL_CLOUDSIM_IP}:{NOSQL_CLOUDSIM_PORT}'
-            cloudsim_id = 'cloudsim'
-
-            endpoint = cloudsim_endpoint
-            provider = CloudsimAuthorizationProvider(cloudsim_id) 
-
-            nosql_handle_config = NoSQLHandleConfig(endpoint, provider)
-            nosql_handle_config.set_logger(log_stdout)
-
+            provider = StoreAccessTokenProvider()
+            nosql_handle_config = NoSQLHandleConfig(f'http://{NOSQL_IP}:{NOSQL_PORT}', provider).set_logger(log_stdout)
+           
             self.__nosql = NoSQLHandle(nosql_handle_config)            
         else:
             provider = SignatureProvider.create_with_resource_principal()        

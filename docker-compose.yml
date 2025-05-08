@@ -5,18 +5,15 @@ version: '3.3'
 
 services:  
   nosql-db:
-    image: nosql-db:1.0
+    image: ghcr.io/oracle/nosql:latest-ce
     ports:
       - "8080:8080"    
     networks:
        ocipizza_network:
-         ipv4_address: 10.100.1.10    
-    build:      
-      context: ./nosql/nosql-db
-      dockerfile: Dockerfile    
+         ipv4_address: 10.100.1.10       
     environment:
-      NOSQL_CLOUDSIM_IP: 10.100.1.10
-      NOSQL_CLOUDSIM_PORT: 8080
+      KV_PROXY_PORT: 8080
+      KV_STORAGESIZE: 1     
 
   nosql-init:
     image: nosql-init:1.0
@@ -24,11 +21,11 @@ services:
        ocipizza_network:
          ipv4_address: 10.100.1.20
     build:
-      context: ./nosql/nosql-init
+      context: ./nosql
       dockerfile: Dockerfile
     environment:
-      NOSQL_CLOUDSIM_IP: 10.100.1.10
-      NOSQL_CLOUDSIM_PORT: 8080
+      NOSQL_IP: 10.100.1.10
+      NOSQL_PORT: 8080
       BUCKET_URL_PREFIX: http://127.0.0.1:8050/img
     depends_on:
       - nosql-db
@@ -73,8 +70,8 @@ services:
     environment:      
       FLASK_ENV: development
       FLASK_DEBUG: 1            
-      NOSQL_CLOUDSIM_IP: 10.100.1.10
-      NOSQL_CLOUDSIM_PORT: 8080
+      NOSQL_IP: 10.100.1.10
+      NOSQL_PORT: 8080
       # Utilizar o Endereço IP da máquina onde o FN-Server está em execução.
       FN_USER_REGISTER_ENDPOINT: http://172.18.182.47:8090/t/ocipizza-app/fn-user-register-email
       FN_PASSWORD_RECOVERY_ENDPOINT: http://172.18.182.47:8090/t/ocipizza-app/fn-password-recovery-email         
