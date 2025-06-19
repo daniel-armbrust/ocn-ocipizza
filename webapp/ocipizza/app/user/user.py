@@ -72,7 +72,9 @@ class User():
             return False
     
     def exists(self, email: str, telephone: str):
-        """Verifica se o usuário existe através do email e telefone."""
+        """
+        Verifica se o usuário existe através do email e telefone.
+        """
 
         # Mantém somente os digitos numéricos do telefone. 
         telephone_num = extract_digits(telephone)

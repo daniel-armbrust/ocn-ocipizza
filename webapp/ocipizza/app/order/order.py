@@ -12,9 +12,7 @@ class Order():
         self.__nosql = NoSQL()
     
     def add(self, data: dict):
-        """Add a new pizza order.
-        
-        """
+        """Add a new pizza order."""
         total = 0
         pizza_list = []
 

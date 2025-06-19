@@ -10,7 +10,8 @@ from .order import Order
 from app.pizza.pizza import Pizza
 
 
-@api_order_blueprint.route('/', methods=['POST'])
+# /orders
+@api_order_blueprint.route('', methods=['POST'])
 @jwt_required()
 def add_order():
     """Add a new Pizza Order.

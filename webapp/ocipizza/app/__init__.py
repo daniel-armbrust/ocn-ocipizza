@@ -91,5 +91,5 @@ def create_app():
 
     app.register_blueprint(api_location_blueprint, url_prefix='/locations')  
     csrf.exempt(api_location_blueprint)
-
+   
     return app

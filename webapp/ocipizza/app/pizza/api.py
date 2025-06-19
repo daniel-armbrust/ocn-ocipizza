@@ -7,8 +7,8 @@ from flask import jsonify
 from . import api_pizza_blueprint
 from .pizza import Pizza
 
-
-@api_pizza_blueprint.route('/', methods=['GET'])
+# /pizzas
+@api_pizza_blueprint.route('', methods=['GET'])
 def list_pizzas():
     """Return ALL pizzas.
     
@@ -31,6 +31,6 @@ def read_pizza(id: int):
     data = pizza.get(id)
 
     if not data:
-        return jsonify({'status': 'fail', 'message': 'null', 'data': 'null'}), 404
+        return jsonify({'status': 'fail', 'message': 'Not found.', 'data': 'null'}), 404
     else:
         return jsonify({'status': 'success', 'message': 'null', 'data': data})
