@@ -1,6 +1,7 @@
 # Terraform
 terraform.tfvars
 keys/
+sshkeys/
 
 # Test environment
 scripts/test/

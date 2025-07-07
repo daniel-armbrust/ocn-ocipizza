@@ -49,6 +49,10 @@ Arquivos do Tenancy-A
     - gru_compute.tf
     - vcp_compute.tf
         - Máquinas Virtuais da região GRU e VCP.
+    
+    - gru_firewall.tf
+    - vcp_firewall.tf
+        - Firewall da região GRU e VCP.
 
     - gru_drg.tf
     - vcp_drg.tf
@@ -57,6 +61,9 @@ Arquivos do Tenancy-A
     - gru_drg-routetable.tf
     - vcp_drg-routetable.tf
         - Tabelas de Roteamento do DRG da região GRU e VCP.
+
+    - gru_mysql.tf
+    - vcp_mysql.tf
 
 
 
