@@ -53,3 +53,12 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Ignore Bash history files
+*.bash_history
+
+# Ignore temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
