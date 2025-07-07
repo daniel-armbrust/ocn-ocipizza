@@ -20,7 +20,14 @@ resource "oci_core_route_table" "vcp_vcn-firewall_subnprv-lan_route-table" {
         destination = "0.0.0.0/0"
         destination_type = "CIDR_BLOCK"
         network_entity_id = oci_core_drg.vcp_drg-appl.id
-    }    
+    }
+
+    # Service Gateway
+    route_rules {
+        destination = "all-vcp-services-in-oracle-services-network"
+        destination_type = "SERVICE_CIDR_BLOCK"        
+        network_entity_id = oci_core_service_gateway.vcp_vcn-firewall_sgw.id  
+    }
 }
 
 # subnprv-wan-outbound
@@ -36,14 +43,7 @@ resource "oci_core_route_table" "vcp_vcn-firewall_subnprv-wan-outbound_route-tab
         destination = "0.0.0.0/0"
         destination_type = "CIDR_BLOCK"
         network_entity_id = oci_core_nat_gateway.vcp_vcn-firewall_ngw.id
-    }
-
-    # Service Gateway
-    route_rules {
-        destination = "all-vcp-services-in-oracle-services-network"
-        destination_type = "SERVICE_CIDR_BLOCK"        
-        network_entity_id = oci_core_service_gateway.vcp_vcn-firewall_sgw.id  
-    }
+    }    
 }
 
 # subnpub-wan-inbound
@@ -146,5 +146,19 @@ resource "oci_core_route_table" "vcp_vcn-internet_subnpub-1_route-table" {
         destination = "0.0.0.0/0"
         destination_type = "CIDR_BLOCK"
         network_entity_id = oci_core_internet_gateway.vcp_vcn-internet_igw.id
+    }
+
+    # vcn-appl-1
+    route_rules {
+        destination = "192.168.30.0/24"
+        destination_type = "CIDR_BLOCK"
+        network_entity_id = oci_core_drg.vcp_drg-appl.id
+    }
+
+    # vcn-appl-2
+    route_rules {
+        destination = "192.168.40.0/24"
+        destination_type = "CIDR_BLOCK"
+        network_entity_id = oci_core_drg.vcp_drg-appl.id
     }
 }

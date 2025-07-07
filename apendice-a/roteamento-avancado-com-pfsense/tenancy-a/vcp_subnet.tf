@@ -17,7 +17,7 @@ resource "oci_core_subnet" "vcp_vcn-firewall_subnprv-lan" {
     route_table_id = oci_core_route_table.vcp_vcn-firewall_subnprv-lan_route-table.id
     security_list_ids = [oci_core_security_list.vcp_vcn-firewall_subnprv-lan_secl.id]
 
-    display_name = "subnprv-lan"
+    display_name = "subnprv-fw-lan"
     dns_label = "subnprvlan"
     cidr_block = "10.100.20.0/28"
     prohibit_public_ip_on_vnic = true
@@ -33,7 +33,7 @@ resource "oci_core_subnet" "vcp_vcn-firewall_subnprv-wan-outbound" {
     route_table_id = oci_core_route_table.vcp_vcn-firewall_subnprv-wan-outbound_route-table.id
     security_list_ids = [oci_core_security_list.vcp_vcn-firewall_subnprv-wan-outbound_secl.id]
 
-    display_name = "subnprv-wan-outbound"
+    display_name = "subnprv-fw-wanout"
     dns_label = "subnprvwanout"
     cidr_block = "10.100.20.32/28"
     prohibit_public_ip_on_vnic = true
@@ -49,7 +49,7 @@ resource "oci_core_subnet" "vcp_vcn-firewall_subnpub-wan-inbound" {
     route_table_id = oci_core_route_table.vcp_vcn-firewall_subnpub-wan-inbound_route-table.id
     security_list_ids = [oci_core_security_list.vcp_vcn-firewall_subnpub-wan-inbound_secl.id]
 
-    display_name = "subnpub-wan-inbound"
+    display_name = "subnpub-fw-wanin"
     dns_label = "subnpubwanin"
     cidr_block = "10.100.20.80/28"
     prohibit_public_ip_on_vnic = false
