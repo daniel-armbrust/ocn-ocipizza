@@ -46,22 +46,6 @@ resource "oci_core_route_table" "gru_vcn-firewall_subnprv-wan-outbound_route-tab
     }   
 }
 
-# subnpub-wan-inbound
-resource "oci_core_route_table" "gru_vcn-firewall_subnpub-wan-inbound_route-table" {   
-    provider = oci.gru
-
-    compartment_id = var.compartment_id
-    vcn_id = oci_core_vcn.gru_vcn-firewall.id
-    display_name = "subnpub-wan-inbound_route-table"
-
-    # Internet Gateway
-    route_rules {
-        destination = "0.0.0.0/0"
-        destination_type = "CIDR_BLOCK"
-        network_entity_id = oci_core_internet_gateway.gru_vcn-firewall_igw.id
-    }
-}
-
 #------------#
 # vcn-appl-1 #
 #------------#
@@ -80,6 +64,20 @@ resource "oci_core_route_table" "gru_vcn-appl-1_subnprv-1_route-table" {
         destination_type = "CIDR_BLOCK"
         network_entity_id = oci_core_drg.gru_drg-appl.id
     } 
+
+    # VCN-DB (subnprv-1)
+    route_rules {
+        destination = "172.16.10.128/25"
+        destination_type = "CIDR_BLOCK"
+        network_entity_id = oci_core_local_peering_gateway.gru_vcn-appl-1_local-peering.id
+    } 
+
+    # Service Gateway
+    route_rules {
+        destination = "all-gru-services-in-oracle-services-network"
+        destination_type = "SERVICE_CIDR_BLOCK"        
+        network_entity_id = oci_core_service_gateway.gru_vcn-appl-1_sgw.id  
+    }
 }
 
 #------------#
@@ -120,6 +118,13 @@ resource "oci_core_route_table" "gru_vcn-db_subnprv-1_route-table" {
         destination_type = "CIDR_BLOCK"
         network_entity_id = oci_core_drg.gru_drg-db.id
     }
+
+    # VCN-APPL-1 (subnprv-1)
+    route_rules {
+        destination = "192.168.10.128/25"
+        destination_type = "CIDR_BLOCK"
+        network_entity_id = oci_core_local_peering_gateway.gru_vcn-db_local-peering.id
+    } 
 
     # Service Gateway
     route_rules {

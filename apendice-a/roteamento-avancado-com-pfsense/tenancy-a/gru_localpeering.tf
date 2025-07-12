@@ -23,6 +23,5 @@ resource "oci_core_local_peering_gateway" "gru_vcn-db_local-peering" {
 
     compartment_id = var.compartment_id
     vcn_id = oci_core_vcn.gru_vcn-db.id
-    display_name = "vcn-db_lpg_vcn-appl-1"
-    #peer_id = oci_core_local_peering_gateway.gru_vcn-appl-1_local-peering.id    
+    display_name = "vcn-db_lpg_vcn-appl-1"    
 }

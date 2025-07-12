@@ -3,6 +3,25 @@
 #   - Tabelas de Roteamento do DRG da região GRU.
 #
 
+#--------------------------#
+# VCN-FIREWALL ROUTE TABLE #
+#--------------------------#
+
+resource "oci_core_route_table" "gru_drg-appl_vcn-firewall_attch_route-table" {   
+    provider = oci.gru
+
+    compartment_id = var.compartment_id
+    vcn_id = oci_core_vcn.gru_vcn-firewall.id
+    display_name = "vcn-firewall_route-table"
+
+    // FIREWALL PRIVATE IP
+    route_rules {
+        destination = "0.0.0.0/0"
+        destination_type = "CIDR_BLOCK"   
+        network_entity_id = data.oci_core_private_ips.gru_vm_firewall_vnic_lan_private-ip.private_ips[0]["id"]
+    }   
+}
+
 #-------------#
 # TO-FIREWALL #
 #-------------#
@@ -29,6 +48,7 @@ resource "oci_core_drg_route_table_route_rule" "gru_drg-appl_to-firewall_route-t
     provider = oci.gru
 
     drg_route_table_id = oci_core_drg_route_table.gru_drg-appl_to-firewall_route-table.id
+    
     destination = "0.0.0.0/0"
     destination_type = "CIDR_BLOCK"
     next_hop_drg_attachment_id = oci_core_drg_attachment.gru_drg-appl_vcn-firewall_attch.id
@@ -83,7 +103,7 @@ resource "oci_core_drg_route_distribution" "gru_drg-appl_remote-peering_route-im
     display_name = "drg-appl_remote-peering_route-import"
 }
 
-# # DRG Import Route Distribution Statements
+# DRG Import Route Distribution Statements
 resource "oci_core_drg_route_distribution_statement" "gru_drg-appl_remote-peering_route-import_statement" {
     provider = oci.gru
 

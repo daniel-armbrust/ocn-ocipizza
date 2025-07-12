@@ -46,28 +46,28 @@ resource "oci_core_security_list" "vcp_vcn-firewall_subnprv-wan-outbound_secl" {
     }    
 }
 
-# subnprv-wan-inbound
-resource "oci_core_security_list" "vcp_vcn-firewall_subnpub-wan-inbound_secl" {
-    provider = oci.vcp
+# # subnprv-wan-inbound
+# resource "oci_core_security_list" "vcp_vcn-firewall_subnpub-wan-inbound_secl" {
+#     provider = oci.vcp
 
-    compartment_id = var.compartment_id
-    vcn_id = oci_core_vcn.vcp_vcn-firewall.id
-    display_name = "subnpub-wan-inbound_secl"
+#     compartment_id = var.compartment_id
+#     vcn_id = oci_core_vcn.vcp_vcn-firewall.id
+#     display_name = "subnpub-wan-inbound_secl"
 
-    ingress_security_rules {
-        source = "0.0.0.0/0"
-        protocol = "all"
-        source_type = "CIDR_BLOCK"
-        stateless = true
-    }
+#     ingress_security_rules {
+#         source = "0.0.0.0/0"
+#         protocol = "all"
+#         source_type = "CIDR_BLOCK"
+#         stateless = true
+#     }
 
-    egress_security_rules {
-        destination = "0.0.0.0/0"
-        destination_type = "CIDR_BLOCK"
-        protocol = "all"
-        stateless = true
-    }    
-}
+#     egress_security_rules {
+#         destination = "0.0.0.0/0"
+#         destination_type = "CIDR_BLOCK"
+#         protocol = "all"
+#         stateless = true
+#     }    
+# }
 
 #------------#
 # vcn-appl-1 #

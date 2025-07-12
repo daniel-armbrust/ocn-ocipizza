@@ -30,10 +30,13 @@ resource "oci_core_drg_attachment" "gru_drg-appl_vcn-firewall_attch" {
 
     network_details {
         id = oci_core_vcn.gru_vcn-firewall.id
-        type = "VCN"      
+        type = "VCN" 
+
+        // Utiliza a tabela "vcn-firewall_route-table" (FIREWALL PRIVATE IP)
+        route_table_id =  oci_core_route_table.gru_drg-appl_vcn-firewall_attch_route-table.id
     }
 
-    // Utiliza a tabela FROM-FIREWALL
+    // Utiliza a tabela "FROM-FIREWALL"
     drg_route_table_id = oci_core_drg_route_table.gru_drg-appl_from-firewall_route-table.id
 }
 
@@ -53,7 +56,7 @@ resource "oci_core_drg_attachment" "gru_drg-appl_vcn-appl-1_attch" {
         type = "VCN"      
     }
 
-    // Utiliza a tabela TO-FIREWALL
+    // Utiliza a tabela "TO-FIREWALL"
     drg_route_table_id = oci_core_drg_route_table.gru_drg-appl_to-firewall_route-table.id
 }
 
@@ -73,7 +76,7 @@ resource "oci_core_drg_attachment" "gru_drg-appl_vcn-appl-2_attch" {
         type = "VCN"      
     }
 
-    // Utiliza a tabela TO-FIREWALL
+    // Utiliza a tabela "TO-FIREWALL"
     drg_route_table_id = oci_core_drg_route_table.gru_drg-appl_to-firewall_route-table.id
 }
 
@@ -93,6 +96,6 @@ resource "oci_core_drg_attachment" "gru_drg-db_vcn-db_attch" {
         type = "VCN"      
     }   
 
-    // Utiliza a tabela VCN-DB-REMOTE-PEERING
+    // Utiliza a tabela "vcn-db_attch_route-table"
     drg_route_table_id = oci_core_drg_route_table.gru_drg-db_vcn-db_attch_route-table.id
 }

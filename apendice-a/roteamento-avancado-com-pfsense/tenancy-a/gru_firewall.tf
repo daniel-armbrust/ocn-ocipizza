@@ -68,24 +68,24 @@ resource "oci_core_vnic_attachment" "gru_vm-firewall_vnic_wan-outbound" {
         hostname_label = "gru-fw-wout"
         private_ip = "10.100.10.46"        
         subnet_id = oci_core_subnet.gru_vcn-firewall_subnprv-wan-outbound.id
-        skip_source_dest_check = true
+        skip_source_dest_check = false
         assign_public_ip = false
     }
 }
 
+# VNIC WAN-INBOUND
 resource "oci_core_vnic_attachment" "gru_vm-firewall_vnic_wan-inbound" {    
     provider = oci.gru
 
     display_name = "vnic_wan-inbound"
     instance_id = oci_core_instance.gru_vm_firewall.id
-
-    # VNIC WAN-INBOUND
+    
     create_vnic_details {    
         display_name = "vnic_wan-inbound"    
         hostname_label = "gru-fw-win"
-        private_ip = "10.100.10.94"        
-        subnet_id = oci_core_subnet.gru_vcn-firewall_subnpub-wan-inbound.id
-        skip_source_dest_check = true
+        private_ip = "10.100.50.254"        
+        subnet_id = oci_core_subnet.gru_vcn-internet_subnpub-1.id
+        skip_source_dest_check = false
         assign_public_ip = true
     }
 }    

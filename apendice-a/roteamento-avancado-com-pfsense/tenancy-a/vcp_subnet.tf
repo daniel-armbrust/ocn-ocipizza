@@ -39,21 +39,21 @@ resource "oci_core_subnet" "vcp_vcn-firewall_subnprv-wan-outbound" {
     prohibit_public_ip_on_vnic = true
 }
 
-# subnprv-wan-inbound
-resource "oci_core_subnet" "vcp_vcn-firewall_subnpub-wan-inbound" {
-    provider = oci.vcp
+# # subnprv-wan-inbound
+# resource "oci_core_subnet" "vcp_vcn-firewall_subnpub-wan-inbound" {
+#     provider = oci.vcp
 
-    compartment_id = var.compartment_id
-    vcn_id = oci_core_vcn.vcp_vcn-firewall.id
-    dhcp_options_id = oci_core_dhcp_options.vcp_vcn-firewall_dhcp-options.id
-    route_table_id = oci_core_route_table.vcp_vcn-firewall_subnpub-wan-inbound_route-table.id
-    security_list_ids = [oci_core_security_list.vcp_vcn-firewall_subnpub-wan-inbound_secl.id]
+#     compartment_id = var.compartment_id
+#     vcn_id = oci_core_vcn.vcp_vcn-firewall.id
+#     dhcp_options_id = oci_core_dhcp_options.vcp_vcn-firewall_dhcp-options.id
+#     route_table_id = oci_core_route_table.vcp_vcn-firewall_subnpub-wan-inbound_route-table.id
+#     security_list_ids = [oci_core_security_list.vcp_vcn-firewall_subnpub-wan-inbound_secl.id]
 
-    display_name = "subnpub-fw-wanin"
-    dns_label = "subnpubwanin"
-    cidr_block = "10.100.20.80/28"
-    prohibit_public_ip_on_vnic = false
-}
+#     display_name = "subnpub-fw-wanin"
+#     dns_label = "subnpubwanin"
+#     cidr_block = "10.100.20.80/28"
+#     prohibit_public_ip_on_vnic = false
+# }
 
 #------------#
 # vcn-appl-1 #
