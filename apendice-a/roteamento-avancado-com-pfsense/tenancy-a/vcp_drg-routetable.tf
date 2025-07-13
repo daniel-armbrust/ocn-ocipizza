@@ -68,7 +68,7 @@ resource "oci_core_drg_route_distribution" "vcp_drg-appl_from-firewall_route-imp
 }
 
 # DRG Import Route Distribution Statements
-resource "oci_core_drg_route_distribution_statement" "vcp_drg-appl_from-firewall_route-import_statement" {
+resource "oci_core_drg_route_distribution_statement" "vcp_drg-appl_from-firewall_route-import_statement-1" {
     provider = oci.vcp
 
     drg_route_distribution_id = oci_core_drg_route_distribution.vcp_drg-appl_from-firewall_route-import.id
@@ -76,9 +76,41 @@ resource "oci_core_drg_route_distribution_statement" "vcp_drg-appl_from-firewall
     action = "ACCEPT"
     priority = 1
 
+    # VCN-APPL-1
     match_criteria {
-        match_type = "MATCH_ALL"
-    }    
+        match_type = "DRG_ATTACHMENT_ID"    
+        drg_attachment_id = oci_core_drg_attachment.vcp_drg-appl_vcn-appl-1_attch.id
+    }  
+}
+
+resource "oci_core_drg_route_distribution_statement" "vcp_drg-appl_from-firewall_route-import_statement-2" {
+    provider = oci.vcp
+
+    drg_route_distribution_id = oci_core_drg_route_distribution.vcp_drg-appl_from-firewall_route-import.id
+    
+    action = "ACCEPT"
+    priority = 2
+
+    # VCN-APPL-2
+    match_criteria {
+        match_type = "DRG_ATTACHMENT_ID"    
+        drg_attachment_id = oci_core_drg_attachment.vcp_drg-appl_vcn-appl-2_attch.id
+    }  
+}
+
+resource "oci_core_drg_route_distribution_statement" "vcp_drg-appl_from-firewall_route-import_statement-3" {
+    provider = oci.vcp
+
+    drg_route_distribution_id = oci_core_drg_route_distribution.vcp_drg-appl_from-firewall_route-import.id
+    
+    action = "ACCEPT"
+    priority = 3
+
+    # REMOTE PEERING CONNECTION
+    match_criteria {
+        match_type = "DRG_ATTACHMENT_TYPE"
+        attachment_type = "REMOTE_PEERING_CONNECTION"                   
+    }      
 }
 
 # DRG Route Table
@@ -104,7 +136,7 @@ resource "oci_core_drg_route_distribution" "vcp_drg-appl_remote-peering_route-im
 }
 
 # DRG Import Route Distribution Statements
-resource "oci_core_drg_route_distribution_statement" "vcp_drg-appl_remote-peering_route-import_statement" {
+resource "oci_core_drg_route_distribution_statement" "vcp_drg-appl_remote-peering_route-import_statement-1" {
     provider = oci.vcp
 
     drg_route_distribution_id = oci_core_drg_route_distribution.vcp_drg-appl_remote-peering_route-import.id
@@ -112,9 +144,25 @@ resource "oci_core_drg_route_distribution_statement" "vcp_drg-appl_remote-peerin
     action = "ACCEPT"
     priority = 1
 
+    # VCN-APPL-1
     match_criteria {
-        match_type = "DRG_ATTACHMENT_TYPE"
-        attachment_type = "VCN"                   
+        match_type = "DRG_ATTACHMENT_ID"    
+        drg_attachment_id = oci_core_drg_attachment.vcp_drg-appl_vcn-appl-1_attch.id
+    }    
+}
+
+resource "oci_core_drg_route_distribution_statement" "vcp_drg-appl_remote-peering_route-import_statement-2" {
+    provider = oci.vcp
+
+    drg_route_distribution_id = oci_core_drg_route_distribution.vcp_drg-appl_remote-peering_route-import.id
+    
+    action = "ACCEPT"
+    priority = 2
+
+    # VCN-APPL-2
+    match_criteria {
+        match_type = "DRG_ATTACHMENT_ID"    
+        drg_attachment_id = oci_core_drg_attachment.vcp_drg-appl_vcn-appl-2_attch.id
     }    
 }
 
