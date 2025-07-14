@@ -52,8 +52,8 @@ resource "oci_core_instance" "vcp_vm_firewall" {
         private_ip = "10.100.20.14"        
         subnet_id = oci_core_subnet.vcp_vcn-firewall_subnprv-lan.id
         skip_source_dest_check = true
-        assign_public_ip = false
-    }   
+        assign_public_ip = false      
+    }
 }
 
 # VNIC WAN-OUTBOUND

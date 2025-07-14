@@ -8,59 +8,66 @@ Arquivos do Tenancy-A
 =====================
 
 - tenancy-a/
-    - datasource.tf
-        -
-    
     - locals.tf
         -
+    - datasource.tf
+        - Data Source global.
+    
+    - gru_datasource.tf
+    - vcp_datasource.tf
+        - Data Source das regiões GRU e VCP.  
 
     - gru_vcn.tf
     - vcp_vcn.tf
-        - VCNs da região GRU e VCP.
+        - VCNs das regiões GRU e VCP.
 
     - gru_subnet.tf
     - vcp_subnet.tf
-        - Sub-redes da região GRU e VCP.
+        - Sub-redes das regiões GRU e VCP.
 
     - gru_subnet-routetable.tf
     - vcp_subnet-routetable.tf
-        - Tabelas de Roteamento das sub-redes da região GRU e VCP.
+        - Tabelas de Roteamento das sub-redes das regiões GRU e VCP.
 
     - gru_subnet-security.tf
     - vcp_subnet-security.tf
-        - Security Lists das sub-redes da região GRU e VCP.
+        - Security Lists das sub-redes das regiões GRU e VCP.
         
     - gru_dhcpoptions.tf
     - vcp_dhcpoptions.tf
-        - DHCP Options das sub-redes da região GRU e VCP.
+        - DHCP Options das sub-redes das regiões GRU e VCP.
     
     - gru_gateways.tf
     - vcp_gateways.tf
-        - Internet, NAT e Service Gateways da região GRU e VCP.
+        - Internet, NAT e Service Gateways das regiões GRU e VCP.
     
     - gru_localpeering.tf
     - vcp_localpeering.tf
-        - Local Peering Gateways da região GRU e VCP.
+        - Local Peering Gateways das regiões GRU e VCP.
 
     - gru_remotepeering.tf
     - vcp_remotepeering.tf
-        - Remote Peering Gateways da região GRU e VCP.
+        - Remote Peering Gateways das regiões GRU e VCP.
 
     - gru_compute.tf
     - vcp_compute.tf
-        - Máquinas Virtuais da região GRU e VCP.
+        - Máquinas Virtuais das regiões GRU e VCP.
     
     - gru_firewall.tf
     - vcp_firewall.tf
-        - Firewall da região GRU e VCP.
+        - Firewall das regiões GRU e VCP.
 
     - gru_drg.tf
     - vcp_drg.tf
-        - DRG e Attachments da região GRU e VCP.
+        - DRG e Attachments das regiões GRU e VCP.
 
     - gru_drg-routetable.tf
     - vcp_drg-routetable.tf
-        - Tabelas de Roteamento do DRG da região GRU e VCP.
+        - Tabelas de Roteamento do DRG das regiões GRU e VCP.
+
+    - gru_bastion.tf
+    - vcp_bastion.tf
+        - Bastion das regiões GRU e VCP.
 
     - gru_mysql.tf
     - vcp_mysql.tf

@@ -53,7 +53,7 @@ resource "oci_core_instance" "gru_vm_firewall" {
         subnet_id = oci_core_subnet.gru_vcn-firewall_subnprv-lan.id
         skip_source_dest_check = true
         assign_public_ip = false
-    }   
+    }
 }
 
 # VNIC WAN-OUTBOUND
@@ -70,7 +70,7 @@ resource "oci_core_vnic_attachment" "gru_vm-firewall_vnic_wan-outbound" {
         subnet_id = oci_core_subnet.gru_vcn-firewall_subnprv-wan-outbound.id
         skip_source_dest_check = false
         assign_public_ip = false
-    }
+    }    
 }
 
 # VNIC WAN-INBOUND
@@ -87,5 +87,5 @@ resource "oci_core_vnic_attachment" "gru_vm-firewall_vnic_wan-inbound" {
         subnet_id = oci_core_subnet.gru_vcn-internet_subnpub-1.id
         skip_source_dest_check = false
         assign_public_ip = true
-    }
+    }    
 }    

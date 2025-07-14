@@ -2,7 +2,10 @@
 # locals.tf
 #
 
-locals { 
+locals {
+   # My Public IP Address
+   my_public_ip = data.external.get_my_public_ip.result.my_public_ip
+   
    # IANA protocol numbers
    icmp_protocol = 1
    tcp_protocol = 6

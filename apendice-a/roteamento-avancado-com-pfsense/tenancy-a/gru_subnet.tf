@@ -39,22 +39,6 @@ resource "oci_core_subnet" "gru_vcn-firewall_subnprv-wan-outbound" {
     prohibit_public_ip_on_vnic = true
 }
 
-# # subnprv-wan-inbound
-# resource "oci_core_subnet" "gru_vcn-firewall_subnpub-wan-inbound" {
-#     provider = oci.gru
-
-#     compartment_id = var.compartment_id
-#     vcn_id = oci_core_vcn.gru_vcn-firewall.id
-#     dhcp_options_id = oci_core_dhcp_options.gru_vcn-firewall_dhcp-options.id
-#     route_table_id = oci_core_route_table.gru_vcn-firewall_subnpub-wan-inbound_route-table.id
-#     security_list_ids = [oci_core_security_list.gru_vcn-firewall_subnpub-wan-inbound_secl.id]
-
-#     display_name = "subnpub-fw-wanin"
-#     dns_label = "subnpubwanin"
-#     cidr_block = "10.100.10.80/28"
-#     prohibit_public_ip_on_vnic = false
-# }
-
 #------------#
 # vcn-appl-1 #
 #------------#

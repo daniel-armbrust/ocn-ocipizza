@@ -20,6 +20,10 @@ resource "oci_core_route_table" "vcp_drg-appl_vcn-firewall_attch_route-table" {
         destination_type = "CIDR_BLOCK"   
         network_entity_id = data.oci_core_private_ips.vcp_vm_firewall_vnic_lan_private-ip.private_ips[0]["id"]
     }   
+
+    lifecycle {
+        ignore_changes = [route_rules]
+    }
 }
 
 #-------------#
@@ -135,37 +139,6 @@ resource "oci_core_drg_route_distribution" "vcp_drg-appl_remote-peering_route-im
     display_name = "drg-appl_remote-peering_route-import"
 }
 
-# DRG Import Route Distribution Statements
-resource "oci_core_drg_route_distribution_statement" "vcp_drg-appl_remote-peering_route-import_statement-1" {
-    provider = oci.vcp
-
-    drg_route_distribution_id = oci_core_drg_route_distribution.vcp_drg-appl_remote-peering_route-import.id
-    
-    action = "ACCEPT"
-    priority = 1
-
-    # VCN-APPL-1
-    match_criteria {
-        match_type = "DRG_ATTACHMENT_ID"    
-        drg_attachment_id = oci_core_drg_attachment.vcp_drg-appl_vcn-appl-1_attch.id
-    }    
-}
-
-resource "oci_core_drg_route_distribution_statement" "vcp_drg-appl_remote-peering_route-import_statement-2" {
-    provider = oci.vcp
-
-    drg_route_distribution_id = oci_core_drg_route_distribution.vcp_drg-appl_remote-peering_route-import.id
-    
-    action = "ACCEPT"
-    priority = 2
-
-    # VCN-APPL-2
-    match_criteria {
-        match_type = "DRG_ATTACHMENT_ID"    
-        drg_attachment_id = oci_core_drg_attachment.vcp_drg-appl_vcn-appl-2_attch.id
-    }    
-}
-
 # DRG Route Table
 resource "oci_core_drg_route_table" "vcp_drg-appl_remote-peering_route-table" {  
     provider = oci.vcp
@@ -173,6 +146,44 @@ resource "oci_core_drg_route_table" "vcp_drg-appl_remote-peering_route-table" {
     drg_id = oci_core_drg.vcp_drg-appl.id 
     import_drg_route_distribution_id = oci_core_drg_route_distribution.vcp_drg-appl_remote-peering_route-import.id   
     display_name = "drg-appl_remote-peering_route-table"    
+}
+
+# DRG Route Table Rules
+resource "oci_core_drg_route_table_route_rule" "vcp_drg-appl_remote-peering_route-table_rules-1" {
+    provider = oci.vcp
+
+    drg_route_table_id = oci_core_drg_route_table.vcp_drg-appl_remote-peering_route-table.id
+    
+    destination = "${data.oci_core_subnet.vcp_vcn-appl-1_subnprv-1.cidr_block}"
+    destination_type = "CIDR_BLOCK"
+
+    // Direciona o tráfego que vem do Remote Peering para o attachment do firewall.
+    next_hop_drg_attachment_id = oci_core_drg_attachment.vcp_drg-appl_vcn-firewall_attch.id
+}
+
+resource "oci_core_drg_route_table_route_rule" "vcp_drg-appl_remote-peering_route-table_rules-2" {
+    provider = oci.vcp
+
+    drg_route_table_id = oci_core_drg_route_table.vcp_drg-appl_remote-peering_route-table.id
+    
+    destination = "${data.oci_core_subnet.vcp_vcn-appl-2_subnprv-1.cidr_block}"
+    destination_type = "CIDR_BLOCK"
+
+    // Direciona o tráfego que vem do Remote Peering para o attachment do firewall.
+    next_hop_drg_attachment_id = oci_core_drg_attachment.vcp_drg-appl_vcn-firewall_attch.id
+}
+
+resource "oci_core_drg_route_table_route_rule" "vcp_drg-appl_remote-peering_route-table_rules-3" {
+    provider = oci.vcp
+
+    drg_route_table_id = oci_core_drg_route_table.vcp_drg-appl_remote-peering_route-table.id
+    
+    // VCN-FIREWALL
+    destination = "${data.oci_core_subnet.vcp_vcn-firewall_subnprv-lan.cidr_block}"
+    destination_type = "CIDR_BLOCK"
+
+    // Direciona o tráfego que vem do Remote Peering para o attachment do firewall.
+    next_hop_drg_attachment_id = oci_core_drg_attachment.vcp_drg-appl_vcn-firewall_attch.id
 }
 
 resource "oci_core_drg_attachment_management" "vcp_drg-appl_remote-peering_attch" {
@@ -201,7 +212,7 @@ resource "oci_core_drg_route_distribution" "vcp_drg-db_vcn-db_attch_route-import
 }
 
 # DRG Import Route Distribution Statements
-resource "oci_core_drg_route_distribution_statement" "vcp_drg-db_vcn-db_attch_route-import_statement" {
+resource "oci_core_drg_route_distribution_statement" "vcp_drg-db_vcn-db_attch_route-import_statement-1" {
     provider = oci.vcp
 
     drg_route_distribution_id = oci_core_drg_route_distribution.vcp_drg-db_vcn-db_attch_route-import.id
@@ -238,7 +249,7 @@ resource "oci_core_drg_route_distribution" "vcp_drg-db_remote-peering_route-impo
 }
 
 # DRG Import Route Distribution Statements
-resource "oci_core_drg_route_distribution_statement" "vcp_drg-db_remote-peering_route-import_statement" {
+resource "oci_core_drg_route_distribution_statement" "vcp_drg-db_remote-peering_route-import_statement-1" {
     provider = oci.vcp
 
     drg_route_distribution_id = oci_core_drg_route_distribution.vcp_drg-db_remote-peering_route-import.id
