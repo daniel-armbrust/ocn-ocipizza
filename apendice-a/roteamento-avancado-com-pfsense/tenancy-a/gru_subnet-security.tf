@@ -43,31 +43,41 @@ resource "oci_core_security_list" "gru_vcn-firewall_subnprv-wan-outbound_secl" {
         destination_type = "CIDR_BLOCK"
         protocol = "all"
         stateless = true
-    }    
+    }
+        
+    ingress_security_rules {
+        source = "0.0.0.0/0"
+        protocol = "all"
+        source_type = "CIDR_BLOCK"
+        stateless = true
+    }
 }
 
-# # subnprv-wan-inbound
-# resource "oci_core_security_list" "gru_vcn-firewall_subnpub-wan-inbound_secl" {
-#     provider = oci.gru
+#---------#
+# vcn-vpn #
+#---------#
 
-#     compartment_id = var.compartment_id
-#     vcn_id = oci_core_vcn.gru_vcn-firewall.id
-#     display_name = "subnpub-wan-inbound_secl"
+resource "oci_core_security_list" "gru_vcn-vpn_subnpub-1_secl" {
+    provider = oci.gru
 
-#     ingress_security_rules {
-#         source = "0.0.0.0/0"
-#         protocol = "all"
-#         source_type = "CIDR_BLOCK"
-#         stateless = true
-#     }
-
-#     egress_security_rules {
-#         destination = "0.0.0.0/0"
-#         destination_type = "CIDR_BLOCK"
-#         protocol = "all"
-#         stateless = true
-#     }    
-# }
+    compartment_id = var.compartment_id
+    vcn_id = oci_core_vcn.gru_vcn-vpn.id
+    display_name = "subnpub-vpn_secl"
+   
+    egress_security_rules {
+        destination = "0.0.0.0/0"
+        destination_type = "CIDR_BLOCK"
+        protocol = "all"
+        stateless = true
+    }
+        
+    ingress_security_rules {
+        source = "0.0.0.0/0"
+        protocol = "all"
+        source_type = "CIDR_BLOCK"
+        stateless = true
+    }
+}
 
 #------------#
 # vcn-appl-1 #

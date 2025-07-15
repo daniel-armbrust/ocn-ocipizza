@@ -16,6 +16,23 @@ resource "oci_core_dhcp_options" "gru_vcn-firewall_dhcp-options" {
     
     options {
         type = "DomainNameServer"
+        server_type = "VcnLocalPlusInternet" 
+    }    
+}
+
+#---------#
+# vcn-vpn #
+#---------#
+
+resource "oci_core_dhcp_options" "gru_vcn-vpn_dhcp-options" {
+    provider = oci.gru
+
+    compartment_id = var.compartment_id
+    vcn_id = oci_core_vcn.gru_vcn-vpn.id
+    display_name = "vcn-vpn_dhcp-options"
+    
+    options {
+        type = "DomainNameServer"
         server_type = "VcnLocalPlusInternet"
     }    
 }

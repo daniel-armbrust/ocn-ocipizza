@@ -46,6 +46,26 @@ resource "oci_core_route_table" "gru_vcn-firewall_subnprv-wan-outbound_route-tab
     }   
 }
 
+#---------#
+# vcn-vpn #
+#---------#
+
+# subnpub-1
+resource "oci_core_route_table" "gru_vcn-vpn_subnpub-1_route-table" {   
+    provider = oci.gru
+
+    compartment_id = var.compartment_id
+    vcn_id = oci_core_vcn.gru_vcn-vpn.id
+    display_name = "subnpub-vpn_route-table"
+    
+    # Internet Gateway
+    route_rules {
+        destination = "0.0.0.0/0"
+        destination_type = "CIDR_BLOCK"
+        network_entity_id = oci_core_internet_gateway.gru_vcn-vpn_igw.id
+    }
+}
+
 #------------#
 # vcn-appl-1 #
 #------------#
@@ -153,14 +173,14 @@ resource "oci_core_route_table" "gru_vcn-internet_subnpub-1_route-table" {
         network_entity_id = oci_core_internet_gateway.gru_vcn-internet_igw.id
     }
 
-    # vcn-appl-1
+    # VCN-APPL-1
     route_rules {
         destination = "192.168.10.0/24"
         destination_type = "CIDR_BLOCK"
         network_entity_id = oci_core_drg.gru_drg-appl.id
     }
 
-    # vcn-appl-2
+    # VCN-APPL-2
     route_rules {
         destination = "192.168.20.0/24"
         destination_type = "CIDR_BLOCK"

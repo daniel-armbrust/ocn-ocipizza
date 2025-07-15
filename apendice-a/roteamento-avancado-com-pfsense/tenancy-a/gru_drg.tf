@@ -80,6 +80,26 @@ resource "oci_core_drg_attachment" "gru_drg-appl_vcn-appl-2_attch" {
     drg_route_table_id = oci_core_drg_route_table.gru_drg-appl_to-firewall_route-table.id
 }
 
+#--------------#
+# vcn-internet #
+#--------------#
+
+# drg-appl
+resource "oci_core_drg_attachment" "gru_drg-appl_vcn-internet_attch" {
+    provider = oci.gru
+
+    drg_id = oci_core_drg.gru_drg-appl.id
+    display_name = "drg-appl_vcn-internet_attch"
+
+    network_details {
+        id = oci_core_vcn.gru_vcn-internet.id
+        type = "VCN"      
+    }
+
+    // Utiliza a tabela "TO-FIREWALL"
+    drg_route_table_id = oci_core_drg_route_table.gru_drg-appl_to-firewall_route-table.id
+}
+
 #--------#
 # vcn-db #
 #--------#

@@ -19,6 +19,22 @@ resource "oci_core_vcn" "vcp_vcn-firewall" {
     is_ipv6enabled = true
 }
 
+#---------#
+# vcn-vpn #
+#---------#
+
+resource "oci_core_vcn" "vcp_vcn-vpn" {    
+    provider = oci.vcp
+
+    compartment_id = var.compartment_id
+    cidr_blocks = ["10.100.200.0/24"]
+    display_name = "vcn-vpn"
+    dns_label = "vcpvcnvpn"
+
+    # IPv6    
+    is_ipv6enabled = true
+}
+
 #------------#
 # vcn-appl-1 #
 #------------#

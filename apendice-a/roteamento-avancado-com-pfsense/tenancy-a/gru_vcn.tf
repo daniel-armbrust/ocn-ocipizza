@@ -19,6 +19,22 @@ resource "oci_core_vcn" "gru_vcn-firewall" {
     is_ipv6enabled = true
 }
 
+#---------#
+# vcn-vpn #
+#---------#
+
+resource "oci_core_vcn" "gru_vcn-vpn" {    
+    provider = oci.gru
+
+    compartment_id = var.compartment_id
+    cidr_blocks = ["10.100.100.0/24"]
+    display_name = "vcn-vpn"
+    dns_label = "gruvcnvpn"
+
+    # IPv6    
+    is_ipv6enabled = true
+}
+
 #------------#
 # vcn-appl-1 #
 #------------#

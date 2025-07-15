@@ -39,6 +39,26 @@ resource "oci_core_subnet" "gru_vcn-firewall_subnprv-wan-outbound" {
     prohibit_public_ip_on_vnic = true
 }
 
+#---------#
+# vcn-vpn #
+#---------#
+
+resource "oci_core_subnet" "gru_vcn-vpn_subnpub-1" {
+    provider = oci.gru
+
+    compartment_id = var.compartment_id
+    vcn_id = oci_core_vcn.gru_vcn-vpn.id
+    dhcp_options_id = oci_core_dhcp_options.gru_vcn-vpn_dhcp-options.id
+    route_table_id = oci_core_route_table.gru_vcn-vpn_subnpub-1_route-table.id
+    security_list_ids = [oci_core_security_list.gru_vcn-vpn_subnpub-1_secl.id]
+
+    display_name = "subnpub-vpn"
+    dns_label = "subnprvvpn"
+    cidr_block = "10.100.100.0/28"
+    prohibit_public_ip_on_vnic = false
+}
+
+
 #------------#
 # vcn-appl-1 #
 #------------#

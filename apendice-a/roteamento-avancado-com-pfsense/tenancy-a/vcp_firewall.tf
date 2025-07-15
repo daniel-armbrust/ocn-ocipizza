@@ -3,10 +3,6 @@
 #   - Firewall da região VCP. 
 #
 
-#----------#
-# FIREWALL #
-#----------#
-
 resource "oci_core_instance" "vcp_vm_firewall" {
     provider = oci.vcp
 
@@ -73,18 +69,18 @@ resource "oci_core_vnic_attachment" "vcp_vm-firewall_vnic_wan-outbound" {
     }
 }
 
-# VNIC WAN-INBOUND
-resource "oci_core_vnic_attachment" "vcp_vm-firewall_vnic_wan-inbound" {    
+# VNIC WAN-VPN
+resource "oci_core_vnic_attachment" "vcp_vm-firewall_vnic_wan-vpn" {    
     provider = oci.vcp
 
-    display_name = "vnic_wan-inbound"
+    display_name = "vnic_wan-vpn"
     instance_id = oci_core_instance.vcp_vm_firewall.id
     
     create_vnic_details {    
-        display_name = "vnic_wan-inbound"    
-        hostname_label = "vcp-fw-win"
-        private_ip = "10.100.60.254"        
-        subnet_id = oci_core_subnet.vcp_vcn-internet_subnpub-1.id
+        display_name = "vnic_wan-vpn"    
+        hostname_label = "vcp-fw-wvpn"
+        private_ip = "10.100.200.14"        
+        subnet_id = oci_core_subnet.vcp_vcn-vpn_subnpub-1.id
         skip_source_dest_check = false
         assign_public_ip = true
     }

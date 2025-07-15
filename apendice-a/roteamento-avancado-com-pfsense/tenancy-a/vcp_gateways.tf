@@ -28,14 +28,18 @@ resource "oci_core_service_gateway" "vcp_vcn-firewall_sgw" {
     }
 }
 
-# resource "oci_core_internet_gateway" "vcp_vcn-firewall_igw" {
-#     provider = oci.vcp
+#---------#
+# vcn-vpn #
+#---------#
+
+resource "oci_core_internet_gateway" "vcp_vcn-vpn_igw" {
+    provider = oci.vcp
     
-#     compartment_id = var.compartment_id
-#     vcn_id = oci_core_vcn.vcp_vcn-firewall.id    
-#     display_name = "igw"    
-#     enabled = true   
-# }
+    compartment_id = var.compartment_id
+    vcn_id = oci_core_vcn.vcp_vcn-vpn.id    
+    display_name = "igw"    
+    enabled = true   
+}
 
 #------------#
 # vcn-appl-1 #

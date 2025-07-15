@@ -20,6 +20,23 @@ resource "oci_core_dhcp_options" "vcp_vcn-firewall_dhcp-options" {
     }    
 }
 
+#---------#
+# vcn-vpn #
+#---------#
+
+resource "oci_core_dhcp_options" "vcp_vcn-vpn_dhcp-options" {
+    provider = oci.vcp
+
+    compartment_id = var.compartment_id
+    vcn_id = oci_core_vcn.vcp_vcn-vpn.id
+    display_name = "vcn-vpn_dhcp-options"
+    
+    options {
+        type = "DomainNameServer"
+        server_type = "VcnLocalPlusInternet"
+    }    
+}
+
 #------------#
 # vcn-appl-1 #
 #------------#
