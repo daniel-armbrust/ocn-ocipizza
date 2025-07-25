@@ -41,8 +41,7 @@ resource "oci_core_instance" "gru_vm_firewall" {
         user_data = base64encode(file("./scripts/firewall-init.sh"))
     }
 
-    extended_metadata = {
-       "objectstorage-ns" = "${data.oci_objectstorage_namespace.objectstorage_ns.namespace}"        
+    extended_metadata = {       
        "primary-vnic-ip" = "10.100.10.14"
        "wan-outbound-ip" = "10.100.10.46"
        "wan-outbound-gw" = "10.100.10.33"

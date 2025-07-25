@@ -3,7 +3,7 @@
 #/usr/bin/timedatectl set-timezone America/Sao_Paulo
 
 /usr/bin/dnf -y update
-/usr/bin/dnf -y install traceroute net-tools
+/usr/bin/dnf -y install traceroute net-tools python39-oci-cli
 
 # Disable SELinux
 setenforce 0
@@ -19,14 +19,9 @@ setenforce 0
 cat <<EOF >/etc/rc.d/rc.local
 #!/bin/bash
 
-# Região.
-region="\`curl -s -H "Authorization: Bearer Oracle" -L http://169.254.169.254/opc/v2/instance/region\`"
-
-# Object Storage Namespace.
-objectstorage_ns="\`curl -s -H "Authorization: Bearer Oracle" -L http://169.254.169.254/opc/v2/instance/metadata/objectstorage-ns\`"
-
 # Download do script de configuração do Firewall e Policy Routing.
-curl -s -o /etc/rc-firewall.sh https://objectstorage.\$region.oraclecloud.com/n/\$objectstorage_ns/b/scripts-storage/o/rc-firewall.sh
+oci --auth instance_principal os object get --bucket-name scripts-storage \
+    --name rc-firewall.sh --file /etc/rc-firewall.sh
 
 # Execução do script de configuração do Firewall e Policy Routing.
 chmod 0500 /etc/rc-firewall.sh

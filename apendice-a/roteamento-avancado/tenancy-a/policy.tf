@@ -24,8 +24,6 @@ resource "oci_identity_policy" "objectstorage_policy" {
 
     statements = [    
        "Allow dynamic-group ${oci_identity_dynamic_group.dyngrp_instance.name} to read buckets in compartment id ${var.compartment_id} where target.bucket.name='${oci_objectstorage_bucket.vcp_objectstorage_scripts-storage.name}'",
-       "Allow dynamic-group ${oci_identity_dynamic_group.dyngrp_instance.name} to read objects in compartment id ${var.compartment_id} where target.bucket.name='${oci_objectstorage_bucket.vcp_objectstorage_scripts-storage.name}'",
-       "Allow dynamic-group ${oci_identity_dynamic_group.dyngrp_instance.name} to read buckets in compartment id ${var.compartment_id} where target.bucket.name='${oci_objectstorage_bucket.vcp_objectstorage_scripts-storage.name}'",
        "Allow dynamic-group ${oci_identity_dynamic_group.dyngrp_instance.name} to read objects in compartment id ${var.compartment_id} where target.bucket.name='${oci_objectstorage_bucket.vcp_objectstorage_scripts-storage.name}'"
     ]
 }
