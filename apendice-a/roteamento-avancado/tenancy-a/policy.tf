@@ -23,9 +23,9 @@ resource "oci_identity_policy" "objectstorage_policy" {
     description = "Políticas IAM que concedem acesso ao Object Storage a partir do grupo dinâmico especificado."
 
     statements = [    
-       "Allow dynamic-group ${oci_identity_dynamic_group.dyngrp_instance.name} to read buckets in in compartment id ${var.compartment_id} where target.bucket.name='${oci_objectstorage_bucket.gru_objectstorage_scripts-storage.name}'",
-       "Allow dynamic-group ${oci_identity_dynamic_group.dyngrp_instance.name} to read objects in in compartment id ${var.compartment_id} where target.bucket.name='${oci_objectstorage_bucket.gru_objectstorage_scripts-storage.name}'",
-       "Allow dynamic-group ${oci_identity_dynamic_group.dyngrp_instance.name} to read buckets in in compartment id ${var.compartment_id} where target.bucket.name='${oci_objectstorage_bucket.vcp_objectstorage_scripts-storage.name}'",
-       "Allow dynamic-group ${oci_identity_dynamic_group.dyngrp_instance.name} to read objects in in compartment id ${var.compartment_id} where target.bucket.name='${oci_objectstorage_bucket.vcp_objectstorage_scripts-storage.name}'"
+       "Allow dynamic-group ${oci_identity_dynamic_group.dyngrp_instance.name} to read buckets in compartment id ${var.compartment_id} where target.bucket.name='${oci_objectstorage_bucket.vcp_objectstorage_scripts-storage.name}'",
+       "Allow dynamic-group ${oci_identity_dynamic_group.dyngrp_instance.name} to read objects in compartment id ${var.compartment_id} where target.bucket.name='${oci_objectstorage_bucket.vcp_objectstorage_scripts-storage.name}'",
+       "Allow dynamic-group ${oci_identity_dynamic_group.dyngrp_instance.name} to read buckets in compartment id ${var.compartment_id} where target.bucket.name='${oci_objectstorage_bucket.vcp_objectstorage_scripts-storage.name}'",
+       "Allow dynamic-group ${oci_identity_dynamic_group.dyngrp_instance.name} to read objects in compartment id ${var.compartment_id} where target.bucket.name='${oci_objectstorage_bucket.vcp_objectstorage_scripts-storage.name}'"
     ]
 }
