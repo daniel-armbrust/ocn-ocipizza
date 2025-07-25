@@ -3,26 +3,26 @@
 #
 
 variable "api_fingerprint" {
-    description = "Fingerprint of oci api private key."
+    description = "Fingerprint da chave privada que será utilizada para a comunicação com as APIs do OCI."
     type = string
 }
 
 variable "api_private_key_path" {
-    description = "The path to oci api private key."
+    description = "Caminho para o arquivo da chave privada."
     type = string
 }
 
 variable "tenancy_id" {
-    description = "The tenancy id in which to create the resources."
+    description = "OCID do Tenancy."
     type = string
 }
 
 variable "user_id" {
-    description = "The id of the user that terraform will use to create the resources."
+    description = "OCID do usuário que será utilizado para interagir com as APIs do OCI."
     type = string
 }
 
 variable "compartment_id" {
-    description = "The root/main compartment where the resources will be created."
+    description = "OCID do compartimento que será utilizado para armazenar os recursos que serão criados."
     type = string  
 }

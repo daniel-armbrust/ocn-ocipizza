@@ -9,7 +9,7 @@ resource "oci_objectstorage_bucket" "vcp_objectstorage_scripts-storage" {
     compartment_id = var.compartment_id
     namespace = local.objectstorage_ns
     name = "scripts-storage"
-    access_type = "ObjectReadWithoutList"
+    access_type = "NoPublicAccess"
     versioning = "Disabled"
 }
 

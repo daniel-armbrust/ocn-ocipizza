@@ -1,15 +1,28 @@
 README.txt
 ----------
 
-- GRU = Brasil / São Paulo (sa-saopaulo-1)
-- VCP = Brasil / São Paulo (sa-saopaulo-1)
+- GRU = Brazil East (Sao Paulo) (sa-saopaulo-1)
+- VCP = Brazil Southeast (Vinhedo) (sa-vinhedo-1)
 
 Arquivos do Tenancy-A 
 =====================
 
 - tenancy-a/
+    - terraform.tfvars-example    
+        - Arquivo que contém parâmetros de autenticação que devem ser 
+          preenchidos antes da execução do código.
+          
+        # mv terraform.tfvars-example terraform.tfvars
+    
     - locals.tf
-        -
+        - Definições locais.
+    
+    - providers.tf
+        - Definição do provedor OCI.
+    
+    - policy.tf
+        - Políticas de autorização do serviço de IAM.
+
     - datasource.tf
         - Data Source global.
     
@@ -51,7 +64,7 @@ Arquivos do Tenancy-A
 
     - gru_compute.tf
     - vcp_compute.tf
-        - Máquinas Virtuais das regiões GRU e VCP.
+        - Máquinas Virtuais de aplicação das regiões GRU e VCP.
     
     - gru_firewall.tf
     - vcp_firewall.tf
@@ -68,9 +81,14 @@ Arquivos do Tenancy-A
     - gru_bastion.tf
     - vcp_bastion.tf
         - Bastion das regiões GRU e VCP.
+    
+    - gru_objectstorage.tf
+    - vcp_objectstorage.tf
+        - Object Storage das regiões GRU e VCP.
 
     - gru_mysql.tf
     - vcp_mysql.tf
+        - Banco de Dados MySQL das regiões GRU e VCP.
 
 
 

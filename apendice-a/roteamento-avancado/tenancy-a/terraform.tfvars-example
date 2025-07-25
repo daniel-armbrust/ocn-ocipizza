@@ -1,5 +1,5 @@
 #
-# terraform.tfvars
+# terraform.tfvars-example
 #
 
 # Identity and access parameters
@@ -7,4 +7,4 @@ api_private_key_path = ""
 api_fingerprint = ""
 tenancy_id = ""
 user_id = ""
-root_compartment = ""
+compartment_id = ""

@@ -1,5 +1,5 @@
 #
-# gru_firewall.tf
+# gru_objectstorage.tf
 #   - Object Storage da região GRU. 
 #
 
@@ -9,7 +9,7 @@ resource "oci_objectstorage_bucket" "gru_objectstorage_scripts-storage" {
     compartment_id = var.compartment_id
     namespace = local.objectstorage_ns
     name = "scripts-storage"
-    access_type = "ObjectReadWithoutList"
+    access_type = "NoPublicAccess"
     versioning = "Disabled"
 }
 
