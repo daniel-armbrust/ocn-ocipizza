@@ -45,6 +45,15 @@ resource "oci_core_internet_gateway" "gru_vcn-vpn_igw" {
 # vcn-appl-1 #
 #------------#
 
+resource "oci_core_internet_gateway" "gru_vcn-appl-1_igw" {
+    provider = oci.gru
+    
+    compartment_id = var.compartment_id
+    vcn_id = oci_core_vcn.gru_vcn-appl-1.id
+    display_name = "igw"
+    enabled = true
+}
+
 resource "oci_core_nat_gateway" "gru_vcn-appl-1_ngw" {
     provider = oci.gru
     

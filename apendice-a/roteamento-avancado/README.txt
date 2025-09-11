@@ -29,6 +29,10 @@ Arquivos do Tenancy-A
     - gru_datasource.tf
     - vcp_datasource.tf
         - Data Source das regiões GRU e VCP.  
+    
+    - gru_output.tf
+    - vcp_output.tf
+        - Terraform Outputs das regiões GRU e VCP.  
 
     - gru_vcn.tf
     - vcp_vcn.tf

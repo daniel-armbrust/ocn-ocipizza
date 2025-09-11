@@ -45,6 +45,15 @@ resource "oci_core_internet_gateway" "vcp_vcn-vpn_igw" {
 # vcn-appl-1 #
 #------------#
 
+resource "oci_core_internet_gateway" "vcp_vcn-appl-1_igw" {
+    provider = oci.vcp
+    
+    compartment_id = var.compartment_id
+    vcn_id = oci_core_vcn.vcp_vcn-appl-1.id
+    display_name = "igw"
+    enabled = true
+}
+
 resource "oci_core_nat_gateway" "vcp_vcn-appl-1_ngw" {
     provider = oci.vcp
     

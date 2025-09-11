@@ -11,12 +11,20 @@ resource "oci_core_vcn" "gru_vcn-firewall" {
     provider = oci.gru
 
     compartment_id = var.compartment_id
-    cidr_blocks = ["10.100.10.0/24"]
+    cidr_blocks = ["10.100.10.0/24"]    
     display_name = "vcn-firewall"
     dns_label = "gruvcnfw"
 
     # IPv6    
     is_ipv6enabled = true
+    ipv6private_cidr_blocks = ["fde3:50e0:8c08::/48"]
+    is_oracle_gua_allocation_enabled = false
+
+    lifecycle {
+        ignore_changes = [
+           is_ipv6enabled
+        ]
+    }
 }
 
 #---------#
@@ -27,12 +35,14 @@ resource "oci_core_vcn" "gru_vcn-vpn" {
     provider = oci.gru
 
     compartment_id = var.compartment_id
-    cidr_blocks = ["10.100.100.0/24"]
+    cidr_blocks = ["10.100.100.0/24"]    
     display_name = "vcn-vpn"
     dns_label = "gruvcnvpn"
 
     # IPv6    
     is_ipv6enabled = true
+    ipv6private_cidr_blocks = ["fde3:50e0:8c09::/48"]
+    is_oracle_gua_allocation_enabled = true
 }
 
 #------------#
@@ -43,12 +53,14 @@ resource "oci_core_vcn" "gru_vcn-appl-1" {
     provider = oci.gru
 
     compartment_id = var.compartment_id
-    cidr_blocks = ["192.168.10.0/24"]
+    cidr_blocks = ["192.168.10.0/24"]    
     display_name = "vcn-appl-1"
     dns_label = "gruvcnappl1"
 
     # IPv6    
     is_ipv6enabled = true
+    ipv6private_cidr_blocks = ["fde3:50e0:8c10::/48"]
+    is_oracle_gua_allocation_enabled = true
 }
 
 #------------#
@@ -65,6 +77,14 @@ resource "oci_core_vcn" "gru_vcn-appl-2" {
 
     # IPv6    
     is_ipv6enabled = true
+    ipv6private_cidr_blocks = ["fde3:50e0:8c11::/48"]
+    is_oracle_gua_allocation_enabled = false
+
+    lifecycle {
+        ignore_changes = [
+           is_ipv6enabled
+        ]
+    }
 }
 
 #--------#
@@ -75,10 +95,18 @@ resource "oci_core_vcn" "gru_vcn-db" {
     provider = oci.gru
 
     compartment_id = var.compartment_id
-    cidr_blocks = ["172.16.10.0/24"]
+    cidr_blocks = ["172.16.10.0/24"]    
     display_name = "vcn-db"
     dns_label = "gruvcndb"
 
     # IPv6    
     is_ipv6enabled = true
+    ipv6private_cidr_blocks = ["fde3:50e0:8c12::/48"]
+    is_oracle_gua_allocation_enabled = false
+
+    lifecycle {
+        ignore_changes = [
+           is_ipv6enabled
+        ]
+    }
 }

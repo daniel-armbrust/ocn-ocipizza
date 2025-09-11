@@ -70,6 +70,22 @@ resource "oci_core_route_table" "gru_vcn-vpn_subnpub-1_route-table" {
 # vcn-appl-1 #
 #------------#
 
+# subnpub-1
+resource "oci_core_route_table" "gru_vcn-appl-1_subnpub-1_route-table" {   
+    provider = oci.gru
+
+    compartment_id = var.compartment_id
+    vcn_id = oci_core_vcn.gru_vcn-appl-1.id
+    display_name = "subnpub-1_route-table"
+    
+    # DRG-APPL
+    route_rules {
+        destination = "0.0.0.0/0"
+        destination_type = "CIDR_BLOCK"
+        network_entity_id = oci_core_internet_gateway.gru_vcn-appl-1_igw.id
+    } 
+}
+
 # subnprv-1
 resource "oci_core_route_table" "gru_vcn-appl-1_subnprv-1_route-table" {   
     provider = oci.gru

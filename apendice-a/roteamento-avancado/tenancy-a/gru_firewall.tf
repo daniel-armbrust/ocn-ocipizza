@@ -10,18 +10,16 @@ resource "oci_core_instance" "gru_vm_firewall" {
     availability_domain = local.ads.gru_ad1_name        
     display_name = "firewall"
 
-    shape = "VM.Standard.E4.Flex" 
+    shape = "VM.Standard.A1.Flex" 
 
     shape_config {
-        # Baseline usage is an entire OCPU. 
-        # This represents a non-burstable instance. 
         baseline_ocpu_utilization = "BASELINE_1_1"
         memory_in_gbs = 4
         ocpus = 3
     }
 
     source_details {
-        source_id = local.compute_image_id.gru.ol9-amd64
+        source_id = local.compute_image_id.gru.ol96-arm
         source_type = "image"
         boot_volume_size_in_gbs = 100
     }  
@@ -58,10 +56,11 @@ resource "oci_core_instance" "gru_vm_firewall" {
     create_vnic_details {
         display_name = "vnic_lan"
         hostname_label = "gru-fw"
-        private_ip = "10.100.10.14"        
+        private_ip = "10.100.10.14"              
         subnet_id = oci_core_subnet.gru_vcn-firewall_subnprv-lan.id
         skip_source_dest_check = true
         assign_public_ip = false
+        assign_ipv6ip = true
     }
 }
 
@@ -75,10 +74,11 @@ resource "oci_core_vnic_attachment" "gru_vm-firewall_vnic_wan-outbound" {
     create_vnic_details {    
         display_name = "vnic_wan-outbound"    
         hostname_label = "gru-fw-wout"
-        private_ip = "10.100.10.46"        
+        private_ip = "10.100.10.46"               
         subnet_id = oci_core_subnet.gru_vcn-firewall_subnprv-wan-outbound.id
         skip_source_dest_check = true
         assign_public_ip = false
+        assign_ipv6ip = true 
     }    
 
     depends_on = [oci_core_instance.gru_vm_firewall]   
@@ -98,7 +98,8 @@ resource "oci_core_vnic_attachment" "gru_vm-firewall_vnic_wan-vpn" {
         subnet_id = oci_core_subnet.gru_vcn-vpn_subnpub-1.id
         skip_source_dest_check = true
         assign_public_ip = true
-    }    
+        assign_ipv6ip = true
+    }   
 
     depends_on = [oci_core_vnic_attachment.gru_vm-firewall_vnic_wan-outbound] 
-}    
+}

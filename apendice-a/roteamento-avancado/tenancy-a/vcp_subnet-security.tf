@@ -83,6 +83,15 @@ resource "oci_core_security_list" "vcp_vcn-vpn_subnpub-1_secl" {
 # vcn-appl-1 #
 #------------#
 
+# subnpub-1
+resource "oci_core_security_list" "vcp_vcn-appl-1_subnpub-1_secl" {
+    provider = oci.vcp
+
+    compartment_id = var.compartment_id
+    vcn_id = oci_core_vcn.vcp_vcn-appl-1.id
+    display_name = "subnpub-1_secl"  
+}
+
 # subnprv-1
 resource "oci_core_security_list" "vcp_vcn-appl-1_subnprv-1_secl" {
     provider = oci.vcp

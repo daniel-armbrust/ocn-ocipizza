@@ -53,12 +53,12 @@ locals {
    #
    compute_image_id = {
       "gru" = {
-         "ol9-amd64" = "ocid1.image.oc1.sa-saopaulo-1.aaaaaaaanvwztmp6itiny5bbua4fdbnfocpkro77r45nymjo7ooqs3oi7f5q"
-         "ol9-arm" = "ocid1.image.oc1.sa-saopaulo-1.aaaaaaaath3bwke2i3zu3sgxrgnsboacjihmylxbuogivbgma476pzykarpa"
+         "ol96-amd64" = "ocid1.image.oc1.sa-saopaulo-1.aaaaaaaa6xernq3m762v6h5m36t36vvqinj7hbgd77lr2fhbavsqjw2fav5q"
+         "ol96-arm" = "ocid1.image.oc1.sa-saopaulo-1.aaaaaaaaeiryb62ld5b2vrzqtf53zt5nbuwiv7d4nxuavggkfza5yjhqpfwa"
       },
       "vcp" = {
-         "ol9-amd64" = "ocid1.image.oc1.sa-vinhedo-1.aaaaaaaaw664rptgtzyd33ztbzy3vp6twed5w4s62snxq36r53pzelkjwhpq"
-         "ol9-arm" = "ocid1.image.oc1.sa-vinhedo-1.aaaaaaaaf6rmi6nbizybqkwg65iuemtmuppyoxnfb2fzfu4le6gngkohtbvq"
+         "ol96-amd64" = "ocid1.image.oc1.sa-vinhedo-1.aaaaaaaadfrypyflfastxkcwj676ongsiovxorcxs5hhwdj2isvaqef5dn4q"
+         "ol96-arm" = "ocid1.image.oc1.sa-vinhedo-1.aaaaaaaa67iviabbfci4gwtilfxnhdgjyemziltyc2vaeojxyen3nysov7fa"
       }
    }
 
