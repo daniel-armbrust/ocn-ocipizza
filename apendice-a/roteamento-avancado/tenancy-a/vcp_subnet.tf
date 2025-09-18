@@ -22,10 +22,11 @@ resource "oci_core_subnet" "vcp_vcn-firewall_subnprv-lan" {
     prohibit_public_ip_on_vnic = true
 
     cidr_block = "10.100.20.0/28"
+    ipv6cidr_block = "fde3:50e0:8d08:0000::/64"
 
-    ipv6cidr_blocks = [
-        "fde3:50e0:8d08:0000::/64"
-    ]    
+    # ipv6cidr_blocks = [
+    #     "fde3:50e0:8d08:0000::/64"
+    # ]    
 }
 
 # subnprv-wan-outbound
@@ -42,11 +43,12 @@ resource "oci_core_subnet" "vcp_vcn-firewall_subnprv-wan-outbound" {
     dns_label = "subnprvwanout"
     prohibit_public_ip_on_vnic = true
 
-    cidr_block = "10.100.20.32/28"    
+    cidr_block = "10.100.20.32/28" 
+    ipv6cidr_block = "fde3:50e0:8d08:0001::/64"   
 
-    ipv6cidr_blocks = [
-        "fde3:50e0:8d08:0001::/64"
-    ]    
+    # ipv6cidr_blocks = [
+    #     "fde3:50e0:8d08:0001::/64"
+    # ]    
 }
 
 #---------#
@@ -68,10 +70,11 @@ resource "oci_core_subnet" "vcp_vcn-vpn_subnpub-1" {
     prohibit_public_ip_on_vnic = false
 
     cidr_block = "10.100.200.0/28"
+    ipv6cidr_block = format("%s%s", replace(join(", ", oci_core_vcn.vcp_vcn-vpn.ipv6cidr_blocks), "/56", ""), "/64")
 
-    ipv6cidr_blocks = [      
-        format("%s%s", replace(join(", ", oci_core_vcn.vcp_vcn-vpn.ipv6cidr_blocks), "/56", ""), "/64")
-    ]    
+    # ipv6cidr_blocks = [      
+    #     format("%s%s", replace(join(", ", oci_core_vcn.vcp_vcn-vpn.ipv6cidr_blocks), "/56", ""), "/64")
+    # ]    
 }
 
 #------------#
@@ -93,10 +96,11 @@ resource "oci_core_subnet" "vcp_vcn-appl-1_subnpub-1" {
     prohibit_public_ip_on_vnic = false
 
     cidr_block = "192.168.30.0/25"
-
-    ipv6cidr_blocks = [
-        format("%s%s", replace(join(", ", oci_core_vcn.vcp_vcn-appl-1.ipv6cidr_blocks), "/56", ""), "/64")
-    ]    
+    ipv6cidr_block = format("%s%s", replace(join(", ", oci_core_vcn.vcp_vcn-appl-1.ipv6cidr_blocks), "/56", ""), "/64")
+    
+    # ipv6cidr_blocks = [
+    #     format("%s%s", replace(join(", ", oci_core_vcn.vcp_vcn-appl-1.ipv6cidr_blocks), "/56", ""), "/64")
+    # ]    
 }
 
 
@@ -115,10 +119,11 @@ resource "oci_core_subnet" "vcp_vcn-appl-1_subnprv-1" {
     prohibit_public_ip_on_vnic = true
 
     cidr_block = "192.168.30.128/25"
+    ipv6cidr_block = "fde3:50e0:8d10:0001::/64"
 
-    ipv6cidr_blocks = [
-        "fde3:50e0:8d10:0001::/64"
-    ]    
+    # ipv6cidr_blocks = [
+    #     "fde3:50e0:8d10:0001::/64"
+    # ]    
 }
 
 #------------#
@@ -140,10 +145,11 @@ resource "oci_core_subnet" "vcp_vcn-appl-2_subnprv-1" {
     prohibit_public_ip_on_vnic = true
 
     cidr_block = "192.168.40.128/25"
+    ipv6cidr_block = "fde3:50e0:8d11:0000::/64"
 
-    ipv6cidr_blocks = [
-        "fde3:50e0:8d11:0000::/64"
-    ]    
+    # ipv6cidr_blocks = [
+    #     "fde3:50e0:8d11:0000::/64"
+    # ]    
 }
 
 #--------#
@@ -165,8 +171,9 @@ resource "oci_core_subnet" "vcp_vcn-db_subnprv-1" {
     prohibit_public_ip_on_vnic = true
 
     cidr_block = "172.16.20.128/25"
+    ipv6cidr_block = "fde3:50e0:8d12:0000::/64"
 
-    ipv6cidr_blocks = [
-        "fde3:50e0:8d12:0000::/64"
-    ]    
+    # ipv6cidr_blocks = [
+    #     "fde3:50e0:8d12:0000::/64"
+    # ]    
 }

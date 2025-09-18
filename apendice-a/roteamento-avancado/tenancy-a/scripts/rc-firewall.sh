@@ -67,6 +67,9 @@ echo 0 > /proc/sys/net/ipv4/conf/$wan_vpn_iface/rp_filter
 echo 0 > /proc/sys/net/ipv4/conf/all/rp_filter
 echo 0 > /proc/sys/net/ipv4/conf/default/rp_filter
 
+# IPv6
+echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
+
 #-----------------------#
 # Inicializa o IPTables #
 #-----------------------#

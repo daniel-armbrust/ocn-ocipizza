@@ -20,7 +20,13 @@ resource "oci_core_route_table" "gru_vcn-firewall_subnprv-lan_route-table" {
         destination = "0.0.0.0/0"
         destination_type = "CIDR_BLOCK"
         network_entity_id = oci_core_drg.gru_drg-appl.id
-    }    
+    } 
+
+    route_rules {
+        destination = "0::/0"
+        destination_type = "CIDR_BLOCK"
+        network_entity_id = oci_core_drg.gru_drg-appl.id
+    } 
 
     # Service Gateway
     route_rules {
@@ -64,6 +70,12 @@ resource "oci_core_route_table" "gru_vcn-vpn_subnpub-1_route-table" {
         destination_type = "CIDR_BLOCK"
         network_entity_id = oci_core_internet_gateway.gru_vcn-vpn_igw.id
     }
+
+    route_rules {
+        destination = "0::/0"
+        destination_type = "CIDR_BLOCK"
+        network_entity_id = oci_core_internet_gateway.gru_vcn-vpn_igw.id
+    }
 }
 
 #------------#
@@ -78,9 +90,15 @@ resource "oci_core_route_table" "gru_vcn-appl-1_subnpub-1_route-table" {
     vcn_id = oci_core_vcn.gru_vcn-appl-1.id
     display_name = "subnpub-1_route-table"
     
-    # DRG-APPL
+    # Internet Gateway
     route_rules {
         destination = "0.0.0.0/0"
+        destination_type = "CIDR_BLOCK"
+        network_entity_id = oci_core_internet_gateway.gru_vcn-appl-1_igw.id
+    } 
+
+    route_rules {
+        destination = "0::/0"
         destination_type = "CIDR_BLOCK"
         network_entity_id = oci_core_internet_gateway.gru_vcn-appl-1_igw.id
     } 
@@ -101,9 +119,21 @@ resource "oci_core_route_table" "gru_vcn-appl-1_subnprv-1_route-table" {
         network_entity_id = oci_core_drg.gru_drg-appl.id
     } 
 
+    route_rules {
+        destination = "0::/0"
+        destination_type = "CIDR_BLOCK"
+        network_entity_id = oci_core_drg.gru_drg-appl.id
+    } 
+
     # VCN-DB (subnprv-1)
     route_rules {
         destination = "172.16.10.128/25"
+        destination_type = "CIDR_BLOCK"
+        network_entity_id = oci_core_local_peering_gateway.gru_vcn-appl-1_local-peering.id
+    } 
+
+    route_rules {
+        destination = "fde3:50e0:8c12:0000::/64"
         destination_type = "CIDR_BLOCK"
         network_entity_id = oci_core_local_peering_gateway.gru_vcn-appl-1_local-peering.id
     } 
@@ -134,6 +164,12 @@ resource "oci_core_route_table" "gru_vcn-appl-2_subnprv-1_route-table" {
         destination_type = "CIDR_BLOCK"
         network_entity_id = oci_core_drg.gru_drg-appl.id
     }
+
+    route_rules {
+        destination = "0::/0"
+        destination_type = "CIDR_BLOCK"
+        network_entity_id = oci_core_drg.gru_drg-appl.id
+    }
 }
 
 #--------#
@@ -155,9 +191,21 @@ resource "oci_core_route_table" "gru_vcn-db_subnprv-1_route-table" {
         network_entity_id = oci_core_drg.gru_drg-db.id
     }
 
+    route_rules {
+        destination = "0::/0"
+        destination_type = "CIDR_BLOCK"
+        network_entity_id = oci_core_drg.gru_drg-db.id
+    }
+
     # VCN-APPL-1 (subnprv-1)
     route_rules {
         destination = "192.168.10.128/25"
+        destination_type = "CIDR_BLOCK"
+        network_entity_id = oci_core_local_peering_gateway.gru_vcn-db_local-peering.id
+    } 
+
+    route_rules {
+        destination = "fde3:50e0:8c10:0000::/64"
         destination_type = "CIDR_BLOCK"
         network_entity_id = oci_core_local_peering_gateway.gru_vcn-db_local-peering.id
     } 

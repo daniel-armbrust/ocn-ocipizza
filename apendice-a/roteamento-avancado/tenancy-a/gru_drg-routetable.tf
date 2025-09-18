@@ -14,18 +14,25 @@ resource "oci_core_route_table" "gru_drg-appl_vcn-firewall_attch_route-table" {
     vcn_id = oci_core_vcn.gru_vcn-firewall.id
     display_name = "vcn-firewall_route-table"
 
-    // FIREWALL PRIVATE IP
+    // FIREWALL PRIVATE IP (IPv4)
     route_rules {
         destination = "0.0.0.0/0"
         destination_type = "CIDR_BLOCK"   
-        network_entity_id = data.oci_core_private_ips.gru_vm_firewall_vnic_lan_private-ip.private_ips[0]["id"]        
+        network_entity_id = data.oci_core_private_ips.gru_vm_firewall_vnic_lan_private-ip.private_ips[0]["id"]
     }
+
+    // FIREWALL PRIVATE IP (IPv6)
+    route_rules {
+        destination = "0::/0"
+        destination_type = "CIDR_BLOCK"   
+        network_entity_id = data.oci_core_ipv6s.gru_vm_firewall_vnic_lan_ipv6s.ipv6s[0].id
+    }          
 
     depends_on = [oci_core_instance.gru_vm_firewall]   
 
-    lifecycle {
-        ignore_changes = [route_rules]
-    }
+    # lifecycle {
+    #    ignore_changes = [route_rules]
+    # }
 }
 
 #-------------#
@@ -49,13 +56,28 @@ resource "oci_core_drg_route_table" "gru_drg-appl_to-firewall_route-table" {
     display_name = "to-firewall_route-table"    
 }
 
-# DRG Route Table Rules
-resource "oci_core_drg_route_table_route_rule" "gru_drg-appl_to-firewall_route-table_rules" {
+#
+# DRG Route Table Rules (IPv4)
+#
+resource "oci_core_drg_route_table_route_rule" "gru_drg-appl_to-firewall_route-table_rules-1" {
     provider = oci.gru
 
     drg_route_table_id = oci_core_drg_route_table.gru_drg-appl_to-firewall_route-table.id
     
     destination = "0.0.0.0/0"
+    destination_type = "CIDR_BLOCK"
+    next_hop_drg_attachment_id = oci_core_drg_attachment.gru_drg-appl_vcn-firewall_attch.id
+}
+
+#
+# DRG Route Table Rules (IPv6)
+#
+resource "oci_core_drg_route_table_route_rule" "gru_drg-appl_to-firewall_route-table_rules-2" {
+    provider = oci.gru
+
+    drg_route_table_id = oci_core_drg_route_table.gru_drg-appl_to-firewall_route-table.id
+    
+    destination = "0::/0"
     destination_type = "CIDR_BLOCK"
     next_hop_drg_attachment_id = oci_core_drg_attachment.gru_drg-appl_vcn-firewall_attch.id
 }
@@ -150,14 +172,16 @@ resource "oci_core_drg_route_table" "gru_drg-appl_remote-peering_route-table" {
     display_name = "drg-appl_remote-peering_route-table"    
 }
 
-# DRG Route Table Rules
+#
+# DRG Route Table Rules (IPv4)
+#
 resource "oci_core_drg_route_table_route_rule" "gru_drg-appl_remote-peering_route-table_rules-1" {
     provider = oci.gru
 
     drg_route_table_id = oci_core_drg_route_table.gru_drg-appl_remote-peering_route-table.id
     
     // VCN-APPL-1
-    destination = "${data.oci_core_subnet.gru_vcn-appl-1_subnprv-1.cidr_block}"
+    destination = "${oci_core_subnet.gru_vcn-appl-1_subnprv-1.cidr_block}"
     destination_type = "CIDR_BLOCK"
 
     // Direciona o tráfego que vem do Remote Peering para o attachment do firewall.
@@ -170,7 +194,7 @@ resource "oci_core_drg_route_table_route_rule" "gru_drg-appl_remote-peering_rout
     drg_route_table_id = oci_core_drg_route_table.gru_drg-appl_remote-peering_route-table.id
     
     // VCN-APPL-2
-    destination = "${data.oci_core_subnet.gru_vcn-appl-2_subnprv-1.cidr_block}"
+    destination = "${oci_core_subnet.gru_vcn-appl-2_subnprv-1.cidr_block}"
     destination_type = "CIDR_BLOCK"
 
     // Direciona o tráfego que vem do Remote Peering para o attachment do firewall.
@@ -183,7 +207,49 @@ resource "oci_core_drg_route_table_route_rule" "gru_drg-appl_remote-peering_rout
     drg_route_table_id = oci_core_drg_route_table.gru_drg-appl_remote-peering_route-table.id
     
     // VCN-FIREWALL
-    destination = "${data.oci_core_subnet.gru_vcn-firewall_subnprv-lan.cidr_block}"
+    destination = "${oci_core_subnet.gru_vcn-firewall_subnprv-lan.cidr_block}"
+    destination_type = "CIDR_BLOCK"
+
+    // Direciona o tráfego que vem do Remote Peering para o attachment do firewall.
+    next_hop_drg_attachment_id = oci_core_drg_attachment.gru_drg-appl_vcn-firewall_attch.id
+}
+
+#
+# DRG Route Table Rules (IPv6)
+#
+resource "oci_core_drg_route_table_route_rule" "gru_drg-appl_remote-peering_route-table_rules-4" {
+    provider = oci.gru
+
+    drg_route_table_id = oci_core_drg_route_table.gru_drg-appl_remote-peering_route-table.id
+    
+    // VCN-APPL-1
+    destination = "${oci_core_subnet.gru_vcn-appl-1_subnprv-1.ipv6cidr_block}"
+    destination_type = "CIDR_BLOCK"
+
+    // Direciona o tráfego que vem do Remote Peering para o attachment do firewall.
+    next_hop_drg_attachment_id = oci_core_drg_attachment.gru_drg-appl_vcn-firewall_attch.id
+}
+
+resource "oci_core_drg_route_table_route_rule" "gru_drg-appl_remote-peering_route-table_rules-5" {
+    provider = oci.gru
+
+    drg_route_table_id = oci_core_drg_route_table.gru_drg-appl_remote-peering_route-table.id
+    
+    // VCN-APPL-2
+    destination = "${oci_core_subnet.gru_vcn-appl-2_subnprv-1.ipv6cidr_block}"
+    destination_type = "CIDR_BLOCK"
+
+    // Direciona o tráfego que vem do Remote Peering para o attachment do firewall.
+    next_hop_drg_attachment_id = oci_core_drg_attachment.gru_drg-appl_vcn-firewall_attch.id
+}
+
+resource "oci_core_drg_route_table_route_rule" "gru_drg-appl_remote-peering_route-table_rules-6" {
+    provider = oci.gru
+
+    drg_route_table_id = oci_core_drg_route_table.gru_drg-appl_remote-peering_route-table.id
+    
+    // VCN-FIREWALL (IPv6)
+    destination = "${oci_core_subnet.gru_vcn-firewall_subnprv-lan.ipv6cidr_block}"
     destination_type = "CIDR_BLOCK"
 
     // Direciona o tráfego que vem do Remote Peering para o attachment do firewall.

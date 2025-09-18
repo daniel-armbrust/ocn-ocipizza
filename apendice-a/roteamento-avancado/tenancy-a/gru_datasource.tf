@@ -26,36 +26,6 @@ data "oci_identity_fault_domains" "gru_fds" {
     availability_domain = local.ads["gru_ad1_name"]
 }
 
-#------------------#
-# GRU VCN-FIREWALL #
-#------------------#
-
-data "oci_core_subnet" "gru_vcn-firewall_subnprv-lan" {
-    provider = oci.gru
-    
-    subnet_id = oci_core_subnet.gru_vcn-firewall_subnprv-lan.id
-}
-
-#----------------#
-# GRU VCN-APPL-1 #
-#----------------#
-
-data "oci_core_subnet" "gru_vcn-appl-1_subnprv-1" {
-    provider = oci.gru
-    
-    subnet_id = oci_core_subnet.gru_vcn-appl-1_subnprv-1.id
-}
-
-#----------------#
-# GRU VCN-APPL-2 #
-#----------------#
-
-data "oci_core_subnet" "gru_vcn-appl-2_subnprv-1" {
-    provider = oci.gru
-    
-    subnet_id = oci_core_subnet.gru_vcn-appl-2_subnprv-1.id
-}
-
 #--------------------#
 # GRU FIREWALL VNICs #
 #--------------------#
@@ -64,22 +34,34 @@ data "oci_core_vnic_attachments" "gru_vm_firewall_vnics" {
   provider = oci.gru
 
   compartment_id = var.compartment_id
-  depends_on = [oci_core_instance.gru_vm_firewall]
   instance_id = oci_core_instance.gru_vm_firewall.id
+
+  depends_on = [oci_core_instance.gru_vm_firewall]
 }
 
 # VNIC LAN
 data "oci_core_vnic" "gru_vm_firewall_vnic_lan" {
     provider = oci.gru
+    
+    vnic_id = lookup(data.oci_core_vnic_attachments.gru_vm_firewall_vnics.vnic_attachments[0], "vnic_id")
 
     depends_on = [oci_core_instance.gru_vm_firewall]
-    vnic_id = lookup(data.oci_core_vnic_attachments.gru_vm_firewall_vnics.vnic_attachments[0], "vnic_id")
 }
 
-# VNIC LAN - PRIVATE IP
+# VNIC LAN - PRIVATE IPv4
 data "oci_core_private_ips" "gru_vm_firewall_vnic_lan_private-ip" {
     provider = oci.gru
+    
+    vnic_id = data.oci_core_vnic.gru_vm_firewall_vnic_lan.id
 
     depends_on = [oci_core_instance.gru_vm_firewall]
-    vnic_id = data.oci_core_vnic.gru_vm_firewall_vnic_lan.id
+}
+
+# VNIC LAN - PRIVATE IPv6
+data "oci_core_ipv6s" "gru_vm_firewall_vnic_lan_ipv6s" {
+    provider = oci.gru
+
+    subnet_id = oci_core_subnet.gru_vcn-firewall_subnprv-lan.id 
+
+    depends_on = [oci_core_instance.gru_vm_firewall]   
 }
