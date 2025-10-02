@@ -33,6 +33,6 @@ oci os bucket create \
     --region "sa-vinhedo-1" \
     --compartment-id "$cmp_appl_ocid" \
     --name "pizza" \
-    --public-access-type "ObjectRead"
+    --public-access-type "ObjectReadWithoutList"
 
 exit 0
