@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# scripts/chapter-2/region-subscribe.sh
+# scripts/capitulo-2/region-subscribe.sh
 #
 # Copyright (C) 2005-2024 by Daniel Armbrust <darmbrust@gmail.com>
 #
@@ -19,7 +19,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-# Obtém funções externas.
+# Importa funções externas.
 source functions.sh
 
 # Variáveis Globais.

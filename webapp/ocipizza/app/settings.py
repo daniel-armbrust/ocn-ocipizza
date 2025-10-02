@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 class Settings():
     def __init__(self):
-        self.env = os.environ.get('FLASK_ENV')
+        self.env = os.environ.get('FLASK_ENV') or 'development'
 
         if self.env == 'development':
             import secrets

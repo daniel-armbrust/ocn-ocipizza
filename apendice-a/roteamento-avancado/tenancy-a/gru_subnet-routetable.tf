@@ -170,6 +170,13 @@ resource "oci_core_route_table" "gru_vcn-appl-2_subnprv-1_route-table" {
         destination_type = "CIDR_BLOCK"
         network_entity_id = oci_core_drg.gru_drg-appl.id
     }
+
+    # Service Gateway
+    route_rules {
+        destination = "all-gru-services-in-oracle-services-network"
+        destination_type = "SERVICE_CIDR_BLOCK"        
+        network_entity_id = oci_core_service_gateway.gru_vcn-appl-2_sgw.id  
+    }
 }
 
 #--------#

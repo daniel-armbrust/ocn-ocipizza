@@ -53,10 +53,12 @@ locals {
    #
    compute_image_id = {
       "gru" = {
+         "ol810-arm" = "ocid1.image.oc1.sa-saopaulo-1.aaaaaaaazjdtadmggn4wgv5abnricdnpevroqaasivl754ocqowkidizchua"
          "ol96-amd64" = "ocid1.image.oc1.sa-saopaulo-1.aaaaaaaa6xernq3m762v6h5m36t36vvqinj7hbgd77lr2fhbavsqjw2fav5q"
          "ol96-arm" = "ocid1.image.oc1.sa-saopaulo-1.aaaaaaaaeiryb62ld5b2vrzqtf53zt5nbuwiv7d4nxuavggkfza5yjhqpfwa"
       },
       "vcp" = {
+         "ol810-arm" = "ocid1.image.oc1.sa-vinhedo-1.aaaaaaaa33vruzk3r5cw7ueveiwrqeoqe2fe6jr3p665kxgs5sdxnudmes6a"
          "ol96-amd64" = "ocid1.image.oc1.sa-vinhedo-1.aaaaaaaadfrypyflfastxkcwj676ongsiovxorcxs5hhwdj2isvaqef5dn4q"
          "ol96-arm" = "ocid1.image.oc1.sa-vinhedo-1.aaaaaaaa67iviabbfci4gwtilfxnhdgjyemziltyc2vaeojxyen3nysov7fa"
       }

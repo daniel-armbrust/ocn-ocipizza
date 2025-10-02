@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# scripts/capitulo-2/all-services.sh
+# scripts/capitulo-4/functions.sh
 #
 # Copyright (C) 2005-2024 by Daniel Armbrust <darmbrust@gmail.com>
 #
@@ -19,16 +19,22 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-# Importa funções externas.
-source functions.sh
+function get_compartmet_ocid() {
+    local name_or_ocid="$1"
+    local name="$2"
 
-# Variáveis Globais.
-tenancy_ocid="$(get_tenancy_compartmet_ocid "ocipizza")"
+    if [ -z "$(echo -n "$name_or_ocid" | egrep 'ocid[0-9]{1,1}\.')" ]; then
+       
+        oci iam compartment list \
+            --name "$name_or_ocid" \
+            --query "data[].id" | tr -d '[]" \n'
 
-oci limits service list \
-    --compartment-id "$tenancy_ocid" \
-    --all \
-    --query 'data[*].{"Descrição do Serviço": description, "Nome do Serviço": name}' \
-    --output table
+    else        
+         
+        oci iam compartment list \
+            --compartment-id "$name_or_ocid" \
+            --name "$name" \
+            --query "data[].id" | tr -d '[]" \n'
 
-exit 0
+    fi    
+}

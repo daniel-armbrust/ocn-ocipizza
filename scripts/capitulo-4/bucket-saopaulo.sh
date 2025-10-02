@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# scripts/capitulo-2/all-services.sh
+# scripts/capitulo-4/bucket-saopaulo.sh
 #
 # Copyright (C) 2005-2024 by Daniel Armbrust <darmbrust@gmail.com>
 #
@@ -22,13 +22,17 @@
 # Importa funções externas.
 source functions.sh
 
-# Variáveis Globais.
-tenancy_ocid="$(get_tenancy_compartmet_ocid "ocipizza")"
+# OCID do compartimento do ambiente de produção (cmp-prd).
+cmp_prd_ocid="$(get_compartmet_ocid "cmp-prd")"
 
-oci limits service list \
-    --compartment-id "$tenancy_ocid" \
-    --all \
-    --query 'data[*].{"Descrição do Serviço": description, "Nome do Serviço": name}' \
-    --output table
+# OCI do compartimento de aplicação do ambiente de produção (cmp-prd/cmp-appl).
+cmp_appl_ocid="$(get_compartmet_ocid "$cmp_prd_ocid" "cmp-appl")"
+
+# Criação do Bucket "pizza" na região "sa-saopaulo-1".
+oci os bucket create \
+    --region "sa-saopaulo-1" \
+    --compartment-id "$cmp_appl_ocid" \
+    --name "pizza" \
+    --public-access-type "ObjectRead"
 
 exit 0

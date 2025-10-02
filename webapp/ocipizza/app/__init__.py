@@ -50,7 +50,7 @@ def create_app():
         #user.id = user_id
         return user       
 
-    if settings.html_minify:
+    if settings.html_minify is True:
         from flask_minify import minify
 
         app.config['MINIFY_HTML'] = True

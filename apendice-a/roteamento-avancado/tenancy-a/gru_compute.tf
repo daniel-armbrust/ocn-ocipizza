@@ -14,7 +14,7 @@ resource "oci_core_instance" "gru_vm_wordpress-1" {
 
     shape_config { 
         baseline_ocpu_utilization = "BASELINE_1_1"
-        memory_in_gbs = 2
+        memory_in_gbs = 4
         ocpus = 2
     }
 

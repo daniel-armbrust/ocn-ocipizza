@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# scripts/chapter-2/functions.sh
+# scripts/capitulo-2/functions.sh
 #
 # Copyright (C) 2005-2024 by Daniel Armbrust <darmbrust@gmail.com>
 #

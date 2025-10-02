@@ -170,6 +170,13 @@ resource "oci_core_route_table" "vcp_vcn-appl-2_subnprv-1_route-table" {
         destination_type = "CIDR_BLOCK"
         network_entity_id = oci_core_drg.vcp_drg-appl.id
     }
+
+    # Service Gateway
+    route_rules {
+        destination = "all-vcp-services-in-oracle-services-network"
+        destination_type = "SERVICE_CIDR_BLOCK"        
+        network_entity_id = oci_core_service_gateway.vcp_vcn-appl-2_sgw.id  
+    }
 }
 
 #--------#
