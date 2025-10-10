@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# scripts/capitulo-4/nosql-table-saopaulo.sh
+# scripts/capitulo-4/nosql-tables-saopaulo.sh
 #
 # Copyright (C) 2005-2024 by Daniel Armbrust <darmbrust@gmail.com>
 #

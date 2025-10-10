@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# scripts/capitulo-4/nosql-table-vinhedo.sh
+# scripts/capitulo-4/nosql-tables-vinhedo.sh
 #
 # Copyright (C) 2005-2024 by Daniel Armbrust <darmbrust@gmail.com>
 #
