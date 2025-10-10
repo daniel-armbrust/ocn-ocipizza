@@ -112,10 +112,7 @@ class UserRegister():
             self.__fn.fn_ocid = self.__settings.fn_user_register_ocid
 
     def add(self, user_data: dict):
-        """
-        Adiciona um novo usuário, mas com o status desativado.
-        
-        """
+        """Adiciona um novo usuário, mas com o status desativado."""
         invoke_status = self.__fn.invoke(json_message=user_data)
 
         return invoke_status
