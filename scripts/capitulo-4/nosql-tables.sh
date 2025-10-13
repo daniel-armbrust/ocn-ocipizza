@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# scripts/capitulo-4/nosql-tables-vinhedo.sh
+# scripts/capitulo-4/nosql-tables.sh
 #
 # Copyright (C) 2005-2024 by Daniel Armbrust <darmbrust@gmail.com>
 #
@@ -28,9 +28,9 @@ cmp_prd_ocid="$(get_compartmet_ocid "cmp-prd")"
 # OCI do compartimento de aplicação do ambiente de produção (cmp-prd/cmp-appl).
 cmp_appl_ocid="$(get_compartmet_ocid "$cmp_prd_ocid" "cmp-appl")"
 
-# Tabela Pizza da região "sa-vinhedo-1".
+# Tabela Pizza da região "sa-saopaulo-1".
 oci nosql table create \
-    --region "sa-vinhedo-1" \
+    --region "sa-saopaulo-1" \
     --compartment-id "$cmp_appl_ocid" \
     --name "pizza" \
     --table-limits "{\"capacityMode\": \"PROVISIONED\", \"maxReadUnits\": 5, \"maxWriteUnits\": 5, \"maxStorageInGBs\": 2}" \
@@ -42,12 +42,11 @@ oci nosql table create \
             description STRING,
             image STRING,
             price NUMBER,
-            json_replica JSON,
          PRIMARY KEY(id))"
 
-# Tabela User da região "sa-vinhedo-1".
+# Tabela User da região "sa-saopaulo-1".
 oci nosql table create \
-    --region "sa-vinhedo-1" \
+    --region "sa-saopaulo-1" \
     --compartment-id "$cmp_appl_ocid" \
     --name "user" \
     --table-limits "{\"capacityMode\": \"PROVISIONED\", \"maxReadUnits\": 5, \"maxWriteUnits\": 5, \"maxStorageInGBs\": 2}" \
@@ -60,12 +59,11 @@ oci nosql table create \
             password STRING,
             telephone STRING,
             verified BOOLEAN DEFAULT FALSE,
-            json_replica JSON,           
          PRIMARY KEY(id))"
 
-# Tabela User.Order da região "sa-vinhedo-1".
+# Tabela User.Order da região "sa-saopaulo-1".
 oci nosql table create \
-    --region "sa-vinhedo-1" \
+    --region "sa-saopaulo-1" \
     --compartment-id "$cmp_appl_ocid" \
     --name "user.order" \
     --wait-for-state "SUCCEEDED" \
@@ -75,13 +73,13 @@ oci nosql table create \
             address JSON,
             pizza JSON,  
             total NUMBER,
-            order_datetime INTEGER,
+            order_datetime INTEGER,            
             status ENUM(PREPARING,OUT_FOR_DELIVERY,DELIVERED,CANCELED) DEFAULT PREPARING,             
          PRIMARY KEY (order_id))"
 
-# Tabela Email_Verification da região "sa-vinhedo-1".
+# Tabela Email_Verification da região "sa-saopaulo-1".
 oci nosql table create \
-    --region "sa-vinhedo-1" \
+    --region "sa-saopaulo-1" \
     --compartment-id "$cmp_appl_ocid" \
     --name "email_verification" \
     --table-limits "{\"capacityMode\": \"PROVISIONED\", \"maxReadUnits\": 5, \"maxWriteUnits\": 5, \"maxStorageInGBs\": 2}" \
