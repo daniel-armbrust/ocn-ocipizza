@@ -28,7 +28,7 @@ cmp_prd_ocid="$(get_compartmet_ocid "cmp-prd")"
 # OCI do compartimento de aplicação do ambiente de produção (cmp-prd/cmp-appl).
 cmp_appl_ocid="$(get_compartmet_ocid "$cmp_prd_ocid" "cmp-appl")"
 
-# # FREEZE SCHEMA da tabela Pizza da região "sa-saopaulo-1".
+# FREEZE SCHEMA da tabela Pizza da região "sa-saopaulo-1".
 oci nosql table update \
     --region "sa-saopaulo-1" \
     --table-name-or-id "pizza" \
