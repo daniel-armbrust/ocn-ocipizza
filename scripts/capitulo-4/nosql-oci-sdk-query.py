@@ -4,7 +4,7 @@ import oci
 
 COMPARTMENT_ID = ''
 
-config = oci.config.from_file()
+config = oci.config.from_file(file_location='~/.oci/config')
 nosql_client = oci.nosql.NosqlClient(config=config)
 
 query_details = oci.nosql.models.QueryDetails(
