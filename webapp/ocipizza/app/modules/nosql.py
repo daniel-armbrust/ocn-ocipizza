@@ -19,22 +19,26 @@ class NoSQL():
     @staticmethod
     def create_handler(env: str):
         settings = Settings() 
+       
+        nosql_handle_config = NoSQLHandleConfig(settings.oci_region)
+        sigprov = None
 
         if env == 'development':         
             log_stdout = logging.basicConfig(level=logging.INFO, 
                                              format='%(asctime)s - %(levelname)s - %(message)s',
                                              handlers=[logging.StreamHandler()])
             
-            provider = StoreAccessTokenProvider()
-            nosql_handle_config = NoSQLHandleConfig(f'http://{settings.nosql_ip}:{settings.nosql_port}', provider).set_logger(log_stdout)
-            nosql_handle = NoSQLHandle(nosql_handle_config)            
-        else:
-            provider = SignatureProvider.create_with_resource_principal()  
+            sigprov = SignatureProvider(config_file='~/.oci/config')
+            nosql_handle_config.set_logger(log_stdout)
 
-            nosql_handle_config = NoSQLHandleConfig(
-                settings.nosql_region, provider).set_logger(None).set_default_compartment(settings.nosql_compartment_ocid)
-            
-            nosql_handle = NoSQLHandle(nosql_handle_config)
+        else:
+            sigprov = SignatureProvider.create_with_resource_principal()  
+            nosql_handle_config.set_logger(None)
+
+        nosql_handle_config.set_authorization_provider(sigprov)
+        nosql_handle_config.set_default_compartment(settings.nosql_compartment_ocid)
+                
+        nosql_handle = NoSQLHandle(nosql_handle_config) 
 
         return nosql_handle
 

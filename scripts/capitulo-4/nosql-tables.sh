@@ -25,8 +25,8 @@ source functions.sh
 # OCID do compartimento do ambiente de produção (cmp-prd).
 cmp_prd_ocid="$(get_compartmet_ocid "cmp-prd")"
 
-# OCI do compartimento de aplicação do ambiente de produção (cmp-prd/cmp-appl).
-cmp_appl_ocid="$(get_compartmet_ocid "$cmp_prd_ocid" "cmp-appl")"
+# OCI do compartimento de banco de dados do ambiente de produção (cmp-prd/cmp-database).
+cmp_appl_ocid="$(get_compartmet_ocid "$cmp_prd_ocid" "cmp-database")"
 
 # Tabela Pizza da região "sa-saopaulo-1".
 oci nosql table create \

@@ -19,13 +19,7 @@ class Settings():
                         
             self.domain = None
             self.cookie_secure = False
-            self.html_minify = False                    
-
-            self.nosql_ip = os.getenv('NOSQL_IP')
-            self.nosql_port = os.getenv('NOSQL_PORT') 
-
-            self.fn_user_register_endpoint = os.environ.get('FN_USER_REGISTER_ENDPOINT')
-            self.fn_password_recovery_endpoint = os.environ.get('FN_PASSWORD_RECOVERY_ENDPOINT')
+            self.html_minify = False 
         else:
             self.secret_key = os.environ.get('SECRET_KEY')
             
@@ -37,12 +31,19 @@ class Settings():
             self.domain = self.web_config['host']
             self.cookie_secure = True                    
 
-            self.fn_user_register_ocid = os.environ.get('FN_USER_REGISTER_OCID')
-            self.fn_password_recovery_ocid = os.environ.get('FN_PASSWORD_RECOVERY_OCID')
+        # Região do OCI onde a aplicação está sendo executada.
+        self.oci_region = os.environ.get('OCI_REGION')
 
-            self.nosql_compartment_ocid = os.environ.get('NOSQL_COMPARTMENT_OCID')
-            self.nosql_region = os.getenv('NOSQL_REGION') 
-        
+        # OCI Object Storage Namespace.
+        self.oci_objs_namespace = os.environ.get('OCI_OBJS_NAMESPACE')
+
+        # OCID das funções no OCI.
+        self.fn_user_register_ocid = os.environ.get('FN_USER_REGISTER_OCID')
+        self.fn_password_recovery_ocid = os.environ.get('FN_PASSWORD_RECOVERY_OCID')
+
+        # OCID do compartimento do NoSQL.
+        self.nosql_compartment_ocid = os.environ.get('NOSQL_COMPARTMENT_OCID')
+                
         self.user_min_password_length = 8    
         self.user_max_password_length = 16
 

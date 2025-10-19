@@ -10,8 +10,7 @@
     <title>OCI Pizza [{% block title %}{% endblock %}]</title>
     <script type="text/javascript" defer>
         const webHost = '{{ web_config.scheme }}://{{ web_config.host }}:{{ web_config.port }}';            
-        const apiHost = '{{ api_config.scheme }}://{{ api_config.host }}:{{ api_config.port }}';             
-        const imgUrlPrefix = '{{ url_prefix }}';
+        const apiHost = '{{ api_config.scheme }}://{{ api_config.host }}:{{ api_config.port }}';         
     </script> 
     {% block head %}
     {% endblock %}          

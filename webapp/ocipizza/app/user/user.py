@@ -249,7 +249,7 @@ class UserPassword():
         token_valid = self.__check_token()  
 
         if token_valid:    
-            hashed_password = generate_password_hash(self.__password)
+            hashed_password = generate_password_hash(method='pbkdf2', password=self.__password)
 
             password_update = self.__update(hashed_password)
 

@@ -6,6 +6,9 @@ sshkeys/
 # Test environment
 scripts/test/
 
+# Variáveis de ambiente
+env.vars
+
 # Paint.NET PDN Image Files
 *.pdn
 

@@ -22,11 +22,42 @@
 # Importa funções externas.
 source functions.sh
 
+function hash_password() {
+    # Gera um hash de senha compatível com a implementação Werkzeug.
+    # https://werkzeug.palletsprojects.com/en/stable/
+    
+    local password="$1"
+
+    local iter="${2:-260000}"
+    local salt_len="${3:-8}"
+
+python3 - "$password" "$iter" "$salt_len" <<PYTHON
+import hashlib, binascii, random, string, sys
+
+password = sys.argv[1].encode('utf-8')
+iterations = int(sys.argv[2])
+salt_length = int(sys.argv[3])
+
+SALT_CHARS = string.ascii_letters + string.digits
+salt = ''.join(random.choice(SALT_CHARS) for _ in range(salt_length))
+
+dk = hashlib.pbkdf2_hmac('sha256', password, salt.encode('utf-8'), iterations)
+hash_hex = binascii.hexlify(dk).decode('ascii')
+
+print(f"pbkdf2:sha256:{iterations}\${salt}\${hash_hex}")
+PYTHON
+}
+
 # OCID do compartimento do ambiente de produção (cmp-prd).
 cmp_prd_ocid="$(get_compartmet_ocid "cmp-prd")"
 
-# OCI do compartimento de aplicação do ambiente de produção (cmp-prd/cmp-appl).
-cmp_appl_ocid="$(get_compartmet_ocid "$cmp_prd_ocid" "cmp-appl")"
+# OCI do compartimento de aplicação do ambiente de produção (cmp-prd/cmp-database).
+cmp_appl_ocid="$(get_compartmet_ocid "$cmp_prd_ocid" "cmp-database")"
+
+if [ -z "`which python3`" ]; then
+    echo 'Binário python3 não encontrado! É necessário instalá-lo.'
+    exit 1
+fi
 
 # Pizzas (data/pizza.data).
 while IFS= read -r data_line; do
@@ -48,11 +79,10 @@ done < "data/pizza.data"
 while IFS=";" read -r id name email password telephone verified; do
 
     # Gera um hash da senha.
-    crypt_password="$(echo -n "$password" | openssl dgst -sha256 | awk '{print $2}')"
-
-    sql="
-        INSERT INTO user (id, name, email, password, telephone, verified)
-            VALUES ($id, '$name', '$email', '$crypt_password', '$telephone', $verified)"
+    crypt_password="$(hash_password "$password")"
+    
+    sql="INSERT INTO user (id, name, email, password, telephone, verified)
+           VALUES ($id, '$name', '$email', '$crypt_password', '$telephone', $verified)"
 
     oci nosql query execute \
         --region "sa-saopaulo-1" \
@@ -67,9 +97,8 @@ done < "data/user.data"
 # Orders (data/order.data).
 while IFS=";" read -r user_id order_id address pizza total order_datetime status; do
 
-    sql="
-        INSERT INTO user.order (id, order_id, address, pizza, total, order_datetime, status)
-            VALUES ($user_id, $order_id, '$address', '$pizza', $total, $order_datetime, '$status')"
+    sql="INSERT INTO user.order (id, order_id, address, pizza, total, order_datetime, status)
+           VALUES ($user_id, $order_id, '$address', '$pizza', $total, $order_datetime, '$status')"
        
     oci nosql query execute \
         --region "sa-saopaulo-1" \
