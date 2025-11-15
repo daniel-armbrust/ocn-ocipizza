@@ -25,7 +25,7 @@ source functions.sh
 # OCID do compartimento do ambiente de produção (cmp-prd).
 cmp_prd_ocid="$(get_compartmet_ocid "cmp-prd")"
 
-# OCI do compartimento de aplicação do ambiente de produção (cmp-prd/cmp-appl).
+# OCID do compartimento de aplicação do ambiente de produção (cmp-prd/cmp-appl).
 cmp_appl_ocid="$(get_compartmet_ocid "$cmp_prd_ocid" "cmp-appl")"
 
 # Criação do Bucket "pizza" na região "sa-saopaulo-1".

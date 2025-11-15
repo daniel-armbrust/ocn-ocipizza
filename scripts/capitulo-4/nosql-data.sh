@@ -51,7 +51,7 @@ PYTHON
 # OCID do compartimento do ambiente de produção (cmp-prd).
 cmp_prd_ocid="$(get_compartmet_ocid "cmp-prd")"
 
-# OCI do compartimento de aplicação do ambiente de produção (cmp-prd/cmp-database).
+# OCID do compartimento de aplicação do ambiente de produção (cmp-prd/cmp-database).
 cmp_appl_ocid="$(get_compartmet_ocid "$cmp_prd_ocid" "cmp-database")"
 
 if [ -z "`which python3`" ]; then

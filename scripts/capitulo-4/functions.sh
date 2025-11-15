@@ -19,7 +19,20 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
+function get_tenancy_compartmet_ocid() {
+    # Retorna o OCID do Tenancy.
+
+    local tenancy_name="$1"
+
+    oci iam compartment list \
+        --include-root \
+        --name "$tenancy_name" \
+        --query "data[].id" | tr -d '[]" \n'
+}
+
 function get_compartmet_ocid() {
+    # Retorna o OCID do Compartment.
+
     local name_or_ocid="$1"
     local name="$2"
 
@@ -37,4 +50,20 @@ function get_compartmet_ocid() {
             --query "data[].id" | tr -d '[]" \n'
 
     fi    
+}
+
+function get_lang_project_ocid() {
+    # Retorna o OCID do Projeto OCI Language.
+
+    local project_name="$1"
+    local compartment_ocid="$2"
+    local region="$3"
+
+    oci ai language project list \
+        --region "$region" \
+        --compartment-id "$compartment_ocid" \
+        --display-name "$project_name" \
+        --lifecycle-state "ACTIVE" \
+        --all \
+        --query "data.items[].id" | tr -d '[]" \n'
 }

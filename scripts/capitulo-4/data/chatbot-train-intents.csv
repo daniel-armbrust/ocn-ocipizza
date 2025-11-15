@@ -1,0 +1,283 @@
+text,labels
+"Errei o pedido, cancela por favor",cancelar_pedido
+Gostaria de pedir uma pizza grande muçarela por favor,fazer_pedido
+"Boa noite, obrigado",despedida
+"Olá, gostaria de fazer um pedido",ver_cardapio
+Agradeço,agradecimento
+Anota um pedido pra mim,fazer_pedido
+Anote meu pedido por favor,fazer_pedido
+Até amanhã,despedida
+Até breve,despedida
+Até logo,despedida
+Boa noite,despedida
+Obrigado e boa noite,despedida
+Boa noite,saudacao
+Boa tarde pizzaria,saudacao
+Bom descanso,despedida
+Bom dia,saudacao
+Adeus,despedida
+Cancele a pizza anterior por favor,cancelar_pedido
+Cancele a pizza anterior,cancelar_pedido
+Cancele o pedido por favor,cancelar_pedido
+Cancele o pedido,cancelar_pedido
+Confirmar pedido por favor,confirmar_pedido
+Confirmar pedido,confirmar_pedido
+Confirmem o pedido por favor,confirmar_pedido
+Desista do pedido por favor,cancelar_pedido
+Desista do pedido,cancelar_pedido
+E aí tudo bem,saudacao
+Entrega na rua josé bonifácio 200 por favor,informar_endereco
+Entrega na rua josé bonifácio 200,informar_endereco
+Entrega na rua principal 45 por favor,informar_endereco
+Entrega na rua principal 45,informar_endereco
+Entrega no centro perto da praça por favor,informar_endereco
+Entrega no centro perto da praça,informar_endereco
+Entregar na avenida central 500 por favor,informar_endereco
+Entregar na avenida central 500,informar_endereco
+Envie para o condomínio jardim das flores por favor,informar_endereco
+Envie para o condomínio jardim das flores,informar_endereco
+Falou,despedida
+Faça meu pedido por favor,fazer_pedido
+Faça meu pedido,fazer_pedido
+Faça um pedido de pizza portuguesa por favor,fazer_pedido
+Faça um pedido de pizza portuguesa,fazer_pedido
+Gostaria de pedir uma pizza grande muçarela,fazer_pedido
+Gostaria de uma pizza de pepperoni por favor,fazer_pedido
+Gostaria de uma pizza de pepperoni,fazer_pedido
+Gostaria de ver o cardápio por favor,ver_cardapio
+Gostaria de ver o cardápio,ver_cardapio
+Preciso de uma pizza,ver_cardapio
+Já foi confirmado o pedido? por favor,confirmar_pedido
+Já foi confirmado o pedido?,confirmar_pedido
+Mandar na rua das oliveiras 10 por favor,informar_endereco
+Mandar na rua das oliveiras 10,informar_endereco
+Me avise quando confirmar por favor,confirmar_pedido
+Me avise quando confirmar,confirmar_pedido
+Me envie o menu completo por favor,ver_cardapio
+Me envie o menu completo,ver_cardapio
+Me mostra o cardápio por favor,ver_cardapio
+Me mostra o cardápio,ver_cardapio
+Me mostra os tamanhos e sabores por favor,ver_cardapio
+Me mostra os tamanhos e sabores,ver_cardapio
+Meu endereço de entrega é rua avelar 17 por favor,informar_endereco
+Meu endereço de entrega é rua avelar 17,informar_endereco
+Meu endereço é avenida brasil 999 por favor,informar_endereco
+Meu endereço é avenida brasil 999,informar_endereco
+Meu endereço é rua das flores 123 por favor,informar_endereco
+Meu endereço é rua das flores 123,informar_endereco
+Meu pedido está confirmado? por favor,confirmar_pedido
+Meu pedido está confirmado?,confirmar_pedido
+Meu pedido foi confirmado por favor,confirmar_pedido
+Meu pedido foi confirmado,confirmar_pedido
+Moro na rua dos pinheiros 90 por favor,informar_endereco
+Moro na rua dos pinheiros 90,informar_endereco
+Mostre o cardápio por favor,ver_cardapio
+Mostre o cardápio,ver_cardapio
+Muito grato por favor,agradecimento
+Muito grato,agradecimento
+Muito obrigado por favor,agradecimento
+Muito obrigado,agradecimento
+Não quero mais a pizza por favor,cancelar_pedido
+Não quero mais a pizza que pedi por favor,cancelar_pedido
+Não quero mais a pizza que pedi,cancelar_pedido
+Não quero mais a pizza,cancelar_pedido
+O que vocês têm hoje por favor,ver_cardapio
+O que vocês têm hoje,ver_cardapio
+Obrigada mesmo por favor,agradecimento
+Obrigada mesmo,agradecimento
+Obrigada pela atenção por favor,agradecimento
+Obrigada pela atenção,agradecimento
+Obrigado pizzaria por favor,agradecimento
+Obrigado pizzaria,agradecimento
+Obrigado por favor,agradecimento
+Obrigado,agradecimento
+Oi pizzaria por favor,saudacao
+Oi pizzaria,saudacao
+Oi por favor,saudacao
+Oi tudo certo por favor,saudacao
+Oi tudo certo,saudacao
+Oi,saudacao
+Olá gostaria de pedir por favor,saudacao
+Olá gostaria de pedir,saudacao
+Olá pessoal da pizzaria por favor,saudacao
+Olá pessoal da pizzaria,saudacao
+Olá por favor,saudacao
+Olá,saudacao
+Pode cancelar meu pedido por favor,cancelar_pedido
+Pode cancelar meu pedido,cancelar_pedido
+Pode confirmar o pedido por favor,confirmar_pedido
+Pode confirmar o pedido,confirmar_pedido
+Quais sabores disponíveis por favor,ver_cardapio
+Quais sabores disponíveis,ver_cardapio
+Quais são as pizzas por favor,ver_cardapio
+Quais são as pizzas,ver_cardapio
+Quero cancelar meu pedido por favor,cancelar_pedido
+Quero cancelar meu pedido,cancelar_pedido
+Quero cancelar o que pedi por favor,cancelar_pedido
+Quero cancelar o que pedi,cancelar_pedido
+Quero duas pizzas pequenas por favor,fazer_pedido
+Quero duas pizzas pequenas,fazer_pedido
+Quero pedir uma pizza de calabresa por favor,fazer_pedido
+Quero pedir uma pizza de calabresa,fazer_pedido
+Quero pedir uma pizza e uma coca por favor,fazer_pedido
+Quero pedir uma pizza e uma coca,fazer_pedido
+Quero uma pizza média de frango por favor,fazer_pedido
+Quero uma pizza média de frango,fazer_pedido
+Quero ver o menu por favor,ver_cardapio
+Quero ver o menu,ver_cardapio
+Retire meu pedido por favor,cancelar_pedido
+Retire meu pedido,cancelar_pedido
+Show obrigado,agradecimento
+Só quero confirmar se receberam por favor,confirmar_pedido
+Só quero confirmar se receberam,confirmar_pedido
+Tchau,despedida
+Tem pizza doce por favor,ver_cardapio
+Tem pizza doce,ver_cardapio
+Valeu até a próxima,despedida
+Valeu pela ajuda,agradecimento
+Valeu,agradecimento
+Vocês confirmaram meu pedido por favor,confirmar_pedido
+Vocês confirmaram meu pedido,confirmar_pedido
+Vocês receberam meu pedido por favor,confirmar_pedido
+Vocês receberam meu pedido,confirmar_pedido
+adeus,despedida
+agradeço,agradecimento
+anota um pedido pra mim por favor,fazer_pedido
+anota um pedido pra mim,fazer_pedido
+anote meu pedido por favor,fazer_pedido
+até amanhã,despedida
+até breve,despedida
+até logo,despedida
+até mais,despedida
+boa noite,despedida
+boa noite,saudacao
+boa tarde pizzaria,saudacao
+bom descanso,despedida
+bom dia,saudacao
+cancele a pizza anterior por favor,cancelar_pedido
+cancele a pizza anterior,cancelar_pedido
+cancele o pedido por favor,cancelar_pedido
+cancele o pedido,cancelar_pedido
+confirmar pedido por favor,confirmar_pedido
+confirmar pedido,confirmar_pedido
+confirmem o pedido por favor por favor,confirmar_pedido
+confirmem o pedido por favor,confirmar_pedido
+desista do pedido por favor,cancelar_pedido
+desista do pedido,cancelar_pedido
+e aí tudo bem,saudacao
+entrega na rua josé bonifácio 200 por favor,informar_endereco
+entrega na rua josé bonifácio 200,informar_endereco
+entrega na rua principal 45 por favor,informar_endereco
+entrega na rua principal 45,informar_endereco
+entrega no centro perto da praça por favor,informar_endereco
+entrega no centro perto da praça,informar_endereco
+entregar na avenida central 500 por favor,informar_endereco
+entregar na avenida central 500,informar_endereco
+envie para o condomínio jardim das flores por favor,informar_endereco
+envie para o condomínio jardim das flores,informar_endereco
+falou,despedida
+faça meu pedido por favor,fazer_pedido
+faça meu pedido,fazer_pedido
+faça um pedido de pizza portuguesa por favor,fazer_pedido
+faça um pedido de pizza portuguesa,fazer_pedido
+gostaria de pedir uma pizza grande muçarela por favor,fazer_pedido
+gostaria de pedir uma pizza grande muçarela,fazer_pedido
+gostaria de uma pizza de pepperoni por favor,fazer_pedido
+gostaria de uma pizza de pepperoni,fazer_pedido
+gostaria de ver o cardápio por favor,ver_cardapio
+gostaria de ver o cardápio,ver_cardapio
+já foi confirmado o pedido? por favor,confirmar_pedido
+já foi confirmado o pedido?,confirmar_pedido
+mandar na rua das oliveiras 10 por favor,informar_endereco
+mandar na rua das oliveiras 10,informar_endereco
+me avise quando confirmar por favor,confirmar_pedido
+me avise quando confirmar,confirmar_pedido
+me envie o menu completo por favor,ver_cardapio
+me envie o menu completo,ver_cardapio
+me mostra o cardápio por favor,ver_cardapio
+me mostra o cardápio,ver_cardapio
+me mostra os tamanhos e sabores por favor,ver_cardapio
+me mostra os tamanhos e sabores,ver_cardapio
+meu endereço de entrega é rua avelar 17,informar_endereco
+meu endereço é avenida brasil 999,informar_endereco
+meu endereço é rua das flores 123,informar_endereco
+meu pedido está confirmado? por favor,confirmar_pedido
+meu pedido está confirmado?,confirmar_pedido
+meu pedido foi confirmado por favor,confirmar_pedido
+meu pedido foi confirmado,confirmar_pedido
+moro na rua dos pinheiros 90,informar_endereco
+mostre o cardápio por favor,ver_cardapio
+mostre o cardápio,ver_cardapio
+muito grato,agradecimento
+muito obrigado,agradecimento
+não quero mais a pizza por favor,cancelar_pedido
+não quero mais a pizza que pedi por favor,cancelar_pedido
+não quero mais a pizza que pedi,cancelar_pedido
+não quero mais a pizza,cancelar_pedido
+o que vocês têm hoje por favor,ver_cardapio
+o que vocês têm hoje,ver_cardapio
+obrigada mesmo,agradecimento
+obrigada pela atenção,agradecimento
+obrigado pizzaria,agradecimento
+obrigado,agradecimento
+oi pizzaria,saudacao
+oi por favor,saudacao
+oi tudo certo,saudacao
+oi,saudacao
+olá gostaria de pedir por favor,saudacao
+olá gostaria de pedir,saudacao
+olá pessoal da pizzaria por favor,saudacao
+olá pessoal da pizzaria,saudacao
+olá por favor,saudacao
+olá,saudacao
+pode cancelar meu pedido por favor,cancelar_pedido
+pode cancelar meu pedido,cancelar_pedido
+pode confirmar o pedido por favor,confirmar_pedido
+pode confirmar o pedido,confirmar_pedido
+quais sabores disponíveis por favor,ver_cardapio
+quais sabores disponíveis,ver_cardapio
+quais são as pizzas por favor,ver_cardapio
+quais são as pizzas,ver_cardapio
+quero cancelar meu pedido por favor,cancelar_pedido
+quero cancelar meu pedido,cancelar_pedido
+quero cancelar o que pedi por favor,cancelar_pedido
+quero cancelar o que pedi,cancelar_pedido
+quero duas pizzas pequenas por favor,fazer_pedido
+quero duas pizzas pequenas,fazer_pedido
+quero pedir uma pizza de calabresa por favor,fazer_pedido
+quero pedir uma pizza de calabresa,fazer_pedido
+quero pedir uma pizza e uma coca por favor,fazer_pedido
+quero pedir uma pizza e uma coca,fazer_pedido
+quero uma pizza média de frango por favor,fazer_pedido
+quero uma pizza média de frango,fazer_pedido
+quero ver o menu por favor,ver_cardapio
+quero ver o menu,ver_cardapio
+retire meu pedido por favor,cancelar_pedido
+retire meu pedido,cancelar_pedido
+show obrigado,agradecimento
+só quero confirmar se receberam por favor,confirmar_pedido
+só quero confirmar se receberam,confirmar_pedido
+tchau,despedida
+tem pizza doce por favor,ver_cardapio
+tem pizza doce,ver_cardapio
+valeu até a próxima,despedida
+valeu pela ajuda,agradecimento
+valeu,agradecimento
+vocês confirmaram meu pedido por favor,confirmar_pedido
+vocês confirmaram meu pedido,confirmar_pedido
+vocês receberam meu pedido por favor,confirmar_pedido
+vocês receberam meu pedido,confirmar_pedido
+Quanto tempo demora para entregar a pizza?,informacao_pedido
+Quanto tempo demora?,informacao_pedido
+Meu pedido irá demorar muito?,informacao_pedido
+Você sabe quanto tempo demora?,informacao_pedido
+É possível entregar mais rápido?,informacao_pedido
+Queria a pizza o quanto antes,informacao_pedido
+Meu pedido já saiu para entrega?,informacao_pedido
+Já saiu para entrega?,informacao_pedido
+"Poderia me informar o status do meu pedido, por favor?",informacao_pedido
+Gostaria de saber quando meu pedido será entregue,informacao_pedido
+"Recebi a confirmação do meu pedido, mas ainda não tive notícias sobre a entrega",informacao_pedido
+O meu pedido já foi enviado?,informacao_pedido
+Há algum atraso na entrega do meu pedido?,informacao_pedido
+Para qual endereço o meu pedido está programado para ser entregue?,informacao_pedido

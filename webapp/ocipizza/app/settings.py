@@ -5,6 +5,8 @@
 import os
 from datetime import datetime, timedelta
 
+import oci
+
 class Settings():
     def __init__(self):
         self.env = os.environ.get('FLASK_ENV') or 'development'
@@ -20,6 +22,10 @@ class Settings():
             self.domain = None
             self.cookie_secure = False
             self.html_minify = False 
+
+            # Região do OCI obtida a partir do arquivo de configuração ~/.oci/config.
+            oci_config = oci.config.from_file(file_location='~/.oci/config')     
+            self.oci_region = oci_config.get('region')
         else:
             self.secret_key = os.environ.get('SECRET_KEY')
             
@@ -29,10 +35,11 @@ class Settings():
             self.html_minify = True
 
             self.domain = self.web_config['host']
-            self.cookie_secure = True                    
+            self.cookie_secure = True       
 
-        # Região do OCI onde a aplicação está sendo executada.
-        self.oci_region = os.environ.get('OCI_REGION')
+            # Região do OCI onde a aplicação está sendo executada.
+            signer = oci.auth.signers.get_resource_principals_signer()           
+            self.oci_region = signer.region              
 
         # OCI Object Storage Namespace.
         self.oci_objs_namespace = os.environ.get('OCI_OBJS_NAMESPACE')

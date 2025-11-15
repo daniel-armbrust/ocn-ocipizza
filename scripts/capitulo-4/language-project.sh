@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# scripts/capitulo-4/bucket-vinhedo.sh
+# scripts/capitulo-4/language-project.sh
 #
 # Copyright (C) 2005-2024 by Daniel Armbrust <darmbrust@gmail.com>
 #
@@ -28,11 +28,20 @@ cmp_prd_ocid="$(get_compartmet_ocid "cmp-prd")"
 # OCID do compartimento de aplicação do ambiente de produção (cmp-prd/cmp-appl).
 cmp_appl_ocid="$(get_compartmet_ocid "$cmp_prd_ocid" "cmp-appl")"
 
-# Criação do Bucket "pizza" na região "sa-vinhedo-1".
-oci os bucket create \
+# Criação do Projeto OCI Language na região "sa-saopaulo-1".
+oci ai language project create \
+    --region "sa-saopaulo-1" \
+    --compartment-id "$cmp_appl_ocid" \
+    --display-name "chatbot-project" \
+    --description "Projeto OCI Language para Chatbot da região \"sa-saopaulo-1\"." \
+    --wait-for-state "SUCCEEDED"
+
+# Criação do Projeto OCI Language na região "sa-vinhedo-1".
+oci ai language project create \
     --region "sa-vinhedo-1" \
     --compartment-id "$cmp_appl_ocid" \
-    --name "pizza" \
-    --public-access-type "ObjectReadWithoutList"
+    --display-name "chatbot-project" \
+    --description "Projeto OCI Language para Chatbot da região \"sa-vinhedo-1\"." \
+    --wait-for-state "SUCCEEDED"
 
 exit 0

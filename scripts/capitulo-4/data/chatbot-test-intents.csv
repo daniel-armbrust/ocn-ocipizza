@@ -1,0 +1,25 @@
+text,labels
+"Errei o pedido, cancela",cancelar_pedido
+Tchau e até logo,despedida
+Até mais,despedida
+"Você poderia anotar um pedido pra mim, fazendo favor",fazer_pedido
+Quero que prepare o meu pedido,fazer_pedido
+"Eai Pizzaria, boa tarde. Tudo bem?",saudacao
+Como vai?,saudacao
+"Eai, tudo beleza?",saudacao
+Necessito cancelar um pedido,cancelar_pedido
+"Não quero mais a pizza, obrigado",cancelar_pedido
+Preciso que você confirme se está tudo certo com meu pedido,confirmar_pedido
+Você está preparando o meu pedido?,confirmar_pedido
+Preciso que entregue meu pedido na rua Aparecida n123,informar_endereco
+É possível entregar na rua Cândido Almeida número 509?,informar_endereco
+Quero ver o cardápio,ver_cardapio
+Onde encontro o cardápio?,ver_cardapio
+Valeu!,agradecimento
+Muito obrigado pelo atendimento,agradecimento
+Rápido! Preciso comer pizza,informacao_pedido
+Quanto tempo demora para preparar a pizza?,informacao_pedido
+Posso receber uma atualização sobre o andamento do meu pedido?,informacao_pedido
+"Ei, você pode me dar um update sobre o meu pedido?",informacao_pedido
+Qual é a previsão de chegada do meu pedido? Estou de olho!,informacao_pedido
+Tem como saber se o meu pedido já saiu para entrega?,informacao_pedido
