@@ -69,7 +69,7 @@ oci ai language work-request log list \
     --region "sa-saopaulo-1" \
     --work-request-id "$lang_project_model_workreq_ocid" \
     --all \
-    --query 'data.items[].message' \
+    --query "data.items[].{log:message,hora:timestamp}" \
     --output table
 
 exit 0

@@ -44,6 +44,15 @@ oci os object put \
     --verify-checksum \
     --force
 
+# Upload do arquivo "data/chatbot-test-intents.csv" para o Bucket "chatbot-data" na região "sa-saopaulo-1".
+oci os object put \
+    --region "sa-saopaulo-1" \
+    --bucket-name "chatbot-data" \
+    --file "data/chatbot-test-intents.csv" \
+    --content-type "text/csv" \
+    --verify-checksum \
+    --force
+
 # Criação do Bucket "chatbot-data" na região "sa-vinhedo-1".
 oci os bucket create \
     --region "sa-vinhedo-1" \
@@ -56,6 +65,15 @@ oci os object put \
     --region "sa-vinhedo-1" \
     --bucket-name "chatbot-data" \
     --file "data/chatbot-train-intents.csv" \
+    --content-type "text/csv" \
+    --verify-checksum \
+    --force
+
+# Upload do arquivo "data/chatbot-test-intents.csv" para o Bucket "chatbot-data" na região "sa-vinhedo-1".
+oci os object put \
+    --region "sa-vinhedo-1" \
+    --bucket-name "chatbot-data" \
+    --file "data/chatbot-test-intents.csv" \
     --content-type "text/csv" \
     --verify-checksum \
     --force

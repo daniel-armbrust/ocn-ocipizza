@@ -55,9 +55,9 @@ function get_compartmet_ocid() {
 function get_lang_project_ocid() {
     # Retorna o OCID do Projeto OCI Language.
 
-    local project_name="$1"
+    local region="$1"
     local compartment_ocid="$2"
-    local region="$3"
+    local project_name="$3"      
 
     oci ai language project list \
         --region "$region" \
@@ -66,4 +66,36 @@ function get_lang_project_ocid() {
         --lifecycle-state "ACTIVE" \
         --all \
         --query "data.items[].id" | tr -d '[]" \n'
+}
+
+function get_lang_model_ocid() {
+    # Retorna o OCID do Modelo do OCI Language.
+
+    local region="$1"
+    local compartment_ocid="$2"
+    local model_name="$3" 
+
+    oci ai language model list \
+        --region "$region" \
+        --compartment-id "$compartment_ocid" \
+        --display-name "$model_name" \
+        --lifecycle-state "ACTIVE" \
+        --all \
+        --query "data.items[].id" | tr -d '[]" \n'
+}
+
+function get_lang_model_endpoint_ocid() {
+    # Retorna o OCID do Endpoint do Modelo.
+
+    local region="$1"
+    local compartment_ocid="$2"
+    local model_name="$3" 
+
+    oci ai language endpoint list \
+        --region "$region" \
+        --compartment-id "$compartment_ocid" \
+        --display-name "$model_name" \
+        --lifecycle-state "ACTIVE" \
+        --all \
+        --query 'data.items[].id' | tr -d '[]" \n'
 }
