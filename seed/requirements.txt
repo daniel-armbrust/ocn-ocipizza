@@ -1,0 +1,5 @@
+oci==2.185.2
+borneo==5.4.3
+python-dotenv==1.0.1
+requests==2.32.4
+minio==7.2.10
