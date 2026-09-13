@@ -40,9 +40,9 @@ A aplicação OCI Pizza é composta pelos seguintes serviços:
 
 - Serviço responsável pelas operações administrativas da aplicação: `services/admin-service/`
 
-## 3. APIs REST
+## 3. APIs REST e Interfaces Web
 
-Os serviços devem expor APIs REST seguindo boas práticas que são:
+Serviços que expõem APIs REST devem seguir boas práticas que são:
 
 - Utilizar nomes de recursos no plural
 - Utilizar métodos HTTP corretamente
@@ -50,6 +50,8 @@ Os serviços devem expor APIs REST seguindo boas práticas que são:
 - Manter contratos estáveis
 
 O contrato técnico das APIs deve ser mantido atualizado através da especificação OpenAPI do serviço em: `services/<service-name>/docs/api/openapi.yaml`
+
+Serviços que não expõem API própria, como `frontend-service`, não devem possuir OpenAPI por padrão. Nesses casos, o serviço deve documentar na SPEC quais APIs consome e como renderiza ou utiliza os dados obtidos.
 
 ### Padrão de Resposta
 
@@ -161,7 +163,7 @@ O arquivo `.dockerignore` de cada serviço deve evitar copiar:
 
 ## 7. Estrutura Interna do Serviço
 
-Os serviços devem seguir separação de responsabilidades:
+Os serviços devem seguir separação de responsabilidades conforme sua natureza:
 
 - `routes/` não devem conter regras de negócio.
   - Responsabilidade: receber requisições HTTP, validar entrada, chamar serviços e retornar respostas.
@@ -180,6 +182,20 @@ Os serviços devem seguir separação de responsabilidades:
 
 - `dependencies/` devem concentrar componentes reutilizáveis utilizados pela aplicação.
   - Responsabilidade: disponibilizar recursos compartilhados como autenticação, conexões, configurações e injeção de dependências.
+
+Serviços de interface web, como `frontend-service`, podem possuir estruturas específicas de apresentação:
+
+- `templates/`
+  - Responsabilidade: concentrar templates HTML renderizados pelo serviço.
+
+- `static/`
+  - Responsabilidade: concentrar arquivos estáticos, como CSS, JavaScript e imagens.
+
+- `clients/`
+  - Responsabilidade: concentrar clientes HTTP para consumo das APIs dos demais serviços.
+  - Deve ser organizado em um módulo por serviço consumido.
+
+Serviços de interface web não devem implementar regras de negócio dos domínios consumidos nem acessar diretamente bancos de dados de outros serviços.
 
 ## 8. Código
 
@@ -203,9 +219,9 @@ A qualidade do código deve ser verificada automaticamente utilizando ferramenta
 - Análise estática
 - Testes automatizados
 
-Tecnologias e padrões utilizados:
+Tecnologias e padrões utilizados quando aplicável:
 
-- FastAPI para desenvolvimento de APIs REST
+- FastAPI para desenvolvimento de APIs REST ou renderização de páginas HTML
 - Pydantic para validação e modelagem de dados
 - Python Type Hints para definição explícita de tipos
 - Pytest para testes automatizados.
@@ -253,6 +269,14 @@ Para:
 - Endpoints REST
 - Contratos HTTP
 
+### Testes de Interface Web
+
+Para:
+
+- Rotas de páginas HTML
+- Renderização de templates
+- Tratamento de indisponibilidade de serviços consumidos
+
 Novas funcionalidades devem incluir testes quando aplicável.
 
 ## 9. Especificação e Contrato de API
@@ -263,7 +287,7 @@ Antes de implementar alterações em um serviço, o agente deve consultar:
     - Para entender requisitos funcionais, regras do domínio, decisões relevantes e limites arquiteturais do serviço.
 
 - `docs/api/openapi.yaml`
-    - Para alterações relacionadas aos contratos da API.
+    - Para alterações relacionadas aos contratos da API, quando o serviço expuser API própria.
 
 Quando uma alteração envolver:
 
@@ -273,6 +297,8 @@ Quando uma alteração envolver:
 - Alteração de contrato
 
 O agente deve atualizar a SPEC do serviço e, quando aplicável, o OpenAPI.
+
+O `README.md` do serviço deve ser revisado em toda alteração relevante no serviço e atualizado quando houver mudança em responsabilidades, estrutura interna, comandos de execução, variáveis de ambiente, endpoints ou comportamento documentado.
 
 Para evitar excesso de documentação, novos documentos em `docs/plans/`, `docs/decisions/` ou diretórios equivalentes não devem ser criados por padrão. Use esses formatos somente se houver solicitação explícita ou necessidade excepcional justificada.
 
@@ -297,6 +323,7 @@ Quando aplicável:
 
 - Especificação atualizada
 - OpenAPI atualizado
+- `README.md` do serviço revisado e atualizado quando a alteração impactar responsabilidades, estrutura, execução, configuração, endpoints ou comportamento documentado
 
 ### Container
 

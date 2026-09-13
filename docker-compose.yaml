@@ -32,6 +32,30 @@ services:
     volumes:
       - ${HOME}/.oci:/home/appuser/.oci:ro
 
+  frontend-service:
+    container_name: oci-pizza-frontend-service
+    build:
+      context: ./services/frontend-service
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8000"
+    networks:
+      - oci-pizza-network
+    environment:
+      ENVIRONMENT: development
+      FRONTEND_REQUEST_TIMEOUT: 2.0
+
+      PIZZA_SERVICE_URL: http://pizza-service:8000
+      PIZZA_IMAGE_BASE_URL: http://localhost:9000/pizza-images
+      ORDER_SERVICE_URL: http://order-service:8000
+      PAYMENT_SERVICE_URL: http://payment-service:8000
+      AUTH_SERVICE_URL: http://auth-service:8000
+      USER_SERVICE_URL: http://user-service:8000
+      NOTIFICATION_SERVICE_URL: http://notification-service:8000
+      CHATBOT_SERVICE_URL: http://chatbot-service:8000
+    depends_on:
+      - pizza-service
+
   nosql:
     container_name: oci-pizza-nosql
     image: ghcr.io/oracle/nosql:latest-ce
