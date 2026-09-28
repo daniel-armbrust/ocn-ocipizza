@@ -9,13 +9,22 @@ done
 
 echo "Oracle NoSQL ready"
 
-echo "Waiting Object Storage..."
+echo "Waiting MySQL..."
 
-until curl -s http://localhost:9000/minio/health/live >/dev/null
+until timeout 1 bash -c "</dev/tcp/localhost/13306" 2>/dev/null
 do
     sleep 5
 done
 
-echo "Object Storage ready"
+echo "MySQL ready"
+
+echo "Waiting RabbitMQ..."
+
+until timeout 1 bash -c "</dev/tcp/localhost/5672" 2>/dev/null
+do
+    sleep 5
+done
+
+echo "RabbitMQ ready"
 
 exit 0

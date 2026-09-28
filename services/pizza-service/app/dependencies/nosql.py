@@ -20,13 +20,19 @@ class LocalNoSqlSigner(KeyPairSigner):
     """
 
     def __init__(self) -> None:
+        """Inicializa o signer local sem credenciais."""
+
         pass
 
     def __call__(self, request):
+        """Retorna a requisição sem aplicar assinatura."""
+
         return request
 
 
 def configure_local_nosql_logger(config):
+    """Configura logger silencioso para o client local do Oracle NoSQL."""
+
     logger = logging.getLogger("oci-pizza-service-nosql")
     logger.addHandler(logging.NullHandler())
     config.set_logger(logger)
@@ -36,6 +42,8 @@ def configure_local_nosql_logger(config):
 
 @lru_cache
 def get_local_nosql_handle():
+    """Cria o handle local do Oracle NoSQL usado em desenvolvimento."""
+
     from borneo import NoSQLHandle, NoSQLHandleConfig
     from borneo.kv import StoreAccessTokenProvider
 
@@ -50,6 +58,8 @@ def get_local_nosql_handle():
 
 @lru_cache
 def get_nosql_client() -> NosqlClient:
+    """Cria o client Oracle NoSQL conforme o ambiente configurado."""
+
     settings = get_settings()
 
     if settings.is_development and settings.nosql_endpoint is not None:
@@ -79,6 +89,8 @@ def get_nosql_client() -> NosqlClient:
 
 @lru_cache
 def get_pizza_repository() -> PizzaRepository:
+    """Disponibiliza o repositório de pizzas adequado ao ambiente."""
+
     settings = get_settings()
 
     if settings.is_development and settings.nosql_endpoint is not None:
@@ -91,4 +103,6 @@ def get_pizza_repository() -> PizzaRepository:
 
 
 def get_pizza_service() -> PizzaService:
+    """Monta o serviço de pizzas com seu repositório configurado."""
+
     return PizzaService(get_pizza_repository())

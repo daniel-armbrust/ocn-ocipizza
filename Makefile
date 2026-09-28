@@ -27,7 +27,7 @@ development-up: development-infra development-seed development-services
 
 development-infra:
 	@echo "Starting infrastructure services..."
-	docker compose up -d nosql object-storage
+	docker compose up -d mysql nosql rabbitmq
 
 	@echo "Waiting infrastructure readiness..."
 	./scripts/wait-for-infrastructure.sh

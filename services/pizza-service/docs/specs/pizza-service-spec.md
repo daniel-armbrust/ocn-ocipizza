@@ -96,13 +96,13 @@ As operações de leitura do catálogo podem ser utilizadas pelos consumidores a
 
 As operações de alteração do catálogo são restritas a usuários com permissão administrativa.
 
-| Método | Endpoint       | Descrição                         | Requer Admin |
-|--------|----------------|-----------------------------------|--------------|
-| GET    | `/pizzas`      | Lista pizzas do catálogo          | Não          |
-| GET    | `/pizzas/{id}` | Consulta detalhes de uma pizza    | Não          |
-| POST   | `/pizzas`      | Cadastra uma nova pizza           | Sim          |
-| PATCH  | `/pizzas/{id}` | Atualiza informações de uma pizza | Sim          |
-| DELETE | `/pizzas/{id}` | Remove uma pizza do catálogo      | Sim          |
+| Método | Endpoint       | Descrição                         | Requer Auth | Requer Admin |
+|--------|----------------|-----------------------------------|-------------|--------------|
+| GET    | `/pizzas`      | Lista pizzas do catálogo          | Não         | Não          |
+| GET    | `/pizzas/{id}` | Consulta detalhes de uma pizza    | Não         | Não          |
+| POST   | `/pizzas`      | Cadastra uma nova pizza           | Sim         | Sim          |
+| PATCH  | `/pizzas/{id}` | Atualiza informações de uma pizza | Sim         | Sim          |
+| DELETE | `/pizzas/{id}` | Remove uma pizza do catálogo      | Sim         | Sim          |
 
 ### Controle de Acesso
 

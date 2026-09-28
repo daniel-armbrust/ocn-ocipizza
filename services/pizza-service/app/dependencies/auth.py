@@ -7,6 +7,8 @@ from fastapi import Header, HTTPException, status
 
 
 def require_admin(authorization: Optional[str] = Header(default=None)) -> None:
+    """Valida o token Bearer exigido para operações administrativas."""
+
     if authorization is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

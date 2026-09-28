@@ -45,14 +45,14 @@ O serviço utiliza:
 
 O serviço expõe endpoints REST no padrão JSend.
 
-| Método | Endpoint       | Descrição                         | Requer Admin |
-|--------|----------------|-----------------------------------|--------------|
-| GET    | `/health`      | Verifica a saúde do serviço       | Não          |
-| GET    | `/pizzas`      | Lista pizzas disponíveis          | Não          |
-| GET    | `/pizzas/{id}` | Consulta detalhes de uma pizza    | Não          |
-| POST   | `/pizzas`      | Cadastra uma nova pizza           | Sim          |
-| PATCH  | `/pizzas/{id}` | Atualiza informações de uma pizza | Sim          |
-| DELETE | `/pizzas/{id}` | Remove uma pizza do catálogo      | Sim          |
+| Método | Endpoint       | Descrição                         | Requer Auth | Requer Admin |
+|--------|----------------|-----------------------------------|-------------|--------------|
+| GET    | `/health`      | Verifica a saúde do serviço       | Não         | Não          |
+| GET    | `/pizzas`      | Lista pizzas disponíveis          | Não         | Não          |
+| GET    | `/pizzas/{id}` | Consulta detalhes de uma pizza    | Não         | Não          |
+| POST   | `/pizzas`      | Cadastra uma nova pizza           | Sim         | Sim          |
+| PATCH  | `/pizzas/{id}` | Atualiza informações de uma pizza | Sim         | Sim          |
+| DELETE | `/pizzas/{id}` | Remove uma pizza do catálogo      | Sim         | Sim          |
 
 As operações administrativas utilizam autenticação Bearer. No ambiente local, enquanto o `auth-service` não estiver implementado, o token esperado é definido por `PIZZA_SERVICE_ADMIN_TOKEN`.
 
@@ -107,6 +107,7 @@ pizza-service/
 │   │   └── settings.py
 │   │
 │   ├── routes/
+│   │   ├── responses.py
 │   │   └── pizza_routes.py
 │   │
 │   ├── services/
@@ -166,6 +167,9 @@ pizza-service/
 - `app/routes/pizza_routes.py`
     - Contém as rotas HTTP da API.
     - Responsável por receber requisições, validar entradas e retornar respostas HTTP.
+
+- `app/routes/responses.py`
+    - Contém helpers para respostas HTTP no padrão JSend usadas pelas rotas.
 
 - `app/services/pizza_service.py`
     - Contém as regras de negócio do domínio.

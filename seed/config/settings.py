@@ -14,64 +14,37 @@ class Settings:
     """
 
     # Ambiente
-    environment: str = os.getenv(
-        "ENVIRONMENT",
-        "development"
-    )
+    environment: str = os.getenv("ENVIRONMENT", "development")
 
     # OCI
-    oci_region: str = os.getenv(
-        "OCI_REGION",
-        "sa-saopaulo-1"
-    )
+    oci_region: str = os.getenv("OCI_REGION", "sa-saopaulo-1")
 
     # Oracle NoSQL
-    nosql_endpoint: str = os.getenv(
-        "OCI_NOSQL_ENDPOINT",
-        "http://localhost:18080"
-    )
-
-    pizza_table_name: str = os.getenv(
-        "OCI_NOSQL_TABLE",
-        "pizzas"
-    )
-
-    nosql_compartment_id: str = os.getenv(
-        "OCI_NOSQL_COMPARTMENT_ID",
-        ""
-    )
+    nosql_endpoint: str = os.getenv("OCI_NOSQL_ENDPOINT", "http://localhost:18080")
+    nosql_compartment_id: str = os.getenv("OCI_NOSQL_COMPARTMENT_ID", "")
+    pizza_table_name: str = os.getenv("OCI_NOSQL_TABLE", "pizzas")
 
     # Object Storage
-    object_storage_endpoint: str = os.getenv(
-        "OBJECT_STORAGE_ENDPOINT",
-        "http://localhost:9000"
-    )
+    object_storage_endpoint: str = os.getenv("OBJECT_STORAGE_ENDPOINT", "http://localhost:9000")
+    object_storage_namespace: str = os.getenv("OBJECT_STORAGE_NAMESPACE", "")
+    object_storage_access_key: str = os.getenv("OBJECT_STORAGE_ACCESS_KEY", "minioadmin")
+    object_storage_secret_key: str = os.getenv("OBJECT_STORAGE_SECRET_KEY", "minioadmin")
 
-    object_storage_bucket: str = os.getenv(
-        "OBJECT_STORAGE_BUCKET",
-        "pizza-images"
-    )
+    # Pizza Service
+    object_storage_pizza_bucket: str = os.getenv("OBJECT_STORAGE_PIZZA_BUCKET", "pizza-images")
+    pizza_seed_path: str = os.getenv("PIZZA_SEED_PATH", "seed/pizzas")
 
-    object_storage_namespace: str = os.getenv(
-        "OBJECT_STORAGE_NAMESPACE",
-        ""
-    )
+    # MySQL
+    mysql_host: str = os.getenv("MYSQL_HOST", "localhost")
+    mysql_port: int = int(os.getenv("MYSQL_PORT", "3306"))
 
-    object_storage_access_key: str = os.getenv(
-        "OBJECT_STORAGE_ACCESS_KEY",
-        "minioadmin"
-    )
+    mysql_root_user: str = os.getenv("MYSQL_ROOT_USER", "root")
+    mysql_root_password: str = os.getenv("MYSQL_ROOT_PASSWORD", "root")
 
-    object_storage_secret_key: str = os.getenv(
-        "OBJECT_STORAGE_SECRET_KEY",
-        "minioadmin"
-    )
+    mysql_database: str = os.getenv("MYSQL_DATABASE", "users")
 
-    # Seed
-    seed_path: str = os.getenv(
-        "SEED_PATH",
-        "seed/pizzas"
-    )
+    mysql_user: str = os.getenv("MYSQL_USER", "user_service")
+    mysql_password: str = os.getenv("MYSQL_PASSWORD", "user_service" )
 
     @property
     def is_production(self) -> bool:

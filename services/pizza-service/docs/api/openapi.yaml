@@ -15,13 +15,13 @@ servers:
   - url: http://localhost:8001
     description: Ambiente local
 
-  - url: https://api-dev.ocipizza.com/pizza-service
+  - url: https://api-dev.ocipizza.com.br/pizza-service
     description: Ambiente de desenvolvimento
 
-  - url: https://api-hml.ocipizza.com/pizza-service
+  - url: https://api-hml.ocipizza.com.br/pizza-service
     description: Ambiente de homologação
 
-  - url: https://api.ocipizza.com/pizza-service
+  - url: https://api.ocipizza.com.br/pizza-service
     description: Ambiente de produção
 
 tags:

@@ -15,6 +15,8 @@ async def validation_exception_handler(
     request: Request,
     exc: RequestValidationError,
 ) -> JSONResponse:
+    """Converte erros de validação do FastAPI para resposta JSend fail."""
+
     error = exc.errors()[0]
     location = error.get("loc", [])
     field = str(location[-1]) if location else "request"
@@ -37,6 +39,8 @@ async def http_exception_handler(
     request: Request,
     exc: HTTPException,
 ) -> JSONResponse:
+    """Converte exceções HTTP conhecidas para resposta JSend error."""
+
     if isinstance(exc.detail, dict):
         return JSONResponse(
             status_code=exc.status_code,
@@ -54,6 +58,8 @@ async def unexpected_exception_handler(
     request: Request,
     exc: Exception,
 ) -> JSONResponse:
+    """Oculta falhas inesperadas e retorna resposta JSend error genérica."""
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"status": "error", "message": "Internal server error"},
@@ -62,6 +68,8 @@ async def unexpected_exception_handler(
 
 @app.get("/health")
 def health_check() -> dict:
+    """Retorna o estado básico de saúde do `pizza-service`."""
+
     return {"status": "success", "data": {"service": "pizza-service"}}
 
 

@@ -1,5 +1,5 @@
 # --------------------------------------------------
-# Environment variables and secrets
+# Variáveis de ambiente e segredos
 # --------------------------------------------------
 
 .env
@@ -37,16 +37,20 @@ pip-delete-this-directory.txt
 .pytest_cache/
 .coverage
 .coverage.*
+coverage.xml
 htmlcov/
 
+.hypothesis/
 .mypy_cache/
+.pyre/
+.pytype/
 .ruff_cache/
 
 .tox/
 .nox/
 
 # --------------------------------------------------
-# Python package artifacts
+# Artefatos de pacotes Python
 # --------------------------------------------------
 
 build/
@@ -58,19 +62,18 @@ dist/
 wheels/
 
 # --------------------------------------------------
-# IDEs and Editors
+# IDEs e editores
 # --------------------------------------------------
 
 .vscode/
 .idea/
+.fleet/
 
 *.swp
 *.swo
 
-.DS_Store
-
 # --------------------------------------------------
-# Operating System
+# Sistema operacional
 # --------------------------------------------------
 
 Thumbs.db
@@ -81,6 +84,7 @@ Desktop.ini
 # --------------------------------------------------
 
 docker-compose.override.yml
+docker-compose.override.yaml
 *.pid
 docker-data/
 
@@ -92,7 +96,7 @@ logs/
 *.log
 
 # --------------------------------------------------
-# Temporary files
+# Arquivos temporários
 # --------------------------------------------------
 
 tmp/
@@ -103,20 +107,12 @@ temp/
 *.backup
 
 # --------------------------------------------------
-# Local databases
+# Bancos de dados locais
 # --------------------------------------------------
 
 *.db
 *.sqlite
 *.sqlite3
-
-# --------------------------------------------------
-# Seed local environment
-# --------------------------------------------------
-
-seed/.venv/
-seed/**/__pycache__/
-seed/**/.pytest_cache/
 
 # --------------------------------------------------
 # Node / Frontend
@@ -127,11 +123,16 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
 
 .next/
 .nuxt/
-
-dist/
+.vite/
 
 coverage/
 
@@ -143,14 +144,28 @@ coverage/
 
 *.tfstate
 *.tfstate.*
+.terraform.tfstate.lock.info
 
 *.tfvars
+*.tfvars.json
 
-# Keep example variables
+# Manter variáveis de exemplo
 !*.tfvars.example
+!*.tfvars.json.example
+
+crash.log
+crash.*.log
+
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+.terraformrc
+terraform.rc
 
 # --------------------------------------------------
-# Kubernetes local files
+# Arquivos locais do Kubernetes
 # --------------------------------------------------
 
 *.kubeconfig
@@ -158,14 +173,14 @@ kubeconfig/
 .kube/
 
 # --------------------------------------------------
-# Generated documentation
+# Documentação gerada
 # --------------------------------------------------
 
 site/
 public/build/
 
 # --------------------------------------------------
-# Agent / AI local files
+# Arquivos locais de agentes e IA
 # --------------------------------------------------
 
 .codex/
@@ -173,8 +188,7 @@ public/build/
 .agents/
 
 # --------------------------------------------------
-# OS generated files
+# Arquivos gerados pelo sistema operacional
 # --------------------------------------------------
 
 .DS_Store
-*.swp

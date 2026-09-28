@@ -12,28 +12,46 @@ from app.models.pizza_model import Pizza
 
 
 class PizzaRepository(Protocol):
+    """Contrato de persistência para o catálogo de pizzas."""
+
     def list_available(self) -> List[Pizza]:
+        """Lista pizzas disponíveis para venda."""
+
         pass
 
     def get_by_id(self, pizza_id: int) -> Optional[Pizza]:
+        """Busca uma pizza pelo identificador."""
+
         pass
 
     def create(self, pizza: Pizza) -> Pizza:
+        """Persiste uma nova pizza no catálogo."""
+
         pass
 
     def update(self, pizza_id: int, values: Dict[str, object]) -> Optional[Pizza]:
+        """Atualiza campos de uma pizza existente."""
+
         pass
 
     def delete(self, pizza_id: int) -> bool:
+        """Remove uma pizza pelo identificador."""
+
         pass
 
 
 class NoSqlPizzaRepository:
+    """Repositório Oracle NoSQL usado em ambientes OCI."""
+
     def __init__(self, client: NosqlClient, settings: Settings) -> None:
+        """Inicializa o repositório com client NoSQL e configurações."""
+
         self.client = client
         self.settings = settings
 
     def list_available(self) -> List[Pizza]:
+        """Lista pizzas disponíveis armazenadas no Oracle NoSQL."""
+
         statement = (
             f"SELECT * FROM {self.settings.nosql_table} "
             "WHERE available = true"
@@ -57,6 +75,8 @@ class NoSqlPizzaRepository:
                 return pizzas
 
     def get_by_id(self, pizza_id: int) -> Optional[Pizza]:
+        """Busca uma pizza pelo identificador no Oracle NoSQL."""
+
         try:
             result = self.client.get_row(
                 self.settings.nosql_table,
@@ -75,6 +95,8 @@ class NoSqlPizzaRepository:
         return self._to_pizza(result.data.value)
 
     def create(self, pizza: Pizza) -> Pizza:
+        """Cria uma pizza no Oracle NoSQL."""
+
         if pizza.id == 0:
             pizza.id = self._next_id()
 
@@ -90,6 +112,8 @@ class NoSqlPizzaRepository:
         return pizza
 
     def _next_id(self) -> int:
+        """Calcula o próximo identificador disponível para pizza."""
+
         statement = f"SELECT id FROM {self.settings.nosql_table}"
         result = self.client.query(
             QueryDetails(
@@ -101,6 +125,8 @@ class NoSqlPizzaRepository:
         return max(ids, default=0) + 1
 
     def update(self, pizza_id: int, values: Dict[str, object]) -> Optional[Pizza]:
+        """Atualiza uma pizza existente no Oracle NoSQL."""
+
         pizza = self.get_by_id(pizza_id)
 
         if pizza is None:
@@ -125,6 +151,8 @@ class NoSqlPizzaRepository:
         return updated
 
     def delete(self, pizza_id: int) -> bool:
+        """Remove uma pizza do Oracle NoSQL."""
+
         try:
             result = self.client.delete_row(
                 self.settings.nosql_table,
@@ -140,18 +168,28 @@ class NoSqlPizzaRepository:
         return bool(result.data.is_success)
 
     def _key(self, pizza_id: int) -> List[str]:
+        """Monta a chave primária usada pela tabela NoSQL."""
+
         return [f"id:{pizza_id}"]
 
     def _to_pizza(self, value: Dict[str, object]) -> Pizza:
+        """Converte um registro NoSQL para modelo de domínio."""
+
         return Pizza.model_validate(value)
 
 
 class LocalNoSqlPizzaRepository:
+    """Repositório para o Oracle NoSQL local usado em desenvolvimento."""
+
     def __init__(self, handle, table_name: str) -> None:
+        """Inicializa o repositório local com handle e nome da tabela."""
+
         self.handle = handle
         self.table_name = table_name
 
     def list_available(self) -> List[Pizza]:
+        """Lista pizzas disponíveis armazenadas no NoSQL local."""
+
         from borneo import QueryRequest
 
         request = QueryRequest().set_statement(
@@ -167,6 +205,8 @@ class LocalNoSqlPizzaRepository:
                 return pizzas
 
     def get_by_id(self, pizza_id: int) -> Optional[Pizza]:
+        """Busca uma pizza pelo identificador no NoSQL local."""
+
         from borneo import GetRequest
 
         result = self.handle.get(
@@ -182,6 +222,8 @@ class LocalNoSqlPizzaRepository:
         return self._to_pizza(value)
 
     def create(self, pizza: Pizza) -> Pizza:
+        """Cria uma pizza no NoSQL local."""
+
         from borneo import PutOption, PutRequest
 
         if pizza.id == 0:
@@ -197,6 +239,8 @@ class LocalNoSqlPizzaRepository:
         return pizza
 
     def _next_id(self) -> int:
+        """Calcula o próximo identificador disponível no NoSQL local."""
+
         from borneo import QueryRequest
 
         request = QueryRequest().set_statement(
@@ -212,6 +256,8 @@ class LocalNoSqlPizzaRepository:
                 return max(ids, default=0) + 1
 
     def update(self, pizza_id: int, values: Dict[str, object]) -> Optional[Pizza]:
+        """Atualiza uma pizza existente no NoSQL local."""
+
         from borneo import PutOption, PutRequest
 
         pizza = self.get_by_id(pizza_id)
@@ -236,6 +282,8 @@ class LocalNoSqlPizzaRepository:
         return updated
 
     def delete(self, pizza_id: int) -> bool:
+        """Remove uma pizza do NoSQL local."""
+
         from borneo import DeleteRequest
 
         result = self.handle.delete(
@@ -247,6 +295,8 @@ class LocalNoSqlPizzaRepository:
         return result.get_success()
 
     def _to_pizza(self, value: Dict[str, object]) -> Pizza:
+        """Converte um registro local para modelo de domínio."""
+
         return Pizza.model_validate(value)
 
 
@@ -256,15 +306,23 @@ class InMemoryPizzaRepository:
     """
 
     def __init__(self) -> None:
+        """Inicializa o armazenamento em memória de pizzas."""
+
         self._pizzas: Dict[int, Pizza] = {}
 
     def list_available(self) -> List[Pizza]:
+        """Lista pizzas disponíveis no armazenamento em memória."""
+
         return [pizza for pizza in self._pizzas.values() if pizza.available]
 
     def get_by_id(self, pizza_id: int) -> Optional[Pizza]:
+        """Busca uma pizza pelo identificador no armazenamento em memória."""
+
         return self._pizzas.get(pizza_id)
 
     def create(self, pizza: Pizza) -> Pizza:
+        """Cria uma pizza no armazenamento em memória."""
+
         if pizza.id == 0:
             pizza.id = max(
                 (stored.id for stored in self._pizzas.values()),
@@ -275,6 +333,8 @@ class InMemoryPizzaRepository:
         return pizza
 
     def update(self, pizza_id: int, values: Dict[str, object]) -> Optional[Pizza]:
+        """Atualiza uma pizza existente no armazenamento em memória."""
+
         pizza = self.get_by_id(pizza_id)
 
         if pizza is None:
@@ -292,6 +352,8 @@ class InMemoryPizzaRepository:
         return updated
 
     def delete(self, pizza_id: int) -> bool:
+        """Remove uma pizza do armazenamento em memória."""
+
         if pizza_id not in self._pizzas:
             return False
 

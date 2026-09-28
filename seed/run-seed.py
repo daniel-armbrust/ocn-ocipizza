@@ -1,6 +1,7 @@
 from pizzas.create_tables import create_tables
 from pizzas.load_pizzas import load_pizzas
 from pizzas.upload_images import upload_images
+from users.seed_users import seed_users
 
 def main():
     print("Starting seed")
@@ -8,6 +9,7 @@ def main():
     create_tables()
     load_pizzas()
     upload_images()
+    seed_users()
 
     print("Seed completed")
 

@@ -36,8 +36,8 @@ def load_pizzas():
     from borneo import PutRequest
 
     file_path = Path(
-        settings.seed_path,
-        "pizzas.jsonl",
+        settings.pizza_seed_path,
+        "pizzas.jsonl"
     )
 
     pizzas = read_pizzas(file_path)

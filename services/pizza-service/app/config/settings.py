@@ -12,6 +12,8 @@ _TABLE_NAME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 
 @dataclass(frozen=True)
 class Settings:
+    """Representa as configurações de execução do `pizza-service`."""
+
     environment: str
     oci_region: str
     nosql_endpoint: Optional[str]
@@ -22,14 +24,20 @@ class Settings:
 
     @property
     def is_development(self) -> bool:
+        """Indica se o serviço está executando em ambiente de desenvolvimento."""
+
         return self.environment == "development"
 
     @property
     def is_production(self) -> bool:
+        """Indica se o serviço está executando em ambiente de produção."""
+
         return self.environment == "production"
 
 
 def _getenv(name: str, default: Optional[str] = None) -> Optional[str]:
+    """Lê uma variável de ambiente e aplica valor padrão quando estiver vazia."""
+
     value = os.getenv(name)
     
     if value is None or value == "":
@@ -40,6 +48,8 @@ def _getenv(name: str, default: Optional[str] = None) -> Optional[str]:
 
 @lru_cache
 def get_settings() -> Settings:
+    """Carrega e valida as configurações do `pizza-service`."""
+
     table_name = _getenv("OCI_NOSQL_TABLE", "pizzas")
 
     if table_name is None or _TABLE_NAME_PATTERN.match(table_name) is None:

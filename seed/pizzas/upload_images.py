@@ -42,20 +42,20 @@ def upload_images():
     client = get_minio_client()
 
     try:
-        if client.bucket_exists(settings.object_storage_bucket):
-            print(f"Cleaning bucket {settings.object_storage_bucket}")
+        if client.bucket_exists(settings.object_storage_pizza_bucket):
+            print(f"Cleaning bucket {settings.object_storage_pizza_bucket}")
 
-            for item in client.list_objects(settings.object_storage_bucket, recursive=True):
+            for item in client.list_objects(settings.object_storage_pizza_bucket, recursive=True):
                 client.remove_object(
-                    settings.object_storage_bucket,
-                    item.object_name,
+                    settings.object_storage_pizza_bucket,
+                    item.object_name
                 )
 
-            client.remove_bucket(settings.object_storage_bucket)
+            client.remove_bucket(settings.object_storage_pizza_bucket)
 
-        client.make_bucket(settings.object_storage_bucket)
+        client.make_bucket(settings.object_storage_pizza_bucket)
         client.set_bucket_policy(
-            settings.object_storage_bucket,
+            settings.object_storage_pizza_bucket,
             json.dumps(
                 {
                     "Version": "2012-10-17",
@@ -65,25 +65,25 @@ def upload_images():
                             "Principal": {"AWS": ["*"]},
                             "Action": ["s3:GetObject"],
                             "Resource": [
-                                f"arn:aws:s3:::{settings.object_storage_bucket}/*"
-                            ],
+                                f"arn:aws:s3:::{settings.object_storage_pizza_bucket}/*"
+                            ]
                         }
-                    ],
+                    ]
                 }
-            ),
+            )
         )
 
-        print(f"Bucket {settings.object_storage_bucket} ready")
+        print(f"Bucket {settings.object_storage_pizza_bucket} ready")
 
         for image in image_path.iterdir():
             if not image.is_file():
                 continue
 
             client.fput_object(
-                settings.object_storage_bucket,
+                settings.object_storage_pizza_bucket,
                 image.name,
                 str(image),
-                content_type=get_content_type(image),
+                content_type=get_content_type(image)
             )
 
             print(f"Uploaded {image.name}")
@@ -91,5 +91,5 @@ def upload_images():
         print("Images uploaded")
     except S3Error as exc:
         raise RuntimeError(
-            f"Failed to upload images to {settings.object_storage_bucket}"
+            f"Failed to upload images to {settings.object_storage_pizza_bucket}"
         ) from exc

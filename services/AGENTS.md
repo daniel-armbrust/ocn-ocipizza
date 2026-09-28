@@ -204,7 +204,7 @@ Os serviços devem ser desenvolvidos utilizando a linguagem de programação Pyt
 Todo código Python deve:
 
 - Seguir as recomendações da `PEP 8`
-- Utilizar docstrings conforme a `PEP 257` quando necessário
+- Utilizar docstrings conforme a `PEP 257` (seguir a estrutura com resumo, Args, Returns e Raises quando aplicável)
 - Utilizar type hints
 - Manter padrões consistentes de nomenclatura, organização e documentação
 - Possuir código legível e de fácil manutenção

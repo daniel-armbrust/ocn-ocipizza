@@ -1,12 +1,74 @@
 services:
 
-  pizza-service:
-    container_name: oci-pizza-pizza-service
+  # Microserviço responsável pelo gerenciamento do catálogo 
+  # de pizzas.
+  # pizza-service:
+  #   container_name: oci-pizza-pizza-service
+  #   build:
+  #     context: ./services/pizza-service
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8001:8000"
+  #   networks:
+  #     - oci-pizza-network
+  #   environment:
+  #     ENVIRONMENT: development
+  #     LOG_LEVEL: INFO
+
+  #     OCI_REGION: sa-saopaulo-1
+
+  #     OCI_NOSQL_ENDPOINT: http://nosql:8080
+  #     OCI_NOSQL_TABLE: pizzas
+  #     OCI_NOSQL_COMPARTMENT_ID: ""
+  #     OCI_CONFIG_FILE: /home/appuser/.oci/config
+  #     OCI_CONFIG_PROFILE: DEFAULT
+
+  #     OBJECT_STORAGE_ENDPOINT: http://object-storage:9000
+  #     OBJECT_STORAGE_BUCKET: pizza-images
+
+  #     AUTH_SERVICE_URL: http://auth-service:8000
+  #     PIZZA_SERVICE_ADMIN_TOKEN: admin-token
+  #   depends_on:
+  #     - nosql
+  #     - object-storage
+  #   volumes:
+  #     - ${HOME}/.oci:/home/appuser/.oci:ro
+
+  # Microserviço responsável pela interface web da aplicação.
+  # frontend-service:
+  #   container_name: oci-pizza-frontend-service
+  #   build:
+  #     context: ./services/frontend-service
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8085:8000"
+  #   networks:
+  #     - oci-pizza-network
+  #   environment:
+  #     ENVIRONMENT: development
+  #     FRONTEND_REQUEST_TIMEOUT: 2.0
+
+  #     PIZZA_SERVICE_URL: http://pizza-service:8000
+  #     PIZZA_IMAGE_BASE_URL: http://localhost:9000/pizza-images
+  #     ORDER_SERVICE_URL: http://order-service:8000
+  #     PAYMENT_SERVICE_URL: http://payment-service:8000
+  #     AUTH_SERVICE_URL: http://auth-service:8000
+  #     USER_SERVICE_URL: http://user-service:8000
+  #     NOTIFICATION_SERVICE_URL: http://notification-service:8000
+  #     CHATBOT_SERVICE_URL: http://chatbot-service:8000
+  #   depends_on:
+  #     - pizza-service
+
+  # Microserviço responsável pelo ciclo de vida dos usuários.
+  # Persiste dados no MySQL e publica notificações no RabbitMQ
+  # que serão processadas pelo notification-service.
+  user-service:
+    container_name: oci-pizza-user-service
     build:
-      context: ./services/pizza-service
+      context: ./services/user-service
       dockerfile: Dockerfile
     ports:
-      - "8001:8000"
+      - "8002:8000"
     networks:
       - oci-pizza-network
     environment:
@@ -15,47 +77,33 @@ services:
 
       OCI_REGION: sa-saopaulo-1
 
-      OCI_NOSQL_ENDPOINT: http://nosql:8080
-      OCI_NOSQL_TABLE: pizzas
-      OCI_NOSQL_COMPARTMENT_ID: ""
-      OCI_CONFIG_FILE: /home/appuser/.oci/config
-      OCI_CONFIG_PROFILE: DEFAULT
+      # Provider de persistência.
+      PERSISTENCE_PROVIDER: sqlalchemy
+      DATABASE_URL: mysql+pymysql://user_service:user_service@mysql:3306/users
 
-      OBJECT_STORAGE_ENDPOINT: http://object-storage:9000
-      OBJECT_STORAGE_BUCKET: pizza-images
+      # Configurações utilizadas na geração e validação 
+      # dos tokens JWT.
+      JWT_ISSUER: user-service
+      JWT_AUDIENCE: oci-pizza-services
 
-      AUTH_SERVICE_URL: http://auth-service:8000
-      PIZZA_SERVICE_ADMIN_TOKEN: admin-token
+      # Provider de mensageria utilizado pelo MessagePublisher.
+      MESSAGING_PROVIDER: rabbitmq
+
+      # Configurações de conexão com o RabbitMQ.
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: oci_pizza
+      RABBITMQ_PASSWORD: oci_pizza
+      RABBITMQ_QUEUE_NAME: notifications
     depends_on:
-      - nosql
-      - object-storage
-    volumes:
-      - ${HOME}/.oci:/home/appuser/.oci:ro
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
-  frontend-service:
-    container_name: oci-pizza-frontend-service
-    build:
-      context: ./services/frontend-service
-      dockerfile: Dockerfile
-    ports:
-      - "8085:8000"
-    networks:
-      - oci-pizza-network
-    environment:
-      ENVIRONMENT: development
-      FRONTEND_REQUEST_TIMEOUT: 2.0
-
-      PIZZA_SERVICE_URL: http://pizza-service:8000
-      PIZZA_IMAGE_BASE_URL: http://localhost:9000/pizza-images
-      ORDER_SERVICE_URL: http://order-service:8000
-      PAYMENT_SERVICE_URL: http://payment-service:8000
-      AUTH_SERVICE_URL: http://auth-service:8000
-      USER_SERVICE_URL: http://user-service:8000
-      NOTIFICATION_SERVICE_URL: http://notification-service:8000
-      CHATBOT_SERVICE_URL: http://chatbot-service:8000
-    depends_on:
-      - pizza-service
-
+  # Banco de dados NoSQL utilizado pelos serviços da 
+  # aplicação que necessitam de persistência orientada 
+  # a documentos/chave-valor.
   nosql:
     container_name: oci-pizza-nosql
     image: ghcr.io/oracle/nosql:latest-ce
@@ -69,6 +117,8 @@ services:
     volumes:
       - nosql-data:/oci-nosql-data
 
+  # Serviço utilizado para armazenamento de imagens da 
+  # aplicação.
   object-storage:
     container_name: oci-pizza-object-storage
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
@@ -88,40 +138,114 @@ services:
     volumes:
       - object-storage-data:/data
 
-  seed:
-    container_name: oci-pizza-seed
-    image: python:3.11.10-slim-bookworm
-    working_dir: /app
-    environment:
-      PYTHONDONTWRITEBYTECODE: 1
-      ENVIRONMENT: development
-      OCI_REGION: sa-saopaulo-1
-      OCI_NOSQL_ENDPOINT: http://nosql:8080
-      OCI_NOSQL_TABLE: pizzas
-      OCI_NOSQL_COMPARTMENT_ID: ""
-      OBJECT_STORAGE_ENDPOINT: http://object-storage:9000
-      OBJECT_STORAGE_BUCKET: pizza-images
-      OBJECT_STORAGE_ACCESS_KEY: minioadmin
-      OBJECT_STORAGE_SECRET_KEY: minioadmin
-    depends_on:
-      - nosql
-      - object-storage
+  # Banco de dados relacional MySQL.
+  # https://container-registry.oracle.com/ords/ocr/ba/mysql/community-server 
+  mysql:
+    container_name: oci-pizza-mysql
+    image: container-registry.oracle.com/mysql/community-server:8.4
+    ports:
+      - "13306:3306"
     networks:
       - oci-pizza-network
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_HOST: '%'
     volumes:
-      - ./seed:/app/seed:ro
-    command:
-      - sh
-      - -c
-      - |
-        pip install --no-cache-dir -r seed/requirements.txt
-        python seed/wait-for-infrastructure.py
-        python seed/run-seed.py
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping -h localhost -u root -p"$$MYSQL_ROOT_PASSWORD"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
+  # Broker RabbitMQ utilizado pelos serviços da aplicação 
+  # para troca assíncrona de mensagens e processamento 
+  # desacoplado de eventos.
+  rabbitmq:
+    container_name: oci-pizza-rabbitmq
+    image: rabbitmq:4.1.4-management
+
+    ports:
+      # Porta utilizada pelos clientes AMQP.
+      - '5672:5672'
+
+      # Interface web de administração do RabbitMQ.
+      - '15672:15672'
+    networks:
+      - oci-pizza-network
+    environment:
+      RABBITMQ_DEFAULT_USER: oci_pizza
+      RABBITMQ_DEFAULT_PASS: oci_pizza
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test:
+        - CMD
+        - rabbitmq-diagnostics
+        - check_running
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # Serviço responsável por carregar dados iniciais no 
+  # ambiente de desenvolvimento, permitindo que a aplicação 
+  # seja iniciada com informações básicas para testes.
+  # seed:
+  #   container_name: oci-pizza-seed
+  #   image: python:3.11.10-slim-bookworm
+  #   working_dir: /app
+  #   environment:
+  #     PYTHONDONTWRITEBYTECODE: 1
+  #     ENVIRONMENT: development
+  #     OCI_REGION: sa-saopaulo-1
+  #     OCI_NOSQL_ENDPOINT: http://nosql:8080
+  #     OCI_NOSQL_TABLE: pizzas
+  #     OCI_NOSQL_COMPARTMENT_ID: ""
+  #     OBJECT_STORAGE_ENDPOINT: http://object-storage:9000
+  #     OBJECT_STORAGE_PIZZA_BUCKET: pizza-images
+  #     OBJECT_STORAGE_ACCESS_KEY: minioadmin
+  #     OBJECT_STORAGE_SECRET_KEY: minioadmin
+  #     MYSQL_HOST: mysql
+  #     MYSQL_PORT: 3306
+  #     MYSQL_ROOT_USER: root
+  #     MYSQL_ROOT_PASSWORD: root
+  #     MYSQL_DATABASE: users
+  #     MYSQL_USER: user_service
+  #     MYSQL_PASSWORD: user_service
+  #   depends_on:
+  #     nosql:
+  #       condition: service_started
+  #     object-storage:
+  #       condition: service_started
+  #     mysql:
+  #       condition: service_healthy
+  #   networks:
+  #     - oci-pizza-network
+  #   volumes:
+  #     - ./seed:/app/seed:ro
+  #   command:
+  #     - sh
+  #     - -c
+  #     - |
+  #       pip install --no-cache-dir -r seed/requirements.txt
+  #       python seed/wait-for-infrastructure.py
+  #       python seed/run-seed.py
+
+# Rede utilizada para permitir a comunicação entre os 
+# containers que compõem a aplicação OCI-PIZZA.
 networks:
   oci-pizza-network:
     driver: bridge
 
+# Volumes persistentes utilizados pelos serviços para 
+# preservar dados mesmo após a remoção ou recriação dos 
+# containers.
 volumes:
+  mysql-data:
   nosql-data:
   object-storage-data:
+  rabbitmq-data:

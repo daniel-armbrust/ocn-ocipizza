@@ -7,12 +7,16 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class PizzaCategory(str, Enum):
+    """Categorias válidas para pizzas do catálogo."""
+
     TRADITIONAL = "tradicional"
     VEGETARIAN = "vegetariana"
     SWEET = "doce"
 
 
 class Pizza(BaseModel):
+    """Representa uma pizza armazenada no catálogo."""
+
     model_config = ConfigDict(use_enum_values=True)
 
     id: int = Field(default=0)
