@@ -69,13 +69,10 @@ class UserService:
 
         Args:
             unit_of_work: Unidade de trabalho responsável pelo controle da transação. 
-            
             user_password_service: Serviço responsável pelas operações relacionadas 
                 à senha do usuário. 
-            
             user_email_service: Serviço responsável pela publicação das solicitações 
                 de envio de e-mail relacionadas ao usuário. 
-            
             user_repository: Repositório utilizado para persistência de usuários.
         """
 
@@ -97,7 +94,6 @@ class UserService:
 
         Raises:
             UserAlreadyExistsError: Se o e-mail ou WhatsApp já estiver cadastrado.
-            
             UserCreationError: Se não for possível concluir a criação do usuário.
         """
 
@@ -120,8 +116,9 @@ class UserService:
                 payload.password
             ),
             confirmed=False,
+            is_admin=False,
             created_at=now,
-            updated_at=now,
+            updated_at=now
         )
 
         try:
@@ -145,51 +142,34 @@ class UserService:
         
         Args: 
             user_id: Identificador UUID do usuário. 
-            
             payload: Dados que serão atualizados. 
             
         Returns: 
             Usuário atualizado. 
         
-        Raises: 
-            UserNotFoundError: Se o usuário não for encontrado. 
-            
-            UserAlreadyExistsError: Se o e-mail ou WhatsApp informado já 
-                estiver associado a outro usuário. 
-                
-            UserUpdateError: Se ocorrer uma falha durante a atualização. 
+        Raises:
+            UserNotFoundError: Caso o usuário não seja encontrado.
+            UserUpdateError: Caso ocorra falha durante a atualização. 
         """
 
-        user = self.user_repository.get_by_id(user_id) 
-        
-        if user is None: 
-            raise UserNotFoundError('User not found.') 
-        
-        email = normalize_email(payload.email)
+        try:
+            user = self.user_repository.get_by_id(user_id)
 
-        user_by_email = self.user_repository.get_by_email(email) 
-        
-        if (user_by_email is not None) and (user_by_email.id != user.id): 
-            raise UserAlreadyExistsError('Email is already registered.')
-        
-        user_by_whatsapp = self.user_repository.get_by_whatsapp(payload.whatsapp)
-            
-        if (user_by_whatsapp is not None) and (user_by_whatsapp.id != user.id): 
-            raise UserAlreadyExistsError('WhatsApp number is already registered.') 
-        
-        try: 
-            user.full_name = payload.full_name 
-            user.email = email 
-            user.whatsapp = payload.whatsapp 
-            user.updated_at = now_utc() 
-            
-            user = self.user_repository.update(user) 
-            
+            if user is None:
+                raise UserNotFoundError('User not found.')
+
+            user.whatsapp = payload.whatsapp
+            user.updated_at = now_utc()
+
+            user = self.user_repository.update(user)
+
             self.unit_of_work.commit()
             
-            return user 
-        except Exception as ex: 
-            self.unit_of_work.rollback() 
+            return user
+        except UserNotFoundError:
+            raise
+        except Exception as ex:
+            self.unit_of_work.rollback()
             raise UserUpdateError('Error updating the user.') from ex
 
     def delete(self, user_id: UUID) -> None:
@@ -222,19 +202,20 @@ class UserService:
     def confirm(self):
         pass
 
-    def get_by_id(self, user_id: str) -> User:
+    def get_by_id(self, user_id: UUID) -> User:
         """
-        Busca um usuário pelo identificador. 
-        
-        Args: 
-            user_id: Identificador UUID do usuário. 
-        
-        Returns: 
-            Usuário encontrado. 
-        
-        Raises: 
-            UserNotFoundError: Se o usuário não for encontrado. 
+        Retorna um usuário a partir de seu identificador.
+
+        Args:
+            user_id: Identificador UUID do usuário.
+
+        Returns:
+            Usuário correspondente ao identificador informado.
+
+        Raises:
+            UserNotFoundError: Caso o usuário não seja encontrado.
         """
+        
         user = self.user_repository.get_by_id(user_id) 
         
         if user is None: 
@@ -282,14 +263,14 @@ def get_user_service(
     Monta o serviço de domínio de usuários para uso nas rotas.
 
     Args:
-        unit_of_work: Unidade de trabalho responsável pelo controle da 
-        transação.
-        
-        user_password_service: Serviço responsável pelas operações de senha.
-        
-        user_email_service: Serviço responsável pelas notificações de e-mail.
-        
-        user_repository: Repositório utilizado para persistência de usuários.
+        unit_of_work: Unidade de trabalho responsável pelo 
+            controle da transação.
+        user_password_service: Serviço responsável pelas operações 
+            de senha.
+        user_email_service: Serviço responsável pelas notificações 
+            de e-mail.
+        user_repository: Repositório utilizado para persistência de 
+            usuários.
 
     Returns:
         Instância de `UserService`.

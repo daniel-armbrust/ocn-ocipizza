@@ -1,8 +1,8 @@
 """create initial user service tables
 
-Revision ID: 872441de111e
+Revision ID: 8642991a9ce3
 Revises: 
-Create Date: 2026-09-28 15:29:48.345104
+Create Date: 2026-10-01 07:34:50.323745
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '872441de111e'
+revision: str = '8642991a9ce3'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -28,6 +28,7 @@ def upgrade() -> None:
     sa.Column('whatsapp', sa.String(length=30), nullable=False, comment='Número de WhatsApp utilizado para contato.'),
     sa.Column('password_hash', sa.String(length=255), nullable=False, comment='Hash criptográfico da senha do usuário.'),
     sa.Column('confirmed', sa.Boolean(), nullable=False, comment='Indica se o usuário confirmou o endereço de e-mail.'),
+    sa.Column('is_admin', sa.Boolean(), nullable=False, comment='Indica se o usuário possui privilégios administrativos.'),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, comment='Data e hora da criação do usuário em UTC.'),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, comment='Data e hora da última atualização do usuário em UTC.'),
     sa.PrimaryKeyConstraint('id'),
@@ -40,7 +41,7 @@ def upgrade() -> None:
     sa.Column('token_hash', sa.String(length=64), nullable=False, comment='Hash SHA-256 do token de confirmação.'),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, comment='Data e hora de criação do token em UTC.'),
     sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False, comment='Data e hora de expiração do token em UTC.'),
-    sa.Column('revoked_at', sa.DateTime(timezone=True), nullable=True, comment='Data e hora em que o token foi revogado.'),
+    sa.Column('revoked_at', sa.DateTime(timezone=True), nullable=True, comment='Data e hora em que o token foi revogado em UTC.'),
     sa.Column('used_at', sa.DateTime(timezone=True), nullable=True, comment='Data e hora em que o token foi utilizado.'),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
@@ -58,12 +59,13 @@ def upgrade() -> None:
     op.create_index(op.f('ix_password_history_created_at'), 'password_history', ['created_at'], unique=False)
     op.create_index(op.f('ix_password_history_user_id'), 'password_history', ['user_id'], unique=False)
     op.create_table('password_reset_tokens',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.BINARY(length=16), nullable=False),
-    sa.Column('token_hash', sa.String(length=255), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('revoked_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False, comment='Identificador único do token de redefinição de senha.'),
+    sa.Column('user_id', sa.BINARY(length=16), nullable=False, comment='Identificador UUID do usuário associado ao token.'),
+    sa.Column('token_hash', sa.String(length=255), nullable=False, comment='Hash do token de redefinição de senha.'),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, comment='Data e hora de criação do token em UTC.'),
+    sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False, comment='Data e hora de expiração do token em UTC.'),
+    sa.Column('used_at', sa.DateTime(timezone=True), nullable=True, comment='Data e hora em que o token foi utilizado em UTC.'),
+    sa.Column('revoked_at', sa.DateTime(timezone=True), nullable=True, comment='Data e hora em que o token foi revogado em UTC.'),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )

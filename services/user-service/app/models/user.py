@@ -13,14 +13,16 @@ class User:
     """
     Representa um usuário persistido pelo `user-service`.
 
-    Os atributos armazenam dados básicos de perfil, credenciais por hash,
-    estado de confirmação de e-mail e controle de desativação da conta.
+    Os atributos armazenam dados básicos de perfil, credenciais 
+    por hash, estado de confirmação de e-mail e controle de 
+    desativação da conta.
     """
 
     id: UUID
     full_name: str
     email: str
     confirmed: bool
+    is_admin: bool
     whatsapp: str
     password_hash: str
     created_at: datetime

@@ -2,11 +2,11 @@
 # services/user_email_service.py
 #
 
-import secrets
-import hashlib
 from datetime import timedelta
 
 from fastapi import Depends
+
+from app.services.token_service import TokenService, get_token_service
 
 from app.utils.utils import now_utc
 
@@ -50,7 +50,8 @@ class UserEmailService:
 
     def __init__(self,
                  message_publisher: MessagePublisher,
-                 email_confirmation_token_repository: EmailConfirmationTokenRepository
+                 email_confirmation_token_repository: EmailConfirmationTokenRepository,
+                 token_service: TokenService
                  ) -> None:
         """
         Inicializa o serviço de e-mail do usuário. 
@@ -58,13 +59,15 @@ class UserEmailService:
         Args:
             message_publisher: Publicador utilizado para enviar mensagens
                 para a fila de notificações.
-
             email_confirmation_token_repository: Repositório utilizado para
                 persistir e consultar tokens de confirmação de e-mail.
+            token_service: Serviço responsável pela geração e criação do hash
+                dos tokens
         """ 
 
         self.message_publisher = message_publisher
         self.email_confirmation_token_repository = email_confirmation_token_repository
+        self.token_service = token_service
 
     def publish_confirmation_email(self, user: User) -> None:
         """
@@ -93,19 +96,19 @@ class UserEmailService:
 
         # Gera o token original que será enviado ao usuário através do e-mail.
         # Este valor nunca deve ser armazenado no banco de dados.
-        token = self._generate_token()
+        token = self.token_service.generate_token()
 
         # Gera o hash do token para armazenamento seguro.
         # Apenas o hash é persistido para permitir a validação posterior
         # sem expor o token original no banco.
-        token_hash = self._hash_token(token)
+        token_hash = self.token_service.hash_token(token)
 
         confirmation_token = EmailConfirmationToken(
             id=None,
             user_id=user.id,
             token_hash=token_hash,
             created_at=now,
-            expires_at=now + timedelta(hours=24),
+            expires_at=now + timedelta(hours=24)
         )
 
         # Persiste o hash do token dentro da transação atual.
@@ -118,7 +121,7 @@ class UserEmailService:
             'type': 'USER_CONFIRMATION',
             'recipient': user.email,
             'full_name': user.full_name,
-            'token': token,
+            'token': token
         }
 
         try:
@@ -130,7 +133,7 @@ class UserEmailService:
                 'Unable to publish confirmation email notification.'
             ) from ex
 
-    def publish_password_reset_email(self, user: User) -> None:
+    def publish_password_reset_email(self, user: User, token: str) -> None:
         """
         Publica uma solicitação de envio do e-mail de redefinição de senha. 
         
@@ -139,6 +142,8 @@ class UserEmailService:
         
         Args: 
             user: Usuário que receberá o e-mail de redefinição de senha. 
+            token: Token temporário enviado ao usuário para autorizar a
+                redefinição da senha.
         
         Returns: 
             None.
@@ -150,15 +155,11 @@ class UserEmailService:
             SQLAlchemyError: Caso ocorra uma falha ao persistir o token.
         """
 
-        now = now_utc()
-
-        reset_token = self._generate_token()
-
         payload = {
             'type': 'PASSWORD_RESET',
             'recipient': user.email,
             'full_name': user.full_name,
-            'token': reset_token
+            'token': token
         }
 
         try:
@@ -181,30 +182,6 @@ class UserEmailService:
         """
         pass
 
-    def _generate_token(self) -> str:
-            """
-            Gera um token criptograficamente seguro para operações relacionadas
-            a e-mail do usuário.
-    
-            Returns:
-                Token aleatório seguro.
-            """
-    
-            return secrets.token_urlsafe(32)
-
-    def _hash_token(self, token: str) -> str:
-        """
-        Gera o hash SHA-256 de um token.
-
-        Args:
-            token: Token original.
-
-        Returns:
-            Hash hexadecimal do token.
-        """
-
-        return hashlib.sha256(token.encode('utf-8')).hexdigest()
-
 
 def get_user_email_service(
         message_publisher: MessagePublisher = Depends(
@@ -212,7 +189,8 @@ def get_user_email_service(
         ),
         email_confirmation_token_repository: EmailConfirmationTokenRepository = Depends(
             get_email_confirmation_token_repository
-        )
+        ),
+        token_service: TokenService = Depends(get_token_service)
 ) -> UserEmailService:
     """
     Monta o serviço responsável pelos fluxos de e-mail relacionados
@@ -221,9 +199,10 @@ def get_user_email_service(
     Args:
         message_publisher: Publicador utilizado para enviar mensagens
             para a fila de notificações.
-
         email_confirmation_token_repository: Repositório utilizado para
             persistência dos tokens de confirmação de e-mail.
+        token_service: Serviço responsável pela geração e criação do hash
+            dos tokens
 
     Returns:
         Instância de `UserEmailService`.
@@ -235,5 +214,6 @@ def get_user_email_service(
      
     return UserEmailService(
         message_publisher=message_publisher,
-        email_confirmation_token_repository=email_confirmation_token_repository
+        email_confirmation_token_repository=email_confirmation_token_repository,
+        token_service=token_service
     )

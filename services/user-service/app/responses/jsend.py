@@ -7,25 +7,26 @@ from fastapi.responses import JSONResponse
 # Padrão JSEND:
 #   https://github.com/omniti-labs/jsend
 
-def success_response(data: dict) -> dict:
-    """
-    Cria uma resposta HTTP de sucesso no formato JSend.
+from app.schemas.jsend_schema import JSendSuccessResponse
 
-    A função encapsula os dados retornados pela operação dentro
-    da propriedade `data` e define o status da resposta como
-    `success`.
+
+def success_response(data: dict) -> JSendSuccessResponse:
+    """
+    Cria uma resposta de sucesso no padrão JSend.
+
+    Esta função encapsula os dados retornados pela API dentro
+    do atributo `data` e define o status da resposta como `success`.
 
     Args:
-        data: Dados que serão retornados ao consumidor da API.
+        data: Dados retornados pela operação realizada.
 
     Returns:
-        Dicionário contendo a resposta estruturada no formato JSend.
+        Resposta estruturada no padrão JSend.
     """
 
-    return {
-        'status': 'success',
-        'data': data
-    }
+    return JSendSuccessResponse(
+        data=data,
+    )
 
 
 def fail_response(
@@ -35,11 +36,9 @@ def fail_response(
     field: str | None = None,
 ) -> JSONResponse:
     """
-    Cria uma resposta HTTP no formato JSend para falhas de validação
-    ou regras de negócio.
+    Cria uma resposta HTTP no formato JSend para falhas de validação ou regras de negócio.
 
-    O campo `field` é opcional e somente será incluído na resposta
-    quando a falha estiver associada a um campo específico da requisição.
+    O campo `field` é opcional e somente será incluído na resposta quando a falha estiver associada a um campo específico da requisição.
 
     Args:
         status_code: Código HTTP que será retornado pela API.

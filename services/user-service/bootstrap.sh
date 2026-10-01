@@ -18,8 +18,8 @@
 #
 # 3. Verifica se o Python 3.11 está disponível.
 #
-# 4. Verifica se o ambiente virtual Python (.venv) já existe.
-#    Caso não exista, cria um novo ambiente virtual.
+# 4. Verifica se o ambiente virtual Python (.venv) já existe e cria um novo
+#    ambiente quando necessário.
 #
 # 5. Ativa o ambiente virtual Python.
 #
@@ -27,38 +27,23 @@
 #
 # 7. Instala as dependências Python declaradas em requirements.txt.
 #
-# 8. Verifica se o arquivo .env existe.
-#    Caso não exista, cria o arquivo com as configurações padrão utilizadas
-#    pelo user-service no ambiente de desenvolvimento.
+# 8. Verifica se o arquivo .env existe e, quando necessário, cria o arquivo
+#    com as configurações padrão do ambiente de desenvolvimento.
 #
-# 9. Aguarda até que o servidor MySQL esteja disponível.
+# 9. Verifica os clientes do MySQL e aguarda o servidor ficar disponível.
 #
-# 10. Cria o banco de dados "users", caso ele ainda não exista.
+# 10. Cria o banco de dados "users" e o usuário utilizado pelo serviço,
+#     caso ainda não existam.
 #
-# 11. Verifica se a estrutura do Alembic existe.
-#     Caso alembic.ini ou alembic/env.py não existam, executa:
+# 11. Verifica a estrutura do Alembic e a inicializa quando necessário.
 #
-#         alembic init alembic
+# 12. Verifica se existem migrations e gera a migration inicial quando
+#     nenhuma migration estiver disponível.
 #
-#     e configura automaticamente o arquivo alembic/env.py para utilizar
-#     os modelos ORM do user-service.
+# 13. Aplica todas as migrations e atualiza o schema do banco de dados.
 #
-# 12. Verifica se existem migrations em alembic/versions.
-#     Caso nenhuma migration exista, gera automaticamente a migration inicial
-#     através de:
-#
-#         alembic revision --autogenerate
-#
-# 13. Executa:
-#
-#         alembic upgrade head
-#
-#     aplicando todas as migrations disponíveis e atualizando o schema do
-#     banco de dados para a versão mais recente.
-#
-# 14. Cria usuários de demonstração no banco de dados.
-#     Os usuários são inseridos somente quando ainda não existem, permitindo
-#     que o bootstrap seja executado várias vezes sem duplicação dos registros.
+# 14. Cria os usuários de demonstração e o usuário administrador que ainda
+#     não estiverem cadastrados.
 #
 # 15. Exibe uma mensagem indicando a conclusão do processo.
 #
@@ -75,9 +60,24 @@
 
 set -e
 
-#
-# Configurações do ambiente de desenvolvimento.
-#
+display_step() {
+    local message="$1"
+    local width=64
+    local border
+    local padding
+
+    printf -v border '%*s' "$width" ''
+    border=${border// /#}
+    printf -v padding '%*s' "$((width - 4 - ${#message}))" ''
+
+    echo
+    echo "$border"
+    echo "# $message$padding #"
+    echo "$border"
+    echo
+}
+
+# Configurações utilizadas pelo ambiente local de desenvolvimento.
 
 MYSQL_HOST='127.0.0.1'
 MYSQL_PORT='13306'
@@ -92,11 +92,9 @@ DATABASE_PASSWORD='user_service'
 VENV_DIR='.venv'
 ENV_FILE='.env'
 
-echo 'Iniciando o bootstrap do user-service...'
+display_step 'Iniciando o bootstrap do user-service'
 
-#
-# Verifica se o script está sendo executado a partir da raiz do user-service.
-#
+# Verifica se o script está sendo executado na raiz do user-service.
 
 if [ ! -f 'requirements.txt' ]; then
     echo 'Erro: requirements.txt não encontrado.'
@@ -104,18 +102,14 @@ if [ ! -f 'requirements.txt' ]; then
     exit 1
 fi
 
-#
-# Verifica se o Python 3.11 está instalado.
-#
+# Verifica se o Python 3.11 está disponível.
 
 if ! command -v python3.11 >/dev/null 2>&1; then
     echo 'Erro: Python 3.11 não foi encontrado.'
     exit 1
 fi
 
-#
-# Cria o ambiente virtual Python, caso ainda não exista.
-#
+display_step 'Preparando o ambiente virtual Python'
 
 if [ ! -d "$VENV_DIR" ]; then
     echo 'Criando ambiente virtual Python...'
@@ -125,29 +119,17 @@ else
     echo 'Ambiente virtual Python já existe.'
 fi
 
-#
-# Ativa o ambiente virtual.
-#
-
-echo 'Ativando ambiente virtual Python...'
+# Ativa o ambiente virtual Python.
 source "$VENV_DIR/bin/activate"
 
-#
-# Atualiza o pip.
-#
-echo 'Atualizando o pip...'
+display_step 'Atualizando o pip'
 python -m pip install --upgrade pip
 
-#
-# Instala as dependências Python.
-#
-echo 'Instalando dependências Python...'
-
+display_step 'Instalando as dependências Python'
 python -m pip install --no-cache-dir -r requirements.txt
 
-#
-# Cria o arquivo .env utilizado pelo ambiente local.
-#
+display_step 'Configurando o arquivo .env do ambiente local'
+
 if [ ! -f "$ENV_FILE" ]; then
 
     echo 'Criando arquivo .env de desenvolvimento...'
@@ -177,9 +159,7 @@ else
     echo 'Arquivo .env já existe. Nenhuma alteração será realizada.'
 fi
 
-#
-# Verifica se o cliente MySQL está disponível.
-#
+# Verifica se os clientes do MySQL estão disponíveis.
 
 if ! command -v mysql >/dev/null 2>&1; then
     echo 'Erro: cliente MySQL não foi encontrado.'
@@ -191,11 +171,7 @@ if ! command -v mysqladmin >/dev/null 2>&1; then
     exit 1
 fi
 
-#
-# Aguarda o servidor MySQL ficar disponível.
-#
-
-echo 'Aguardando o servidor MySQL ficar disponível...'
+display_step 'Aguardando o servidor MySQL ficar disponível'
 
 until mysqladmin \
     -h "$MYSQL_HOST" \
@@ -211,11 +187,7 @@ done
 
 echo 'MySQL disponível.'
 
-#
-# Cria o banco de dados utilizado pelo user-service.
-#
-
-echo 'Criando banco de dados do user-service...'
+# Configura o banco de dados utilizado pelo user-service.
 
 mysql \
     -h "$MYSQL_HOST" \
@@ -236,12 +208,9 @@ mysql \
         FLUSH PRIVILEGES;
     "
 
-#
-# Inicializa o Alembic caso sua estrutura ainda não exista.
-#
+display_step 'Verificando a estrutura do Alembic'
 
 if [ ! -f 'alembic.ini' ] || [ ! -f 'alembic/env.py' ]; then
-
     echo 'Estrutura do Alembic não encontrada.'
     echo 'Inicializando o Alembic...'
 
@@ -354,9 +323,7 @@ else
     echo 'Estrutura do Alembic já existe.'
 fi
 
-#
-# Gera a migration inicial caso nenhuma migration tenha sido criada.
-#
+display_step 'Verificando as migrations do Alembic'
 
 if ! find alembic/versions -maxdepth 1 -type f -name '*.py' | grep -q .; then
 
@@ -371,19 +338,11 @@ else
     echo 'Migrations do Alembic já existem.'
 fi
 
-#
-# Aplica todas as migrations disponíveis.
-#
-
-echo 'Aplicando migrations do banco de dados...'
+display_step 'Aplicando as migrations do banco de dados'
 
 alembic upgrade head
 
-#
-# Cria os usuários utilizados no ambiente de demonstração.
-#
-
-echo 'Criando usuários de demonstração...'
+display_step 'Criando os usuários do ambiente de demonstração'
 
 python <<'PYTHON'
 
@@ -421,8 +380,9 @@ DEMO_USERS = [
         'full_name': 'Maria Oliveira',
         'email': 'maria.oliveira@example.com',
         'confirmed': True,
+        'is_admin': False,
         'whatsapp': '+5511999999999',
-        'password': 'DemoPassword123!',
+        'password': 'DemoPassword123!'
     },
     {
         'id': uuid.UUID(
@@ -431,8 +391,9 @@ DEMO_USERS = [
         'full_name': 'Joao Silva',
         'email': 'joao.silva@example.com',
         'confirmed': False,
+        'is_admin': False,
         'whatsapp': '+5511988888888',
-        'password': 'DemoPassword123!',
+        'password': 'DemoPassword123!'
     },
     {
         'id': uuid.UUID(
@@ -441,9 +402,25 @@ DEMO_USERS = [
         'full_name': 'Rita de Cássia',
         'email': 'rita.cassia@example.com',
         'confirmed': True,
+        'is_admin': False,
         'whatsapp': '+5511977777777',
-        'password': 'DemoPassword123!',
-    },
+        'password': 'DemoPassword123!'
+    }
+]
+
+ADMIN_USER = {
+    'id': uuid.UUID('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+    'full_name': 'Administrador',
+    'email': 'admin@ocipizza.com.br',
+    'confirmed': True,
+    'whatsapp': '+5511900000000',
+    'password': 'AdminPassword123!',
+    'is_admin': True
+}
+
+USERS_TO_SEED = [
+    ADMIN_USER,
+    *DEMO_USERS,
 ]
 
 #
@@ -458,10 +435,17 @@ engine = create_engine(
 # O serviço de senha é utilizado para garantir que nenhuma senha
 # seja armazenada em texto puro no banco de dados.
 #
-password_service = UserPasswordService()
+password_service = UserPasswordService(
+    user_repository=None,
+    password_reset_token_repository=None,
+    #password_history_repository,
+    token_service=None,
+    user_email_service=None,
+    unit_of_work=None
+)
 
 with Session(engine) as session:
-    for demo_user in DEMO_USERS:
+    for seed_user in USERS_TO_SEED:
 
         #
         # Verifica se o usuário já existe.
@@ -472,22 +456,18 @@ with Session(engine) as session:
 
         existing_user = session.scalar(
             select(UserORM).where(
-                UserORM.email == demo_user['email']
+                UserORM.email == seed_user['email']
             )
         )
 
         if existing_user is not None:
-
             print(
                 'Usuário de demonstração já existe: '
-                f"{demo_user['email']}"
+                f"{seed_user['email']}"
             )
-
             continue
 
-
         now = now_utc()
-
 
         #
         # Cria o objeto ORM utilizando o mesmo formato utilizado
@@ -495,29 +475,29 @@ with Session(engine) as session:
         #
 
         user = UserORM(
-            id=uuid_to_bin(
-                demo_user['id']
-            ),
-            full_name=demo_user['full_name'],
-            email=demo_user['email'],
-            whatsapp=demo_user['whatsapp'],
-            confirmed=demo_user['confirmed'],
-            password_hash=password_service.hash_password(
-                demo_user['password']
-            ),
+            id=uuid_to_bin(seed_user['id']),
+            full_name=seed_user['full_name'],
+            email=seed_user['email'],
+            whatsapp=seed_user['whatsapp'],
+            confirmed=seed_user['confirmed'],
+            is_admin=seed_user['is_admin'],
+            password_hash=password_service.hash_password(seed_user['password']),
             created_at=now,
-            updated_at=now,
+            updated_at=now
         )
-
 
         session.add(user)
 
-
-        print(
-            'Usuário de demonstração criado: '
-            f"{demo_user['email']}"
-        )
-
+        if seed_user['is_admin']:
+            print(
+                'Usuário administrador criado: '
+                f"{seed_user['full_name']} / {seed_user['password']}\n"
+            )
+        else:
+            print(
+                'Usuário de demonstração criado: '
+                f"{seed_user['full_name']} / {seed_user['password']}"
+            )
 
     #
     # Confirma todas as inserções realizadas pelo processo de seed.
@@ -526,6 +506,6 @@ with Session(engine) as session:
     session.commit()
 PYTHON
 
-echo 'Bootstrap do user-service concluído com sucesso.'
+display_step 'Bootstrap do user-service concluído com sucesso'
 
 exit 0

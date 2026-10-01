@@ -31,6 +31,7 @@ class EmailConfirmationTokenORM(Base):
         comment='Identificador UUID do usuário associado ao token.'
     )
 
+    # Usuário proprietário deste token de redefinição de senha.
     user = relationship(
         'UserORM',
         back_populates='email_confirmation_tokens'
@@ -58,7 +59,7 @@ class EmailConfirmationTokenORM(Base):
     revoked_at = Column(
         DateTime(timezone=True),
         nullable=True,
-        comment='Data e hora em que o token foi revogado.'
+        comment='Data e hora em que o token foi revogado em UTC.'
     )
 
     used_at = Column(

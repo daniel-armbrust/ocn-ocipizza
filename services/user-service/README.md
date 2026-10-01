@@ -1,10 +1,23 @@
-# User Service
+# OCI Pizza — User Service: gerenciamento de usuários e credenciais
 
-O `user-service` é responsável pelo gerenciamento de usuários e dados de perfil
-da aplicação OCI Pizza. Para preparar o serviço em um ambiente local de
-desenvolvimento, utilize o script `bootstrap.sh`.
+## Responsabilidade do Serviço
 
-## Dependências do serviço
+O `user-service` é responsável pelo ciclo de vida dos usuários da aplicação
+OCI Pizza. Suas principais responsabilidades são:
+
+- Cadastrar usuários
+- Consultar e atualizar dados de perfil
+- Gerenciar credenciais dos usuários
+- Permitir a troca de senha do usuário autenticado
+- Gerenciar o fluxo de solicitação e confirmação de redefinição de senha
+- Persistir os dados pertencentes ao seu próprio domínio
+- Publicar solicitações de envio de e-mail por meio de mensageria
+- Preservar o isolamento de dados, sem acessar bancos de outros microsserviços
+
+Para preparar o serviço em um ambiente local de desenvolvimento, utilize o
+script `bootstrap.sh`.
+
+## Dependências do Serviço
 
 O `user-service` depende dos seguintes componentes para funcionar no ambiente
 de desenvolvimento:
@@ -267,23 +280,25 @@ demonstração.
 
 ## Como utilizar a API de usuários
 
+Antes de utilizar a API, confirme que o `user-service` está em execução:
+
+```bash
+docker compose ps user-service
+```
+
+### Operações CRUD de usuários
+
 CRUD é o conjunto das quatro operações básicas realizadas sobre usuários:
 criação (Create), consulta (Read), atualização (Update) e exclusão (Delete).
 
 | Operação | Método HTTP | Endpoint | Documentação |
 | --- | --- | --- | --- |
 | CREATE | `POST` | `/users` | Disponível nesta seção. |
-| READ | A definir | A definir | Será preenchida posteriormente. |
-| UPDATE | A definir | A definir | Será preenchida posteriormente. |
+| READ | `GET` | `/users/me` | Disponível nesta seção. |
+| UPDATE | `PUT` | `/users/me` | Disponível nesta seção. |
 | DELETE | A definir | A definir | Será preenchida posteriormente. |
 
-### CREATE — Criar um usuário
-
-Antes de executar o comando, confirme que o `user-service` está em execução:
-
-```bash
-docker compose ps user-service
-```
+#### CREATE — Criar um usuário
 
 Para cadastrar um novo usuário, execute:
 
@@ -315,3 +330,181 @@ devolvida na resposta.
 O e-mail e o WhatsApp devem ser únicos. Se o mesmo comando for executado
 novamente, a API responderá com o status HTTP `409 Conflict`, pois o usuário já
 estará cadastrado.
+
+#### READ — Consultar o usuário atual
+
+Para consultar os dados do usuário atual, execute:
+
+```bash
+curl --request GET \
+  --url http://localhost:8002/users/me \
+  --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.xxxxx.yyyyy' \
+  --header 'Accept: application/json'
+```
+
+Substitua o token apresentado no exemplo por um token JWT válido. O identificador
+do usuário atual é um UUID obtido a partir da identidade autenticada.
+
+Não é necessário enviar nenhum UUID como parâmetro na URL, pois a rota
+`/users/me` identifica o usuário atual por meio da dependência de autenticação.
+
+Quando a consulta for concluída, a API responderá com o status HTTP `200 OK`
+e os dados públicos do usuário no padrão JSend. Se o usuário não for
+encontrado, a resposta terá o status HTTP `404 Not Found`.
+
+#### UPDATE — Atualizar o WhatsApp do usuário atual
+
+Para atualizar o número de WhatsApp do usuário atual, execute:
+
+```bash
+curl --request PUT \
+  --url http://localhost:8002/users/me \
+  --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.xxxxx.yyyyy' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "whatsapp": "11966666666"
+  }'
+```
+
+Substitua o token apresentado no exemplo por um token JWT válido. O payload
+aceita somente o campo `whatsapp`, que deve conter exatamente 11 caracteres.
+O UUID do usuário não deve ser enviado na URL nem no corpo da requisição, pois
+é obtido por meio da identidade autenticada.
+
+Quando a atualização for concluída, a API responderá com o status HTTP `200 OK`
+e os dados públicos atualizados do usuário no padrão JSend. Se o usuário não
+for encontrado, a resposta terá o status HTTP `404 Not Found`. Se não for
+possível concluir a atualização, a resposta terá o status HTTP
+`500 Internal Server Error`.
+
+### Troca de senha do usuário
+
+A troca de senha somente é permitida quando o usuário possui o e-mail
+confirmado, ou seja, quando o campo `confirmed` possui o valor `True`. A
+operação também exige a senha atual e a confirmação da nova senha. Para alterar
+a senha do usuário autenticado, execute:
+
+```bash
+curl --request PUT \
+  --url http://localhost:8002/users/me/password \
+  --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.xxxxx.yyyyy' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "current_password": "DemoPassword123!",
+    "new_password": "NewDemoPassword123!",
+    "confirm_new_password": "NewDemoPassword123!"
+  }'
+```
+
+Substitua o token apresentado no exemplo por um token JWT válido. O UUID do
+usuário não deve ser enviado na URL nem no corpo da requisição, pois é obtido
+por meio da identidade autenticada.
+
+Os campos enviados são:
+
+| Campo | Descrição |
+| --- | --- |
+| `current_password` | Senha atual, utilizada para validar o usuário. |
+| `new_password` | Nova senha que será associada ao usuário. |
+| `confirm_new_password` | Confirmação da nova senha; deve possuir o mesmo valor de `new_password`. |
+
+Antes de persistir a alteração, o serviço valida se a senha atual corresponde
+ao hash armazenado e se a nova senha coincide com sua confirmação. A nova senha
+é armazenada como hash, nunca em texto puro.
+
+Quando a troca for concluída, a API responderá com o status HTTP `200 OK` e a
+mensagem `Password updated successfully.` no padrão JSend. A API responderá com
+`400 Bad Request` quando a senha atual for inválida ou a confirmação for
+diferente da nova senha, com `403 Forbidden` quando o e-mail do usuário não
+estiver confirmado, com `404 Not Found` quando o usuário não for encontrado e
+com `500 Internal Server Error` quando não for possível concluir a alteração.
+
+### Redefinição de senha
+
+O fluxo de redefinição permite que o usuário defina uma nova senha sem informar
+a senha atual. O processo é composto por duas etapas:
+
+| Etapa | Método HTTP | Endpoint |
+| --- | --- | --- |
+| Solicitar o token | `POST` | `/users/password-reset/request` |
+| Confirmar a nova senha | `POST` | `/users/password-reset/confirm` |
+
+As duas operações são públicas e não exigem um token de autenticação Bearer.
+
+#### Solicitar o token de redefinição
+
+A solicitação de redefinição de senha inicia o fluxo de recuperação de acesso
+à conta. Essa operação não exige autenticação, pois é destinada ao usuário que
+não consegue acessar sua conta com a senha atual.
+
+Para solicitar a redefinição, execute:
+
+```bash
+curl --request POST \
+  --url http://localhost:8002/users/password-reset/request \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "email": "maria.oliveira@example.com"
+  }'
+```
+
+O payload aceita somente o campo abaixo:
+
+| Campo | Descrição |
+| --- | --- |
+| `email` | Endereço de e-mail válido associado à conta do usuário. |
+
+Quando a conta existe, o e-mail precisa estar confirmado para que o fluxo seja
+iniciado.
+
+O serviço gera um token temporário com validade de uma hora, persiste somente
+seu hash e publica uma mensagem para que o `notification-service` envie o token
+ao e-mail associado à conta. O token original não é armazenado no banco de dados.
+
+Por segurança, a API não informa se um e-mail inexistente está ou não cadastrado.
+Tanto para uma solicitação iniciada quanto para um e-mail inexistente, a resposta
+possui o status HTTP `200 OK` e a mensagem `Password reset request received.` no
+padrão JSend.
+
+A API responderá com `403 Forbidden` quando a conta existir, mas o e-mail ainda
+não estiver confirmado, e com `500 Internal Server Error` quando não for possível
+persistir o token ou publicar a solicitação de envio do e-mail.
+
+#### Confirmar a redefinição de senha
+
+Após receber o token por e-mail, utilize-o para definir uma nova senha:
+
+```bash
+curl --request POST \
+  --url http://localhost:8002/users/password-reset/confirm \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "token": "TOKEN_RECEBIDO_POR_EMAIL",
+    "new_password": "NewDemoPassword123!",
+    "confirm_new_password": "NewDemoPassword123!"
+  }'
+```
+
+Os campos enviados são:
+
+| Campo | Descrição |
+| --- | --- |
+| `token` | Token temporário recebido no e-mail de redefinição de senha. |
+| `new_password` | Nova senha que será associada ao usuário. |
+| `confirm_new_password` | Confirmação da nova senha; deve possuir o mesmo valor de `new_password`. |
+
+O token é válido por uma hora e pode ser utilizado somente uma vez. A API
+rejeita tokens inexistentes, expirados, utilizados anteriormente ou revogados.
+Quando o token é aceito, a nova senha é armazenada como hash e o token é
+marcado como utilizado, impedindo sua reutilização.
+
+Quando a redefinição for concluída, a API responderá com o status HTTP `200 OK`
+e a mensagem `Password reset successfully.` no padrão JSend. A API responderá
+com `400 Bad Request` quando a confirmação da senha for diferente da nova senha
+ou quando o token for inválido, expirado, utilizado ou revogado; com
+`404 Not Found` quando o usuário associado ao token não for encontrado; e com
+`500 Internal Server Error` quando não for possível concluir a redefinição.

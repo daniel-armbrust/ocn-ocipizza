@@ -17,6 +17,12 @@ from app.repositories.user_repository import UserRepository
 from app.repositories.sqlalchemy.sqlalchemy_user_repository import SqlAlchemyUserRepository
 from app.repositories.nosql.nosql_user_repository import NosqlUserRepository
 
+from app.repositories.password_reset_token_repository import PasswordResetTokenRepository
+from app.repositories.sqlalchemy.sqlalchemy_password_reset_token_repository import SqlAlchemyPasswordResetTokenRepository
+
+from app.repositories.password_history_repository import PasswordHistoryRepository
+from app.repositories.sqlalchemy.sqlalchemy_password_history_repository import SqlAlchemyPasswordHistoryRepository
+
 from app.repositories.email_confirmation_token_repository import EmailConfirmationTokenRepository
 from app.repositories.sqlalchemy.sqlalchemy_email_confirmation_token_repository import SqlAlchemyEmailConfirmationTokenRepository
 from app.repositories.nosql.nosql_email_confirmation_token_repository import NosqlEmailConfirmationTokenRepository
@@ -107,4 +113,44 @@ def get_email_confirmation_token_repository(
     raise ValueError(
         f'Unsupported persistence provider: '
         f'{settings.persistence_provider}'
+    )
+
+
+def get_password_reset_token_repository(
+    session: Session = Depends(get_session),
+) -> PasswordResetTokenRepository:
+    """
+    Fornece o repositório responsável pela persistência dos tokens
+    utilizados no processo de redefinição de senha.
+
+    Args:
+        session: Sessão SQLAlchemy utilizada pelo repositório.
+
+    Returns:
+        Implementação do `PasswordResetTokenRepository` baseada
+        em SQLAlchemy.
+    """
+
+    return SqlAlchemyPasswordResetTokenRepository(
+        session=session,
+    )
+
+
+def get_password_history_repository(
+    session: Session = Depends(get_session),
+) -> PasswordHistoryRepository:
+    """
+    Fornece o repositório responsável pela persistência do histórico
+    de senhas dos usuários.
+
+    Args:
+        session: Sessão SQLAlchemy utilizada pelo repositório.
+
+    Returns:
+        Implementação do `PasswordHistoryRepository` baseada
+        em SQLAlchemy.
+    """
+
+    return SqlAlchemyPasswordHistoryRepository(
+        session=session,
     )

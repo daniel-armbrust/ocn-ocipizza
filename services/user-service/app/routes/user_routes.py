@@ -2,25 +2,29 @@
 # routes/user_routes.py
 #
 
+from uuid import UUID
+
 from fastapi import APIRouter, status, Depends
 from fastapi.responses import JSONResponse
 
 from app.schemas.user_schema import (
     UserCreateRequest,
-    UserResponse,
-    UserSuccessData,
-    UserSuccessResponse
+    UserUpdateRequest,
+    UserResponse
 )
+
+from app.schemas.jsend_schema import JSendSuccessResponse
 
 from app.exceptions.user_exceptions import (
     UserAlreadyExistsError, 
-    UserCreationError
+    UserCreationError,
+    UserNotFoundError,
+    UserUpdateError
 )
 
 from app.services.user_service import UserService, get_user_service
-
-from app.responses.jsend import fail_response
-
+from app.dependencies.authentication import get_current_user_id
+from app.responses.jsend import fail_response, success_response
 
 router = APIRouter()
 
@@ -30,12 +34,12 @@ router = APIRouter()
 @router.post(
         '/users', 
         status_code=status.HTTP_201_CREATED,
-        response_model=UserSuccessResponse
+        response_model=JSendSuccessResponse
 )
 def create_user(
     payload: UserCreateRequest,
     service: UserService = Depends(get_user_service)
-) -> UserSuccessResponse | JSONResponse:
+) -> JSendSuccessResponse | JSONResponse:
     """
     Cria um novo usuário.
 
@@ -45,12 +49,12 @@ def create_user(
 
     Args:
         payload: Dados necessários para criação do usuário.
-
         service: Serviço responsável pelos casos de uso relacionados
             aos usuários.
 
     Returns:
-        Resposta de sucesso contendo os dados do usuário criado.
+        Resposta de sucesso no padrão JSend contendo os dados
+            do usuário criado.
     """
 
     try: 
@@ -68,8 +72,101 @@ def create_user(
             'Unable to create user.'
         )
 
-    return UserSuccessResponse(
-        data=UserSuccessData(
-            user=UserResponse.from_model(user),
+    return success_response(
+        {
+            'user': UserResponse.from_model(user).model_dump(mode='json')
+        }
+    )
+
+#
+# GET: /users/me
+#
+@router.get(
+    '/users/me',
+    status_code=status.HTTP_200_OK,
+    response_model=JSendSuccessResponse
+)
+def get_me(
+    current_user_id: UUID = Depends(get_current_user_id),
+    service: UserService = Depends(get_user_service),
+) -> JSendSuccessResponse | JSONResponse:
+    """
+    Retorna os dados do usuário atual.
+
+    Args:
+        current_user_id: Identificador UUID do usuário atual.
+        service: Serviço responsável pelos casos de uso relacionados
+            aos usuários.
+
+    Returns:
+        Resposta de sucesso contendo os dados do usuário ou uma resposta
+            de falha caso o usuário não seja encontrado.
+    """
+
+    try:
+        user = service.get_by_id(current_user_id)
+    except UserNotFoundError:
+        return fail_response(
+            status.HTTP_404_NOT_FOUND,
+            'USER_NOT_FOUND',
+            'User not found.',
+        ) 
+
+    return success_response(
+        {
+            'user': UserResponse.from_model(user).model_dump(mode='json')
+        }
+    )
+
+#
+# PUT: /users/me
+#
+@router.put(
+    '/users/me',
+    status_code=status.HTTP_200_OK,
+    response_model=JSendSuccessResponse
+)
+def update_me(
+    payload: UserUpdateRequest,
+    current_user_id = Depends(get_current_user_id),
+    service: UserService = Depends(get_user_service)
+) -> JSendSuccessResponse | JSONResponse:
+    """
+    Atualiza os dados permitidos do usuário autenticado.
+
+    Atualmente este endpoint permite somente a atualização do número
+    de WhatsApp. Alterações de e-mail ou outros dados sensíveis devem
+    possuir fluxos específicos de confirmação.
+
+    Args:
+        payload: Dados permitidos para atualização.
+        current_user_id: Identificador do usuário autenticado.
+        service: Serviço responsável pelos casos de uso do usuário.
+
+    Returns:
+        Resposta de sucesso contendo os dados atualizados do usuário.
+    """
+
+    try:
+        user = service.update(
+            user_id=current_user_id,
+            payload=payload
         )
+    except UserNotFoundError:
+        return fail_response(
+            status.HTTP_404_NOT_FOUND,
+            'USER_NOT_FOUND',
+            'User not found.'
+        )
+    except UserUpdateError:
+        return fail_response(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            'USER_UPDATE_ERROR',
+            'Error updating user.'
+        )
+
+    return success_response(
+        {
+            'user': UserResponse.from_model(user).model_dump(mode='json')
+        }
     )

@@ -7,6 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.routes.user_routes import router as user_router
+from app.routes.user_password_routes import router as user_password_router
 # from app.routes.email_routes import router as email_router
 # from app.routes.jwks_routes import router as jwks_router
 # from app.routes.login_routes import router as login_router
@@ -99,6 +100,9 @@ def health_check() -> dict:
 
 # Rotas de cadastro, consulta, atualização e desativação de usuários.
 app.include_router(user_router)
+
+# Rotas para operações relacionadas as senhas dos usuários.
+app.include_router(user_password_router)
 
 # # Rotas de autenticação e gerenciamento de sessão.
 # app.include_router(login_router)

@@ -57,6 +57,7 @@ class SqlAlchemyUserRepository(UserRepository):
             whatsapp=user.whatsapp,
             password_hash=user.password_hash,
             confirmed=user.confirmed,
+            is_admin=user.is_admin,
             created_at=user.created_at,
             updated_at=user.updated_at
         )
@@ -158,8 +159,7 @@ class SqlAlchemyUserRepository(UserRepository):
         Raises:
             ValueError: Caso o usuário informado não seja encontrado.
 
-            IntegrityError: Caso ocorra uma violação de integridade no banco
-                de dados.
+            IntegrityError: Caso ocorra uma violação de integridade no banco de dados.
 
             SQLAlchemyError: Caso ocorra uma falha durante a atualização.
         """
@@ -177,6 +177,7 @@ class SqlAlchemyUserRepository(UserRepository):
         orm_user.whatsapp = user.whatsapp
         orm_user.password_hash = user.password_hash
         orm_user.confirmed = user.confirmed
+        orm_user.is_admin = user.is_admin
         orm_user.updated_at = user.updated_at
 
         self.session.flush()
@@ -228,6 +229,7 @@ class SqlAlchemyUserRepository(UserRepository):
             whatsapp=orm_user.whatsapp,
             password_hash=orm_user.password_hash,
             confirmed=orm_user.confirmed,
+            is_admin=orm_user.is_admin,
             created_at=orm_user.created_at,
             updated_at=orm_user.updated_at
         )

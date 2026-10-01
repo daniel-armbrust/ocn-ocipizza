@@ -44,3 +44,12 @@ class UserEmailPublishError(Exception):
     de envio de e-mail relacionada ao usuário.
     """
     pass
+
+
+class UserNotConfirmedError(Exception):
+    """
+    Exceção lançada quando uma operação exige um usuário com
+    endereço de e-mail previamente confirmado.
+    """
+
+    pass

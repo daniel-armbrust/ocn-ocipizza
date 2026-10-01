@@ -32,7 +32,7 @@ class RefreshTokenORM(Base):
 
     user = relationship(
         'UserORM',
-        back_populates="refresh_tokens"
+        back_populates='refresh_tokens'
     )
 
     # Hash do refresh token.
