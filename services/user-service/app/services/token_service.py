@@ -53,15 +53,3 @@ class TokenService:
         """
 
         return hashlib.sha256(token.encode('utf-8')).hexdigest()
-
-
-def get_token_service() -> TokenService:
-    """
-    Fornece o serviço responsável pelas operações técnicas relacionadas
-    à geração e ao hash de tokens.
-
-    Returns:
-        Instância de `TokenService`.
-    """
-
-    return TokenService()

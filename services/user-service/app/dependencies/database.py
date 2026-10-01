@@ -17,15 +17,21 @@ from app.repositories.user_repository import UserRepository
 from app.repositories.sqlalchemy.sqlalchemy_user_repository import SqlAlchemyUserRepository
 from app.repositories.nosql.nosql_user_repository import NosqlUserRepository
 
-from app.repositories.password_reset_token_repository import PasswordResetTokenRepository
-from app.repositories.sqlalchemy.sqlalchemy_password_reset_token_repository import SqlAlchemyPasswordResetTokenRepository
+from app.repositories.user_password_reset_token_repository import UserPasswordResetTokenRepository
+from app.repositories.sqlalchemy.sqlalchemy_user_password_reset_token_repository import SqlAlchemyUserPasswordResetTokenRepository
+from app.repositories.nosql.nosql_user_password_reset_token_repository import NosqlUserPasswordResetTokenRepository
 
-from app.repositories.password_history_repository import PasswordHistoryRepository
-from app.repositories.sqlalchemy.sqlalchemy_password_history_repository import SqlAlchemyPasswordHistoryRepository
+from app.repositories.user_password_history_repository import UserPasswordHistoryRepository
+from app.repositories.sqlalchemy.sqlalchemy_user_password_history_repository import SqlAlchemyUserPasswordHistoryRepository
+from app.repositories.nosql.nosql_user_password_history_repository import NosqlUserPasswordHistoryRepository
 
-from app.repositories.email_confirmation_token_repository import EmailConfirmationTokenRepository
-from app.repositories.sqlalchemy.sqlalchemy_email_confirmation_token_repository import SqlAlchemyEmailConfirmationTokenRepository
-from app.repositories.nosql.nosql_email_confirmation_token_repository import NosqlEmailConfirmationTokenRepository
+from app.repositories.user_email_confirmation_token_repository import UserEmailConfirmationTokenRepository
+from app.repositories.sqlalchemy.sqlalchemy_user_email_confirmation_token_repository import SqlAlchemyUserEmailConfirmationTokenRepository
+from app.repositories.nosql.nosql_user_email_confirmation_token_repository import NosqlUserEmailConfirmationTokenRepository
+
+from app.repositories.user_refresh_token_repository import UserRefreshTokenRepository
+from app.repositories.sqlalchemy.sqlalchemy_user_refresh_token_repository import SqlAlchemyUserRefreshTokenRepository
+from app.repositories.nosql.nosql_user_refresh_token_repository import NosqlUserRefreshTokenRepository
 
 
 def get_unit_of_work(
@@ -85,9 +91,9 @@ def get_user_repository(
     )
 
 
-def get_email_confirmation_token_repository(
+def get_user_email_confirmation_token_repository(
         session: Session = Depends(get_session)        
-) -> EmailConfirmationTokenRepository:
+) -> UserEmailConfirmationTokenRepository:
     """
     Monta o repositório responsável pela persistência dos tokens
     de confirmação de e-mail.
@@ -96,7 +102,7 @@ def get_email_confirmation_token_repository(
         session: Sessão SQLAlchemy utilizada para acesso ao banco de dados.
 
     Returns:
-        Implementação de `EmailConfirmationTokenRepository` utilizada
+        Implementação de `UserEmailConfirmationTokenRepository` utilizada
         pela aplicação.
     
     Raises:
@@ -105,10 +111,10 @@ def get_email_confirmation_token_repository(
     """
 
     if settings.persistence_provider == 'sqlalchemy':
-        return SqlAlchemyEmailConfirmationTokenRepository(session)
+        return SqlAlchemyUserEmailConfirmationTokenRepository(session)
 
     if settings.persistence_provider == 'nosql':
-        return NosqlEmailConfirmationTokenRepository()
+        return NosqlUserEmailConfirmationTokenRepository()
 
     raise ValueError(
         f'Unsupported persistence provider: '
@@ -116,9 +122,9 @@ def get_email_confirmation_token_repository(
     )
 
 
-def get_password_reset_token_repository(
+def get_user_password_reset_token_repository(
     session: Session = Depends(get_session),
-) -> PasswordResetTokenRepository:
+) -> UserPasswordResetTokenRepository:
     """
     Fornece o repositório responsável pela persistência dos tokens
     utilizados no processo de redefinição de senha.
@@ -127,18 +133,25 @@ def get_password_reset_token_repository(
         session: Sessão SQLAlchemy utilizada pelo repositório.
 
     Returns:
-        Implementação do `PasswordResetTokenRepository` baseada
+        Implementação do `UserPasswordResetTokenRepository` baseada
         em SQLAlchemy.
     """
 
-    return SqlAlchemyPasswordResetTokenRepository(
-        session=session,
+    if settings.persistence_provider == 'sqlalchemy':
+        return SqlAlchemyUserPasswordResetTokenRepository(session)
+    
+    if settings.persistence_provider == 'nosql':
+        return NosqlUserPasswordResetTokenRepository()
+
+    raise ValueError(
+        f'Unsupported persistence provider: '
+        f'{settings.persistence_provider}'
     )
 
 
-def get_password_history_repository(
+def get_user_password_history_repository(
     session: Session = Depends(get_session),
-) -> PasswordHistoryRepository:
+) -> UserPasswordHistoryRepository:
     """
     Fornece o repositório responsável pela persistência do histórico
     de senhas dos usuários.
@@ -147,10 +160,44 @@ def get_password_history_repository(
         session: Sessão SQLAlchemy utilizada pelo repositório.
 
     Returns:
-        Implementação do `PasswordHistoryRepository` baseada
+        Implementação do `UserPasswordHistoryRepository` baseada
         em SQLAlchemy.
     """
 
-    return SqlAlchemyPasswordHistoryRepository(
-        session=session,
+    if settings.persistence_provider == 'sqlalchemy':
+        return SqlAlchemyUserPasswordHistoryRepository(session)
+        
+    if settings.persistence_provider == 'nosql':
+        return NosqlUserPasswordHistoryRepository()
+
+    raise ValueError(
+        f'Unsupported persistence provider: '
+        f'{settings.persistence_provider}'
     )
+
+
+def get_user_refresh_token_repository(
+    session: Session = Depends(get_session),
+) -> UserRefreshTokenRepository:
+    """
+    Fornece o repositório responsável pela persistência e consulta
+    dos refresh tokens associados aos usuários.
+
+    Args:
+        session: Sessão SQLAlchemy utilizada pelo repositório.
+
+    Returns:
+        Implementação do `UserRefreshTokenRepository` baseada
+        em SQLAlchemy.
+    """
+
+    if settings.persistence_provider == 'sqlalchemy':
+        return SqlAlchemyUserRefreshTokenRepository(session)
+            
+    if settings.persistence_provider == 'nosql':
+        return NosqlUserRefreshTokenRepository()
+
+    raise ValueError(
+            f'Unsupported persistence provider: '
+            f'{settings.persistence_provider}'
+        )

@@ -6,18 +6,19 @@ from datetime import timedelta
 
 from fastapi import Depends
 
-from app.services.token_service import TokenService, get_token_service
+from app.services.token_service import TokenService
+from app.dependencies.security import get_token_service
 
 from app.utils.utils import now_utc
 
 from app.models.user import User
-from app.models.email_confirmation_token import EmailConfirmationToken
+from app.models.user_email_confirmation_token import UserEmailConfirmationToken
 
 from app.messaging.message_publisher import MessagePublisher
 from app.dependencies.messaging import get_message_publisher
 
-from app.repositories.email_confirmation_token_repository import EmailConfirmationTokenRepository
-from app.dependencies.database import get_email_confirmation_token_repository
+from app.repositories.user_email_confirmation_token_repository import UserEmailConfirmationTokenRepository
+from app.dependencies.database import get_user_email_confirmation_token_repository
 
 from app.exceptions.user_exceptions import UserEmailPublishError
 from app.messaging.exceptions import MessagePublishError
@@ -50,7 +51,7 @@ class UserEmailService:
 
     def __init__(self,
                  message_publisher: MessagePublisher,
-                 email_confirmation_token_repository: EmailConfirmationTokenRepository,
+                 user_email_confirmation_token_repository: UserEmailConfirmationTokenRepository,
                  token_service: TokenService
                  ) -> None:
         """
@@ -66,7 +67,7 @@ class UserEmailService:
         """ 
 
         self.message_publisher = message_publisher
-        self.email_confirmation_token_repository = email_confirmation_token_repository
+        self.user_email_confirmation_token_repository = user_email_confirmation_token_repository
         self.token_service = token_service
 
     def publish_confirmation_email(self, user: User) -> None:
@@ -103,7 +104,7 @@ class UserEmailService:
         # sem expor o token original no banco.
         token_hash = self.token_service.hash_token(token)
 
-        confirmation_token = EmailConfirmationToken(
+        confirmation_token = UserEmailConfirmationToken(
             id=None,
             user_id=user.id,
             token_hash=token_hash,
@@ -187,8 +188,8 @@ def get_user_email_service(
         message_publisher: MessagePublisher = Depends(
             get_message_publisher
         ),
-        email_confirmation_token_repository: EmailConfirmationTokenRepository = Depends(
-            get_email_confirmation_token_repository
+        user_email_confirmation_token_repository: UserEmailConfirmationTokenRepository = Depends(
+            get_user_email_confirmation_token_repository
         ),
         token_service: TokenService = Depends(get_token_service)
 ) -> UserEmailService:
@@ -214,6 +215,6 @@ def get_user_email_service(
      
     return UserEmailService(
         message_publisher=message_publisher,
-        email_confirmation_token_repository=email_confirmation_token_repository,
+        user_email_confirmation_token_repository=user_email_confirmation_token_repository,
         token_service=token_service
     )

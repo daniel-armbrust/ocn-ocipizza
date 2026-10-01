@@ -1,15 +1,15 @@
 #
-# repositories/password_reset_token_repository.py
+# repositories/user_password_reset_token_repository.py
 #
 
 from abc import ABC, abstractmethod
 from datetime import datetime
 from uuid import UUID
 
-from app.models.password_reset_token import PasswordResetToken
+from app.models.user_password_reset_token import UserPasswordResetToken
 
 
-class PasswordResetTokenRepository(ABC):
+class UserPasswordResetTokenRepository(ABC):
     """
     Define o contrato de persistência para os tokens utilizados no processo de redefinição de senha.
 
@@ -17,7 +17,7 @@ class PasswordResetTokenRepository(ABC):
     """
 
     @abstractmethod
-    def create(self, token: PasswordResetToken) -> PasswordResetToken:
+    def create(self, token: UserPasswordResetToken) -> UserPasswordResetToken:
         """
         Persiste um novo token de redefinição de senha.
 
@@ -30,7 +30,7 @@ class PasswordResetTokenRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_hash(self, token_hash: str) -> PasswordResetToken | None:
+    def get_by_hash(self, token_hash: str) -> UserPasswordResetToken | None:
         """
         Retorna um token de redefinição de senha a partir de seu hash.
 
@@ -43,7 +43,7 @@ class PasswordResetTokenRepository(ABC):
         pass
 
     @abstractmethod
-    def get_active_by_user_id(self, user_id: UUID) -> PasswordResetToken | None:
+    def get_active_by_user_id(self, user_id: UUID) -> UserPasswordResetToken | None:
         """
         Retorna o token ativo de redefinição de senha associado a um usuário.
 

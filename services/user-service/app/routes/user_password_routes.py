@@ -82,9 +82,9 @@ def update_password(
         )
     except UserNotFoundError:
         return fail_response(
-            status.HTTP_404_NOT_FOUND,
-            'USER_NOT_FOUND',
-            'User not found.'
+            status.HTTP_400_BAD_REQUEST,
+            'USER_PASSWORD_UPDATE_ERROR',
+            'Unable to user password.'
         )
     except UserNotConfirmedError:
         return fail_response(
@@ -218,9 +218,9 @@ def confirm_password_reset(
         )
     except UserNotFoundError:
         return fail_response(
-            status.HTTP_404_NOT_FOUND,
-            'USER_NOT_FOUND',
-            'User not found.'
+            status.HTTP_400_BAD_REQUEST,
+            'PASSWORD_RESET_ERROR',
+            'Unable to reset user password.'
         )
     except UserPasswordResetError:
         return fail_response(
@@ -228,7 +228,6 @@ def confirm_password_reset(
             'PASSWORD_RESET_ERROR',
             'Error resetting password.'
         )
-    
     return success_response(
         {
             'message': 'Password reset successfully.'

@@ -1,20 +1,20 @@
 #
-# repositories/email_confirmation_token_repository.py
+# repositories/user_email_confirmation_token_repository.py
 #
 
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from app.models.email_confirmation_token import EmailConfirmationToken
+from app.models.user_email_confirmation_token import UserEmailConfirmationToken
 
 
-class EmailConfirmationTokenRepository(ABC):
+class UserEmailConfirmationTokenRepository(ABC):
     """
     Define o contrato de persistência dos tokens de confirmação de e-mail.
     """
 
     @abstractmethod
-    def create(self, token: EmailConfirmationToken) -> EmailConfirmationToken:
+    def create(self, token: UserEmailConfirmationToken) -> UserEmailConfirmationToken:
         """
         Persiste um novo token de confirmação de e-mail.
 
@@ -27,7 +27,7 @@ class EmailConfirmationTokenRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_token_hash(self, token_hash: str) -> EmailConfirmationToken | None:
+    def get_by_token_hash(self, token_hash: str) -> UserEmailConfirmationToken | None:
         """
         Busca um token de confirmação pelo seu hash.
 
@@ -40,7 +40,7 @@ class EmailConfirmationTokenRepository(ABC):
         pass
 
     @abstractmethod
-    def get_active_by_user_id(self, user_id: UUID) -> EmailConfirmationToken | None:
+    def get_active_by_user_id(self, user_id: UUID) -> UserEmailConfirmationToken | None:
         """
         Busca o token de confirmação ativo de um usuário.
 
@@ -53,7 +53,7 @@ class EmailConfirmationTokenRepository(ABC):
         pass
 
     @abstractmethod
-    def update(self, token: EmailConfirmationToken) -> EmailConfirmationToken:
+    def update(self, token: UserEmailConfirmationToken) -> UserEmailConfirmationToken:
         """
         Atualiza um token de confirmação de e-mail.
 

@@ -27,25 +27,28 @@
 #
 # 7. Instala as dependências Python declaradas em requirements.txt.
 #
-# 8. Verifica se o arquivo .env existe e, quando necessário, cria o arquivo
+# 8. Gera as chaves RSA de 2048 bits utilizadas para assinar e validar os
+#    tokens JWT, caso elas ainda não existam.
+#
+# 9. Verifica se o arquivo .env existe e, quando necessário, cria o arquivo
 #    com as configurações padrão do ambiente de desenvolvimento.
 #
-# 9. Verifica os clientes do MySQL e aguarda o servidor ficar disponível.
+# 10. Verifica os clientes do MySQL e aguarda o servidor ficar disponível.
 #
-# 10. Cria o banco de dados "users" e o usuário utilizado pelo serviço,
+# 11. Cria o banco de dados "users" e o usuário utilizado pelo serviço,
 #     caso ainda não existam.
 #
-# 11. Verifica a estrutura do Alembic e a inicializa quando necessário.
+# 12. Verifica a estrutura do Alembic e a inicializa quando necessário.
 #
-# 12. Verifica se existem migrations e gera a migration inicial quando
+# 13. Verifica se existem migrations e gera a migration inicial quando
 #     nenhuma migration estiver disponível.
 #
-# 13. Aplica todas as migrations e atualiza o schema do banco de dados.
+# 14. Aplica todas as migrations e atualiza o schema do banco de dados.
 #
-# 14. Cria os usuários de demonstração e o usuário administrador que ainda
+# 15. Cria os usuários de demonstração e o usuário administrador que ainda
 #     não estiverem cadastrados.
 #
-# 15. Exibe uma mensagem indicando a conclusão do processo.
+# 16. Exibe uma mensagem indicando a conclusão do processo.
 #
 # Este script foi desenvolvido exclusivamente para o ambiente de desenvolvimento.
 # Ele utiliza configurações simplificadas, incluindo credenciais locais do
@@ -92,6 +95,10 @@ DATABASE_PASSWORD='user_service'
 VENV_DIR='.venv'
 ENV_FILE='.env'
 
+JWT_SECRETS_DIR='secrets'
+JWT_PRIVATE_KEY_FILE="${JWT_SECRETS_DIR}/jwt_private_key.pem"
+JWT_PUBLIC_KEY_FILE="${JWT_SECRETS_DIR}/jwt_public_key.pem"
+
 display_step 'Iniciando o bootstrap do user-service'
 
 # Verifica se o script está sendo executado na raiz do user-service.
@@ -127,6 +134,35 @@ python -m pip install --upgrade pip
 
 display_step 'Instalando as dependências Python'
 python -m pip install --no-cache-dir -r requirements.txt
+
+# Gera o par de chaves JWT somente quando ele ainda não estiver completo.
+if [ ! -f "$JWT_PRIVATE_KEY_FILE" ] || [ ! -f "$JWT_PUBLIC_KEY_FILE" ]; then
+    display_step 'Gerando chaves RSA para os tokens JWT'
+
+    if ! command -v openssl >/dev/null 2>&1; then
+        echo 'Erro: OpenSSL não foi encontrado.'
+        exit 1
+    fi
+
+    mkdir -p "$JWT_SECRETS_DIR"
+
+    if [ ! -f "$JWT_PRIVATE_KEY_FILE" ]; then
+        openssl genpkey \
+            -algorithm RSA \
+            -pkeyopt rsa_keygen_bits:2048 \
+            -out "$JWT_PRIVATE_KEY_FILE"
+    fi
+
+    openssl pkey \
+        -in "$JWT_PRIVATE_KEY_FILE" \
+        -pubout \
+        -out "$JWT_PUBLIC_KEY_FILE"
+
+    chmod 600 "$JWT_PRIVATE_KEY_FILE"
+    chmod 644 "$JWT_PUBLIC_KEY_FILE"
+
+    echo 'Chaves JWT criadas no diretório secrets.'
+fi
 
 display_step 'Configurando o arquivo .env do ambiente local'
 
@@ -242,10 +278,10 @@ from app.repositories.orm.base import Base
 #
 
 from app.repositories.orm.user_orm import UserORM
-from app.repositories.orm.email_confirmation_token_orm import EmailConfirmationTokenORM
-from app.repositories.orm.password_reset_token_orm import PasswordResetTokenORM
-from app.repositories.orm.refresh_token_orm import RefreshTokenORM
-from app.repositories.orm.password_history_orm import PasswordHistoryORM
+from app.repositories.orm.user_email_confirmation_token_orm import UserEmailConfirmationTokenORM
+from app.repositories.orm.user_password_reset_token_orm import UserPasswordResetTokenORM
+from app.repositories.orm.user_refresh_token_orm import UserRefreshTokenORM
+from app.repositories.orm.user_password_history_orm import UserPasswordHistoryORM
 
 config = context.config
 
@@ -355,10 +391,10 @@ from sqlalchemy.orm import Session
 from app.config.settings import settings
 
 from app.repositories.orm.user_orm import UserORM
-from app.repositories.orm.email_confirmation_token_orm import EmailConfirmationTokenORM
-from app.repositories.orm.password_reset_token_orm import PasswordResetTokenORM
-from app.repositories.orm.refresh_token_orm import RefreshTokenORM
-from app.repositories.orm.password_history_orm import PasswordHistoryORM
+from app.repositories.orm.user_email_confirmation_token_orm import UserEmailConfirmationTokenORM
+from app.repositories.orm.user_password_reset_token_orm import UserPasswordResetTokenORM
+from app.repositories.orm.user_refresh_token_orm import UserRefreshTokenORM
+from app.repositories.orm.user_password_history_orm import UserPasswordHistoryORM
 
 from app.services.user_password_service import UserPasswordService
 
@@ -413,6 +449,7 @@ ADMIN_USER = {
     'full_name': 'Administrador',
     'email': 'admin@ocipizza.com.br',
     'confirmed': True,
+    'is_admin': True,
     'whatsapp': '+5511900000000',
     'password': 'AdminPassword123!',
     'is_admin': True
@@ -437,8 +474,8 @@ engine = create_engine(
 #
 password_service = UserPasswordService(
     user_repository=None,
-    password_reset_token_repository=None,
-    #password_history_repository,
+    user_password_reset_token_repository=None,
+    #user_password_history_repository=None,
     token_service=None,
     user_email_service=None,
     unit_of_work=None

@@ -54,6 +54,7 @@ class UserResponse(BaseModel):
             updated_at=user.updated_at
         )
 
+
 class UserUpdateRequest(BaseModel): 
     """
     Dados permitidos para atualização do usuário.
@@ -66,3 +67,17 @@ class UserUpdateRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
     
     whatsapp: str = Field(min_length=11, max_length=11)
+
+
+class UserConfirmationRequest(BaseModel):
+    """
+    Representa os dados necessários para confirmação do cadastro
+    de um usuário.
+
+    Attributes:
+        email: Endereço de e-mail associado ao cadastro.
+        token: Token utilizado para validar a confirmação do usuário.
+    """
+
+    email: EmailStr
+    token: str

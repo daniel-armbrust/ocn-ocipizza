@@ -1,5 +1,5 @@
 #
-# models/password_reset_token.py
+# models/user_password_reset_token.py
 #
 
 from dataclasses import dataclass
@@ -8,7 +8,7 @@ from uuid import UUID
 
 
 @dataclass
-class PasswordResetToken:
+class UserPasswordResetToken:
     """
     Representa um token utilizado no processo de redefinição
     da senha de um usuário.

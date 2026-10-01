@@ -1,8 +1,8 @@
 #
-# repositories/password_history_repository.py
+# repositories/user_password_history_repository.py
 #
 
-class PasswordHistoryRepository:
+class UserPasswordHistoryRepository:
     def create():
         pass
 

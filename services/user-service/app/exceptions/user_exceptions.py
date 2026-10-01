@@ -51,5 +51,21 @@ class UserNotConfirmedError(Exception):
     Exceção lançada quando uma operação exige um usuário com
     endereço de e-mail previamente confirmado.
     """
+    pass
 
+
+class UserInvalidEmailConfirmationTokenError(Exception):
+    """
+    Exceção lançada quando o token utilizado para confirmação
+    do endereço de e-mail do usuário é inválido, expirado,
+    já utilizado ou revogado.
+    """
+    pass
+
+
+class UserEmailConfirmationError(Exception):
+    """
+    Exceção lançada quando ocorre uma falha durante o processo
+    de confirmação do endereço de e-mail do usuário.
+    """
     pass

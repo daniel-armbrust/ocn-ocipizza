@@ -76,28 +76,28 @@ class UserORM(Base):
 
     # Tokens utilizados para renovação de sessões autenticadas.
     refresh_tokens = relationship(
-        'RefreshTokenORM',
+        'UserRefreshTokenORM',
         back_populates='user',
         cascade='all, delete-orphan'
     )
 
     # Tokens utilizados para confirmação do endereço de e-mail.
     email_confirmation_tokens = relationship(
-        'EmailConfirmationTokenORM',
+        'UserEmailConfirmationTokenORM',
         back_populates='user',
         cascade='all, delete-orphan'
     )
 
     # Tokens utilizados no fluxo de recuperação e redefinição de senha.
     password_reset_tokens = relationship(
-        'PasswordResetTokenORM',
+        'UserPasswordResetTokenORM',
         back_populates='user',
         cascade='all, delete-orphan'
     )
 
     # Histórico das senhas anteriormente utilizadas pelo usuário.
     password_history = relationship(
-        'PasswordHistoryORM',
+        'UserPasswordHistoryORM',
         back_populates='user',
         cascade='all, delete-orphan'
     )

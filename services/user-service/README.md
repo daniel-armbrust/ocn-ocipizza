@@ -184,15 +184,17 @@ Durante a execução, o `bootstrap.sh`:
 1. Valida o diretório de execução e a disponibilidade do Python 3.11
 2. Cria o ambiente virtual `.venv`, caso ele ainda não exista, e o ativa
 3. Atualiza o `pip` e instala as dependências de `requirements.txt`
-4. Cria o arquivo `.env` com a configuração local padrão, caso ele ainda não
+4. Gera o par de chaves RSA de 2048 bits utilizado pelos tokens JWT, caso as
+   chaves ainda não existam
+5. Cria o arquivo `.env` com a configuração local padrão, caso ele ainda não
    exista
-5. Valida a disponibilidade dos clientes `mysql` e `mysqladmin`
-6. Aguarda o MySQL aceitar conexões
-7. Cria o banco `users` e o usuário `user_service`, caso ainda não existam
-8. Inicializa e configura o Alembic quando sua estrutura ainda não existe
-9. Gera a migration inicial caso `alembic/versions` não contenha migrations
-10. Executa `alembic upgrade head` para atualizar o schema do banco
-11. Cria os usuários de demonstração que ainda não estiverem cadastrados
+6. Valida a disponibilidade dos clientes `mysql` e `mysqladmin`
+7. Aguarda o MySQL aceitar conexões
+8. Cria o banco `users` e o usuário `user_service`, caso ainda não existam
+9. Inicializa e configura o Alembic quando sua estrutura ainda não existe
+10. Gera a migration inicial caso `alembic/versions` não contenha migrations
+11. Executa `alembic upgrade head` para atualizar o schema do banco
+12. Cria os usuários de demonstração que ainda não estiverem cadastrados
 
 ### Configuração local criada
 
@@ -377,6 +379,102 @@ e os dados públicos atualizados do usuário no padrão JSend. Se o usuário nã
 for encontrado, a resposta terá o status HTTP `404 Not Found`. Se não for
 possível concluir a atualização, a resposta terá o status HTTP
 `500 Internal Server Error`.
+
+### Autenticação do usuário
+
+A autenticação valida o e-mail e a senha de um usuário com o cadastro
+confirmado. Quando as credenciais são válidas, a API emite um access token JWT
+e um refresh token para a sessão.
+
+Para autenticar um usuário, execute:
+
+```bash
+curl --request POST \
+  --url http://localhost:8002/auth/login \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "email": "maria.oliveira@example.com",
+    "password": "DemoPassword123!"
+  }'
+```
+
+Os campos enviados são:
+
+| Campo | Descrição |
+| --- | --- |
+| `email` | Endereço de e-mail associado ao cadastro do usuário. |
+| `password` | Senha utilizada para validar as credenciais do usuário. |
+
+Quando a autenticação for concluída, a API responderá com o status HTTP
+`200 OK` e os tokens da sessão no padrão JSend:
+
+```json
+{
+  "status": "success",
+  "data": {
+    "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.xxxxx.yyyyy",
+    "refresh_token": "REFRESH_TOKEN",
+    "token_type": "Bearer",
+    "expires_in": 900
+  }
+}
+```
+
+O `access_token` possui validade de 15 minutos no ambiente local e deve ser
+enviado no cabeçalho `Authorization` das operações autenticadas:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+O `refresh_token` permite solicitar futuramente um novo access token sem
+informar novamente o e-mail e a senha. Ele não deve ser enviado no cabeçalho
+das requisições autenticadas nem exposto em logs.
+
+A API responderá com `401 Unauthorized` quando o e-mail ou a senha forem
+inválidos, com `403 Forbidden` quando o e-mail do usuário ainda não estiver
+confirmado e com `500 Internal Server Error` quando não for possível concluir
+a autenticação.
+
+### Confirmação do cadastro do usuário
+
+Após o cadastro, o usuário recebe por e-mail um token temporário para confirmar
+seu endereço de e-mail. Essa operação é pública e não exige um token de
+autenticação Bearer.
+
+Para confirmar o cadastro, execute:
+
+```bash
+curl --request POST \
+  --url http://localhost:8002/users/confirm \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "email": "ana.laura@example.com",
+    "token": "TOKEN_RECEBIDO_POR_EMAIL"
+  }'
+```
+
+Os campos enviados são:
+
+| Campo | Descrição |
+| --- | --- |
+| `email` | Endereço de e-mail associado ao cadastro do usuário. |
+| `token` | Token temporário recebido no e-mail de confirmação do cadastro. |
+
+O token é válido por 24 horas e pertence ao usuário associado ao e-mail
+informado. A API rejeita tokens inexistentes, expirados, utilizados
+anteriormente, revogados ou pertencentes a outro usuário. O token original não
+é armazenado no banco de dados; somente seu hash é persistido.
+
+Quando a confirmação for concluída, o campo `confirmed` do usuário será alterado
+para `True`, o token será marcado como utilizado e a API responderá com o status
+HTTP `200 OK` e a mensagem `User confirmed successfully.` no padrão JSend.
+
+A API responderá com `400 Bad Request` quando o usuário não for encontrado ou
+quando o token não puder ser validado. Falhas internas durante a consulta ou a
+persistência dos dados resultarão em `500 Internal Server Error`.
 
 ### Troca de senha do usuário
 

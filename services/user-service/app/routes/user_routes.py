@@ -10,7 +10,8 @@ from fastapi.responses import JSONResponse
 from app.schemas.user_schema import (
     UserCreateRequest,
     UserUpdateRequest,
-    UserResponse
+    UserResponse,
+    UserConfirmationRequest
 )
 
 from app.schemas.jsend_schema import JSendSuccessResponse
@@ -19,7 +20,8 @@ from app.exceptions.user_exceptions import (
     UserAlreadyExistsError, 
     UserCreationError,
     UserNotFoundError,
-    UserUpdateError
+    UserUpdateError,
+    UserInvalidEmailConfirmationTokenError
 )
 
 from app.services.user_service import UserService, get_user_service
@@ -88,7 +90,7 @@ def create_user(
 )
 def get_me(
     current_user_id: UUID = Depends(get_current_user_id),
-    service: UserService = Depends(get_user_service),
+    service: UserService = Depends(get_user_service)
 ) -> JSendSuccessResponse | JSONResponse:
     """
     Retorna os dados do usuário atual.
@@ -109,7 +111,7 @@ def get_me(
         return fail_response(
             status.HTTP_404_NOT_FOUND,
             'USER_NOT_FOUND',
-            'User not found.',
+            'User not found.'
         ) 
 
     return success_response(
@@ -168,5 +170,56 @@ def update_me(
     return success_response(
         {
             'user': UserResponse.from_model(user).model_dump(mode='json')
+        }
+    )
+
+
+#
+# GET: /users/confirm
+#
+@router.post(
+    '/users/confirm',
+    status_code=status.HTTP_200_OK,
+    response_model=JSendSuccessResponse
+)
+def confirm_user(
+    payload: UserConfirmationRequest,
+    service: UserService = Depends(get_user_service)
+) -> JSendSuccessResponse | JSendSuccessResponse:
+    """
+    Confirma o endereço de e-mail de um usuário para que seja 
+    possível o usuário utilizar o sistema.
+
+    O token recebido é validado e, caso seja válido, o usuário
+    associado é marcado como confirmado.
+
+    Args:
+        payload: Dados necessários para confirmação do usuário,
+            contendo o endereço de e-mail e o token de confirmação.
+        service: Serviço responsável pelos casos de uso relacionados
+            à confirmação de e-mail.
+
+    Returns:
+        Resposta no padrão JSend indicando o resultado da operação.
+    """
+
+    try:
+        service.confirm_email(
+            email=payload.email,
+            token=payload.token
+        )
+    except (
+        UserNotFoundError,
+        UserInvalidEmailConfirmationTokenError
+    ):
+        return fail_response(
+            status.HTTP_400_BAD_REQUEST,
+            'USER_CONFIRMATION_ERROR',
+            'Unable to confirm user.'
+        )
+
+    return success_response(
+        {
+            'message': 'User confirmed successfully.',
         }
     )

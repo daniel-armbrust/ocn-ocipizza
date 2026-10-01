@@ -3,12 +3,14 @@
 # 
 
 from uuid import uuid4, UUID
+from datetime import datetime
 
 from fastapi import Depends
 
 from app.utils.utils import normalize_email, now_utc
 
 from app.models.user import User
+from app.models.user_email_confirmation_token import UserEmailConfirmationToken
 
 from app.schemas.user_schema import (
     UserCreateRequest, 
@@ -20,7 +22,9 @@ from app.exceptions.user_exceptions import (
     UserCreationError, 
     UserNotFoundError, 
     UserUpdateError,
-    UserDeletionError
+    UserDeletionError,
+    UserEmailConfirmationError,
+    UserInvalidEmailConfirmationTokenError
 ) 
 
 from app.repositories.unit_of_work import UnitOfWork
@@ -97,9 +101,9 @@ class UserService:
             UserCreationError: Se não for possível concluir a criação do usuário.
         """
 
-        email = normalize_email(payload.email)
+        normalized_email = normalize_email(payload.email)
 
-        if self.user_repository.get_by_email(email):
+        if self.user_repository.get_by_email(normalized_email):
             raise UserAlreadyExistsError('Email is already registered.')
 
         if self.user_repository.get_by_whatsapp(payload.whatsapp):
@@ -199,8 +203,92 @@ class UserService:
             self.unit_of_work.rollback() 
             raise UserDeletionError('Error deleting the user.')
 
-    def confirm(self):
-        pass
+    def confirm_email(self, email: str, token: str) -> None:
+        """
+        Confirma o endereço de e-mail associado ao cadastro de um usuário.
+
+        O usuário é localizado através do endereço de e-mail informado e o
+        token recebido é validado antes da confirmação do cadastro.
+
+        Args:
+            email: Endereço de e-mail associado ao usuário.
+            token: Token de confirmação recebido pelo usuário.
+
+        Returns:
+            None.
+
+        Raises:
+            UserNotFoundError: Caso o usuário associado ao endereço de e-mail
+                não seja encontrado.
+            UserInvalidEmailConfirmationTokenError: Caso o token seja inválido,
+                expirado, já utilizado, revogado ou não pertença ao usuário.
+            UserEmailConfirmationError: Caso ocorra uma falha durante a consulta
+                ou persistência dos dados necessários à confirmação do usuário.
+        """
+
+        normalized_email = normalize_email(email)
+
+        try:
+            # Localiza o usuário associado ao endereço de e-mail informado.
+            user = self.user_repository.get_by_email(normalized_email)
+        except Exception as ex:
+            raise UserEmailConfirmationError(
+                'Error retrieving user for email confirmation.'
+            ) from ex
+
+        if user is None:
+            raise UserNotFoundError('User not found.')
+
+        # Gera o hash do token recebido, pois somente o hash
+        # do token é armazenado no banco de dados.
+        token_hash = self.token_service.hash_token(token)
+
+        try:
+            # Localiza o token de confirmação através de seu hash.
+            email_confirmation_token = (
+                self.email_confirmation_token_repository.get_by_hash(token_hash)
+            )
+        except Exception as ex:
+            raise UserEmailConfirmationError(
+                'Error retrieving email confirmation token.'
+            ) from ex
+
+        now = now_utc()
+
+        # Valida se o token existe e ainda pode ser utilizado.
+        email_confirmation_token = (
+            self._validate_email_confirmation_token(email_confirmation_token, now)
+        )
+
+        # Garante que o token realmente pertence ao usuário
+        # correspondente ao endereço de e-mail informado.
+        if email_confirmation_token.user_id != user.id:
+            raise UserInvalidEmailConfirmationTokenError(
+                'Email confirmation token does not belong to the user.'
+            )
+
+        # Caso o usuário já esteja confirmado, não é necessário
+        # realizar nenhuma nova alteração.
+        if user.confirmed:
+            return
+
+        user.confirmed = True
+        user.updated_at = now
+
+        try:
+            # Persiste a alteração do usuário.
+            self.user_repository.update(user)
+
+            # Marca o token como utilizado para impedir sua reutilização.
+            self.email_confirmation_token_repository.mark_as_used(
+                email_confirmation_token.id,
+                now
+            )
+
+            self.unit_of_work.commit()
+        except Exception as ex:
+            self.unit_of_work.rollback()
+            raise UserEmailConfirmationError('Error confirming user email.') from ex        
 
     def get_by_id(self, user_id: UUID) -> User:
         """
@@ -237,14 +325,58 @@ class UserService:
             UserNotFoundError: Se o usuário não for encontrado. 
         """
         
-        email = normalize_email(email) 
+        normalized_email = normalize_email(email) 
         
-        user = self.user_repository.get_by_email(email) 
+        user = self.user_repository.get_by_email(normalized_email) 
         
         if user is None: 
             raise UserNotFoundError('User not found.') 
         
         return user
+
+    def _validate_email_confirmation_token(
+            self,
+            email_confirmation_token: UserEmailConfirmationToken | None,
+            now: datetime,
+    ) -> UserEmailConfirmationToken:
+        """
+        Valida se um token de confirmação de e-mail pode ser utilizado.
+
+        Args:
+            email_confirmation_token: Token de confirmação localizado
+                no repositório.
+            now: Data e hora utilizada como referência para validação.
+
+        Returns:
+            Token de confirmação de e-mail validado.
+
+        Raises:
+            UserInvalidEmailConfirmationTokenError: Caso o token não exista,
+                esteja expirado, já tenha sido utilizado ou tenha sido
+                revogado.
+        """
+
+        if email_confirmation_token is None:
+            raise UserInvalidEmailConfirmationTokenError(
+                'Email confirmation token is invalid.'
+            )
+
+        if email_confirmation_token.used_at is not None:
+            raise UserInvalidEmailConfirmationTokenError(
+                'Email confirmation token has already been used.'
+            )
+
+        if email_confirmation_token.revoked_at is not None:
+            raise UserInvalidEmailConfirmationTokenError(
+                'Email confirmation token has been revoked.'
+            )
+
+        if email_confirmation_token.expires_at <= now:
+            raise UserInvalidEmailConfirmationTokenError(
+                'Email confirmation token has expired.'
+            )
+
+        return email_confirmation_token
 
 
 def get_user_service(

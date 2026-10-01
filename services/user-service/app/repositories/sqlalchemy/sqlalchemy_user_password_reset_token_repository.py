@@ -1,5 +1,5 @@
 #
-# repositories/sqlalchemy/sqlalchemy_password_reset_token_repository.py
+# repositories/sqlalchemy/sqlalchemy_user_password_reset_token_repository.py
 #
 
 from datetime import datetime
@@ -8,15 +8,15 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.password_reset_token import PasswordResetToken
+from app.models.user_password_reset_token import UserPasswordResetToken
 
-from app.repositories.orm.password_reset_token_orm import PasswordResetTokenORM
-from app.repositories.password_reset_token_repository import PasswordResetTokenRepository
+from app.repositories.orm.user_password_reset_token_orm import UserPasswordResetTokenORM
+from app.repositories.user_password_reset_token_repository import UserPasswordResetTokenRepository
 
 from app.utils.utils import bin_to_uuid, uuid_to_bin
 
 
-class SqlAlchemyPasswordResetTokenRepository(PasswordResetTokenRepository):
+class SqlAlchemyUserPasswordResetTokenRepository(UserPasswordResetTokenRepository):
     """
     Implementação SQLAlchemy do repositório de tokens utilizados
     no processo de redefinição de senha.
@@ -43,7 +43,7 @@ class SqlAlchemyPasswordResetTokenRepository(PasswordResetTokenRepository):
 
         self.session = session
 
-    def create(self, token: PasswordResetToken) -> PasswordResetToken:
+    def create(self, token: UserPasswordResetToken) -> UserPasswordResetToken:
         """
         Persiste um novo token de redefinição de senha.
 
@@ -59,7 +59,7 @@ class SqlAlchemyPasswordResetTokenRepository(PasswordResetTokenRepository):
 
         # Converte o modelo da aplicação para o modelo utilizado
         # pelo SQLAlchemy.
-        orm_token = PasswordResetTokenORM(
+        orm_token = UserPasswordResetTokenORM(
             user_id=uuid_to_bin(token.user_id),
             token_hash=token.token_hash,
             created_at=token.created_at,
@@ -81,7 +81,7 @@ class SqlAlchemyPasswordResetTokenRepository(PasswordResetTokenRepository):
 
         return self._to_model(orm_token)
 
-    def get_by_hash(self, token_hash: str) -> PasswordResetToken | None:
+    def get_by_hash(self, token_hash: str) -> UserPasswordResetToken | None:
         """
         Retorna um token de redefinição de senha a partir de seu hash.
 
@@ -96,8 +96,8 @@ class SqlAlchemyPasswordResetTokenRepository(PasswordResetTokenRepository):
         """
 
         orm_token = self.session.scalar(
-            select(PasswordResetTokenORM).where(
-                PasswordResetTokenORM.token_hash == token_hash
+            select(UserPasswordResetTokenORM).where(
+                UserPasswordResetTokenORM.token_hash == token_hash
             )
         )
 
@@ -106,7 +106,7 @@ class SqlAlchemyPasswordResetTokenRepository(PasswordResetTokenRepository):
 
         return self._to_model(orm_token)
 
-    def get_active_by_user_id(self, user_id: UUID) -> PasswordResetToken | None:
+    def get_active_by_user_id(self, user_id: UUID) -> UserPasswordResetToken | None:
         """
         Retorna o token ativo de redefinição de senha associado
         a um usuário.
@@ -127,15 +127,15 @@ class SqlAlchemyPasswordResetTokenRepository(PasswordResetTokenRepository):
         now = datetime.now().astimezone()
 
         orm_token = self.session.scalar(
-            select(PasswordResetTokenORM)
+            select(UserPasswordResetTokenORM)
             .where(
-                PasswordResetTokenORM.user_id == uuid_to_bin(user_id),
-                PasswordResetTokenORM.used_at.is_(None),
-                PasswordResetTokenORM.revoked_at.is_(None),
-                PasswordResetTokenORM.expires_at > now,
+                UserPasswordResetTokenORM.user_id == uuid_to_bin(user_id),
+                UserPasswordResetTokenORM.used_at.is_(None),
+                UserPasswordResetTokenORM.revoked_at.is_(None),
+                UserPasswordResetTokenORM.expires_at > now,
             )
             .order_by(
-                PasswordResetTokenORM.created_at.desc()
+                UserPasswordResetTokenORM.created_at.desc()
             )
         )
 
@@ -160,7 +160,7 @@ class SqlAlchemyPasswordResetTokenRepository(PasswordResetTokenRepository):
             SQLAlchemyError: Caso ocorra uma falha durante a persistência.
         """
 
-        orm_token = self.session.get(PasswordResetTokenORM, token_id)
+        orm_token = self.session.get(UserPasswordResetTokenORM, token_id)
 
         if orm_token is None:
             raise ValueError('Password reset token not found.')
@@ -186,7 +186,7 @@ class SqlAlchemyPasswordResetTokenRepository(PasswordResetTokenRepository):
             SQLAlchemyError: Caso ocorra uma falha durante a persistência.
         """
 
-        orm_token = self.session.get(PasswordResetTokenORM, token_id)
+        orm_token = self.session.get(UserPasswordResetTokenORM, token_id)
 
         if orm_token is None:
             raise ValueError('Password reset token not found.')
@@ -197,7 +197,7 @@ class SqlAlchemyPasswordResetTokenRepository(PasswordResetTokenRepository):
         self.session.flush()
 
     @staticmethod
-    def _to_model(orm_token: PasswordResetTokenORM) -> PasswordResetToken:
+    def _to_model(orm_token: UserPasswordResetTokenORM) -> UserPasswordResetToken:
         """
         Converte um modelo ORM em um modelo da aplicação.
 
@@ -208,7 +208,7 @@ class SqlAlchemyPasswordResetTokenRepository(PasswordResetTokenRepository):
             Modelo PasswordResetToken correspondente ao registro.
         """
 
-        return PasswordResetToken(
+        return UserPasswordResetToken(
             id=orm_token.id,
             user_id=bin_to_uuid(orm_token.user_id),
             token_hash=orm_token.token_hash,

@@ -1,5 +1,5 @@
 #
-# repositories/orm/email_confirmation_tokens_orm.py
+# repositories/orm/user_email_confirmation_tokens_orm.py
 #
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, BINARY
@@ -8,7 +8,7 @@ from sqlalchemy.orm import relationship
 from app.repositories.orm.base import Base
 
 
-class EmailConfirmationTokenORM(Base):
+class UserEmailConfirmationTokenORM(Base):
     """
     Modelo ORM utilizado pelo SQLAlchemy para representar a tabela
     email_confirmation_tokens.

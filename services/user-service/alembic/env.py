@@ -18,10 +18,10 @@ from app.repositories.orm.base import Base
 #
 
 from app.repositories.orm.user_orm import UserORM
-from app.repositories.orm.email_confirmation_token_orm import EmailConfirmationTokenORM
-from app.repositories.orm.password_reset_token_orm import PasswordResetTokenORM
-from app.repositories.orm.refresh_token_orm import RefreshTokenORM
-from app.repositories.orm.password_history_orm import PasswordHistoryORM
+from app.repositories.orm.user_email_confirmation_token_orm import UserEmailConfirmationTokenORM
+from app.repositories.orm.user_password_reset_token_orm import UserPasswordResetTokenORM
+from app.repositories.orm.user_refresh_token_orm import UserRefreshTokenORM
+from app.repositories.orm.user_password_history_orm import UserPasswordHistoryORM
 
 config = context.config
 

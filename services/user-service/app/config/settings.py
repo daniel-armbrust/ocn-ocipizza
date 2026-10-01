@@ -25,21 +25,31 @@ class Settings(BaseSettings):
     # Mensageria
     messaging_provider: str
 
-    # RabbitMQ
+    ## RabbitMQ
     rabbitmq_host: str | None = None
     rabbitmq_port: int | None = None
     rabbitmq_username: str | None = None
     rabbitmq_password: str | None = None
     rabbitmq_queue_name: str | None = None
 
-    # OCI Queue
+    ## OCI Queue
     oci_queue_id: str | None = None
     oci_queue_messages_endpoint: str | None = None
     oci_region: str | None = None
 
     # JWT
+    jwt_key_provider: str = 'local'
     jwt_issuer: str = 'user-service'
     jwt_audience: str = 'oci-pizza'
+    jwt_access_token_expiration_minutes: int = 15
+   
+    jwt_private_key_path: str = '/run/secrets/jwt_private_key.pem'
+    jwt_public_key_path: str = '/run/secrets/jwt_public_key.pem'
+
+    jwt_private_key_secret_id: str | None = None
+
+    # Refresh token
+    refresh_token_expiration_days: int = 30
 
 
 @lru_cache

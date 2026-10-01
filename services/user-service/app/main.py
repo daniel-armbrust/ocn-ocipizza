@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from app.routes.user_routes import router as user_router
 from app.routes.user_password_routes import router as user_password_router
-# from app.routes.email_routes import router as email_router
+from app.routes.user_authentication_routes import router as user_authentication_router
 # from app.routes.jwks_routes import router as jwks_router
 # from app.routes.login_routes import router as login_router
 
@@ -104,11 +104,8 @@ app.include_router(user_router)
 # Rotas para operações relacionadas as senhas dos usuários.
 app.include_router(user_password_router)
 
-# # Rotas de autenticação e gerenciamento de sessão.
-# app.include_router(login_router)
-
-# # Rotas de confirmação e reenvio de confirmação de e-mail.
-# app.include_router(email_router)
+# Rotas de autenticação e gerenciamento de sessão.
+app.include_router(user_authentication_router)
 
 # # Rota de publicação das chaves públicas para validação de JWT.
 # app.include_router(jwks_router)

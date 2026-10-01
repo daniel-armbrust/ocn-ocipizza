@@ -1,5 +1,5 @@
 #
-# repositories/sqlalchemy/sqlalchemy_email_confirmation_token_repository.py
+# repositories/sqlalchemy/sqlalchemy_user_email_confirmation_token_repository.py
 #
 
 from uuid import UUID
@@ -7,15 +7,15 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.email_confirmation_token import EmailConfirmationToken
-from app.repositories.email_confirmation_token_repository import EmailConfirmationTokenRepository
-from app.repositories.orm.email_confirmation_token_orm import EmailConfirmationTokenORM
+from app.models.user_email_confirmation_token import UserEmailConfirmationToken
+from app.repositories.user_email_confirmation_token_repository import UserEmailConfirmationTokenRepository
+from app.repositories.orm.user_email_confirmation_token_orm import UserEmailConfirmationTokenORM
 
 from app.utils.utils import bin_to_uuid, uuid_to_bin
 
 
-class SqlAlchemyEmailConfirmationTokenRepository(
-    EmailConfirmationTokenRepository
+class SqlAlchemyUserEmailConfirmationTokenRepository(
+    UserEmailConfirmationTokenRepository
 ):
     """
     Implementação do repositório de tokens de confirmação de e-mail
@@ -32,7 +32,7 @@ class SqlAlchemyEmailConfirmationTokenRepository(
 
         self.session = session
 
-    def create(self, token: EmailConfirmationToken) -> EmailConfirmationToken:
+    def create(self, token: UserEmailConfirmationToken) -> UserEmailConfirmationToken:
         """
         Persiste um novo token de confirmação de e-mail.
 
@@ -49,7 +49,7 @@ class SqlAlchemyEmailConfirmationTokenRepository(
             SQLAlchemyError: Caso ocorra uma falha durante a persistência.
         """
 
-        orm_token = EmailConfirmationTokenORM(
+        orm_token = UserEmailConfirmationTokenORM(
             user_id=uuid_to_bin(token.user_id),
             token_hash=token.token_hash,
             created_at=token.created_at,
@@ -71,7 +71,7 @@ class SqlAlchemyEmailConfirmationTokenRepository(
 
         return self._to_model(orm_token)
 
-    def get_by_token_hash(self, token_hash: str) -> EmailConfirmationToken | None:
+    def get_by_token_hash(self, token_hash: str) -> UserEmailConfirmationToken | None:
         """
         Busca um token de confirmação pelo seu hash.
 
@@ -86,9 +86,9 @@ class SqlAlchemyEmailConfirmationTokenRepository(
         """
         
         statement = select(
-            EmailConfirmationTokenORM
+            UserEmailConfirmationTokenORM
         ).where(
-            EmailConfirmationTokenORM.token_hash == token_hash
+            UserEmailConfirmationTokenORM.token_hash == token_hash
         )
 
         orm_token = self.session.scalar(statement)
@@ -98,7 +98,7 @@ class SqlAlchemyEmailConfirmationTokenRepository(
 
         return self._to_model(orm_token)
 
-    def get_active_by_user_id(self, user_id: UUID) -> EmailConfirmationToken | None:
+    def get_active_by_user_id(self, user_id: UUID) -> UserEmailConfirmationToken | None:
         """
         Busca o token ativo de confirmação de um usuário.
 
@@ -116,15 +116,15 @@ class SqlAlchemyEmailConfirmationTokenRepository(
         """
 
         statement = (
-            select(EmailConfirmationTokenORM)
+            select(UserEmailConfirmationTokenORM)
             .where(
-                EmailConfirmationTokenORM.user_id == uuid_to_bin(user_id)
+                UserEmailConfirmationTokenORM.user_id == uuid_to_bin(user_id)
             )
             .where(
-                EmailConfirmationTokenORM.used_at.is_(None)
+                UserEmailConfirmationTokenORM.used_at.is_(None)
             )
             .where(
-                EmailConfirmationTokenORM.revoked_at.is_(None)
+                UserEmailConfirmationTokenORM.revoked_at.is_(None)
             )
         )
 
@@ -135,7 +135,7 @@ class SqlAlchemyEmailConfirmationTokenRepository(
 
         return self._to_model(orm_token)
 
-    def update(self, token: EmailConfirmationToken) -> EmailConfirmationToken:
+    def update(self, token: UserEmailConfirmationToken) -> UserEmailConfirmationToken:
         """
         Atualiza um token de confirmação.
 
@@ -152,7 +152,7 @@ class SqlAlchemyEmailConfirmationTokenRepository(
         """
 
         orm_token = self.session.get(
-            EmailConfirmationTokenORM,
+            UserEmailConfirmationTokenORM,
             token.id
         )
 
@@ -167,7 +167,7 @@ class SqlAlchemyEmailConfirmationTokenRepository(
         return self._to_model(orm_token)
 
     @staticmethod
-    def _to_model(orm_token: EmailConfirmationTokenORM) -> EmailConfirmationToken:
+    def _to_model(orm_token: UserEmailConfirmationTokenORM) -> UserEmailConfirmationToken:
         """
         Converte um modelo ORM em um modelo da aplicação.
 
@@ -178,7 +178,7 @@ class SqlAlchemyEmailConfirmationTokenRepository(
             Modelo de domínio do token.
         """
 
-        return EmailConfirmationToken(
+        return UserEmailConfirmationToken(
             id=orm_token.id,
             user_id=bin_to_uuid(orm_token.user_id),
             token_hash=orm_token.token_hash,

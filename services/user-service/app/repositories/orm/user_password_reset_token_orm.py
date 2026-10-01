@@ -1,5 +1,5 @@
 #
-# repositories/orm/password_reset_tokens_orm.py
+# repositories/orm/user_password_reset_tokens_orm.py
 #
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, BINARY
@@ -8,7 +8,7 @@ from sqlalchemy.orm import relationship
 from app.repositories.orm.base import Base
 
 
-class PasswordResetTokenORM(Base):
+class UserPasswordResetTokenORM(Base):
     """
     Modelo ORM utilizado pelo SQLAlchemy para representar a tabela password_reset_tokens.
     """

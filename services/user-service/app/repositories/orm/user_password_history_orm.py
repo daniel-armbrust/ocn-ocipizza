@@ -1,5 +1,5 @@
 #
-# repositories/orm/password_history_orm.py
+# repositories/orm/user_password_history_orm.py
 #
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, BINARY
@@ -8,7 +8,7 @@ from sqlalchemy.orm import relationship
 from app.repositories.orm.base import Base
 
 
-class PasswordHistoryORM(Base):
+class UserPasswordHistoryORM(Base):
     """
     Modelo ORM utilizado pelo SQLAlchemy para representar a tabela
     password_history.

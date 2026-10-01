@@ -15,19 +15,21 @@ from app.utils.utils import now_utc, normalize_email
 from app.repositories.user_repository import UserRepository
 from app.dependencies.database import get_user_repository
 
-from app.repositories.password_reset_token_repository import PasswordResetTokenRepository
-from app.dependencies.database import get_password_reset_token_repository
+from app.repositories.user_password_reset_token_repository import UserPasswordResetTokenRepository
+from app.dependencies.database import get_user_password_reset_token_repository
 
-from app.repositories.password_history_repository import PasswordHistoryRepository
-from app.dependencies.database import get_password_history_repository
+from app.repositories.user_password_history_repository import UserPasswordHistoryRepository
+from app.dependencies.database import get_user_password_history_repository
 
 from app.repositories.unit_of_work import UnitOfWork
 from app.dependencies.database import get_unit_of_work
 
-from app.services.token_service import TokenService, get_token_service
+from app.services.token_service import TokenService
+from app.dependencies.security import get_token_service
+
 from app.services.user_email_service import UserEmailService, get_user_email_service
 
-from app.models.password_reset_token import PasswordResetToken
+from app.models.user_password_reset_token import UserPasswordResetToken
 
 from app.exceptions.user_exceptions import (
     UserUpdateError,
@@ -61,8 +63,8 @@ class UserPasswordService:
     
     def __init__(self,
                  user_repository: UserRepository,
-                 password_reset_token_repository: PasswordResetTokenRepository,
-                 #password_history_repository: PasswordHistoryRepository,
+                 user_password_reset_token_repository: UserPasswordResetTokenRepository,
+                 #user_password_history_repository: UserPasswordHistoryRepository,
                  token_service: TokenService,
                  user_email_service: UserEmailService,
                  unit_of_work: UnitOfWork
@@ -74,9 +76,9 @@ class UserPasswordService:
         Args:
             user_repository: Repositório utilizado para consultar e atualizar
                 os dados dos usuários.
-            password_reset_token_repository: Repositório utilizado para
+            user_password_reset_token_repository: Repositório utilizado para
                 persistir e consultar tokens de redefinição de senha.
-            password_history_repository: Repositório utilizado para persistir
+            user_password_history_repository: Repositório utilizado para persistir
                 o histórico de senhas dos usuários.
             token_service: Serviço responsável pela geração e criação do hash
                 dos tokens utilizados nos fluxos de recuperação de senha.
@@ -89,8 +91,8 @@ class UserPasswordService:
             None.
         """
         self.user_repository = user_repository
-        self.password_reset_token_repository = password_reset_token_repository
-        #self.password_history_repository = password_history_repository
+        self.user_password_reset_token_repository = user_password_reset_token_repository
+        #self.user_password_history_repository = user_password_history_repository
         self.token_service = token_service
         self.user_email_service = user_email_service
         self.unit_of_work = unit_of_work
@@ -196,8 +198,8 @@ class UserPasswordService:
 
             Raises:
                 UserNotFoundError: Caso o usuário não seja encontrado.
-                InvalidPasswordError: Caso a senha atual informada seja inválida.
-                PasswordMismatchError: Caso a nova senha e sua confirmação
+                UserInvalidPasswordError: Caso a senha atual informada seja inválida.
+                UserPasswordMismatchError: Caso a nova senha e sua confirmação
                     sejam diferentes.
                 UserUpdateError: Caso ocorra uma falha durante a atualização
                     da senha.
@@ -294,7 +296,7 @@ class UserPasswordService:
         now = now_utc()
 
         # Cria o modelo que representa o token de redefinição de senha.
-        password_reset_token = PasswordResetToken(
+        password_reset_token = UserPasswordResetToken(
             id=None,
             user_id=user.id,
             token_hash=token_hash,
@@ -304,7 +306,7 @@ class UserPasswordService:
 
         try:
             # Persiste o token de recuperação dentro da transação atual.
-            self.password_reset_token_repository.create(password_reset_token)
+            self.user_password_reset_token_repository.create(password_reset_token)
 
             # Publica a solicitação para que o notification-service
             # realize o envio do e-mail de recuperação de senha.
@@ -339,7 +341,7 @@ class UserPasswordService:
             None.
 
         Raises:
-            PasswordMismatchError: Caso a nova senha e sua confirmação
+            UserPasswordMismatchError: Caso a nova senha e sua confirmação
                 sejam diferentes.
             UserInvalidPasswordResetTokenError: Caso o token seja inválido,
                 expirado, já utilizado ou revogado.
@@ -364,7 +366,7 @@ class UserPasswordService:
         try:
             # Localiza o registro correspondente ao token informado.
             password_reset_token = (
-                self.password_reset_token_repository.get_by_hash(
+                self.user_password_reset_token_repository.get_by_hash(
                     token_hash
                 )
             )
@@ -407,7 +409,7 @@ class UserPasswordService:
             self.user_repository.update(user)
 
             # Marca o token como utilizado para impedir sua reutilização.
-            self.password_reset_token_repository.mark_as_used(
+            self.user_password_reset_token_repository.mark_as_used(
                 password_reset_token.id,
                 now
             )
@@ -420,7 +422,7 @@ class UserPasswordService:
             ) from ex
 
     def _validate_password_reset_token(self,
-                                       password_reset_token: PasswordResetToken | None,
+                                       password_reset_token: UserPasswordResetToken | None,
                                        now: datetime) -> None:
         """
         Valida se um token de redefinição de senha pode ser utilizado.
@@ -462,11 +464,11 @@ def get_user_password_service(
         user_repository: UserRepository = Depends(
             get_user_repository
         ),
-        password_reset_token_repository: PasswordResetTokenRepository = Depends(
-            get_password_reset_token_repository
+        user_password_reset_token_repository: UserPasswordResetTokenRepository = Depends(
+            get_user_password_reset_token_repository
         ),
-        #password_history_repository: PasswordHistoryRepository = Depends(
-        #    get_password_history_repository
+        #user_password_history_repository: UserPasswordHistoryRepository = Depends(
+        #    get_user_password_history_repository
         #),
         token_service: TokenService = Depends(
             get_token_service
@@ -485,9 +487,9 @@ def get_user_password_service(
     Args:
         user_repository: Repositório utilizado para consulta e atualização
             dos usuários.
-        password_reset_token_repository: Repositório utilizado para
+        user_password_reset_token_repository: Repositório utilizado para
             persistência dos tokens de redefinição de senha.
-        password_history_repository: Repositório utilizado para armazenar
+        user_password_history_repository: Repositório utilizado para armazenar
             o histórico de senhas dos usuários.
         token_service: Serviço responsável pela geração e hash dos tokens.
         user_email_service: Serviço responsável pela comunicação de eventos
@@ -500,8 +502,8 @@ def get_user_password_service(
 
     return UserPasswordService(
         user_repository=user_repository,
-        password_reset_token_repository=password_reset_token_repository,
-        #password_history_repository=password_history_repository,
+        user_password_reset_token_repository=user_password_reset_token_repository,
+        #user_password_history_repository=user_password_history_repository,
         token_service=token_service,
         user_email_service=user_email_service,
         unit_of_work=unit_of_work,

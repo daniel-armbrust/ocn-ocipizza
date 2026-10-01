@@ -81,11 +81,6 @@ services:
       PERSISTENCE_PROVIDER: sqlalchemy
       DATABASE_URL: mysql+pymysql://user_service:user_service@mysql:3306/users
 
-      # Configurações utilizadas na geração e validação 
-      # dos tokens JWT.
-      JWT_ISSUER: user-service
-      JWT_AUDIENCE: oci-pizza-services
-
       # Provider de mensageria utilizado pelo MessagePublisher.
       MESSAGING_PROVIDER: rabbitmq
 
@@ -95,6 +90,23 @@ services:
       RABBITMQ_USERNAME: oci_pizza
       RABBITMQ_PASSWORD: oci_pizza
       RABBITMQ_QUEUE_NAME: notifications
+
+      # Configurações utilizadas na geração e validação 
+      # dos tokens JWT.
+      JWT_KEY_PROVIDER: local
+      JWT_ISSUER: user-service
+      JWT_AUDIENCE: oci-pizza
+      JWT_ACCESS_TOKEN_EXPIRATION_MINUTES: 15
+
+      # Caminhos das chaves dentro do container.
+      JWT_PRIVATE_KEY_PATH: /run/secrets/jwt_private_key.pem
+      JWT_PUBLIC_KEY_PATH: /run/secrets/jwt_public_key.pem
+
+      # Refresh token.
+      REFRESH_TOKEN_EXPIRATION_DAYS: 30
+    volumes:
+      - ./services/user-service/secrets/jwt_private_key.pem:/run/secrets/jwt_private_key.pem:ro
+      - ./services/user-service/secrets/jwt_public_key.pem:/run/secrets/jwt_public_key.pem:ro
     depends_on:
       mysql:
         condition: service_healthy
