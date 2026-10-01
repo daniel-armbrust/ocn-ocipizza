@@ -131,6 +131,11 @@ class UserAuthenticationService:
         if user is None:
             raise UserNotFoundError('User not found.')
 
+        # Usuários que ainda não confirmaram o endereço de e-mail
+        # não podem iniciar uma sessão autenticada.
+        if not user.confirmed:
+            raise UserNotConfirmedError('User email is not confirmed.')
+
         # Valida a senha informada utilizando o serviço responsável
         # pelas operações criptográficas relacionadas às senhas.
         if not self.user_password_service.verify_password(
@@ -138,11 +143,6 @@ class UserAuthenticationService:
             user.password_hash
         ):
             raise UserInvalidPasswordError('Invalid user password.')
-
-        # Usuários que ainda não confirmaram o endereço de e-mail
-        # não podem iniciar uma sessão autenticada.
-        if not user.confirmed:
-            raise UserNotConfirmedError('User email is not confirmed.')
 
         now = now_utc()
 
@@ -190,8 +190,66 @@ class UserAuthenticationService:
             expires_in=expires_in
         )
 
-    def logout(self):
-        pass
+    def logout(self, refresh_token: str) -> None:
+        """
+        Encerra uma sessão através da revogação do refresh token.
+
+        O refresh token recebido é convertido em hash e localizado
+        no repositório. Caso seja válido, ele é marcado como revogado
+        para impedir novas renovações do access token.
+
+        Args:
+            refresh_token: Refresh token associado à sessão que será
+                encerrada.
+
+        Returns:
+            None.
+
+        Raises:
+            UserAuthenticationError: Caso ocorra uma falha durante
+                o processo de encerramento da sessão.
+        """
+
+        # FIXME: Um detalhe importante: esse logout invalida a capacidade 
+        # de renovar a sessão. O access token JWT que já foi emitido ainda 
+        # funcionará até seus 15 minutos expirarem. Esse comportamento é 
+        # uma consequência direta de termos escolhido JWT stateless para 
+        # o access token.
+
+        # Apenas o hash do refresh token é utilizado para realizar
+        # consultas no banco de dados.
+        token_hash = self.token_service.hash_token(refresh_token)
+
+        try:
+            # Localiza o refresh token correspondente ao valor
+            # apresentado pelo cliente.
+            stored_refresh_token = (
+                self.user_refresh_token_repository.get_by_hash(token_hash)
+            )
+
+            # O logout é tratado de forma idempotente.
+            # Caso o token não exista, nenhuma ação adicional
+            # precisa ser realizada.
+            if stored_refresh_token is None:
+                return
+
+            # Um token já revogado também não exige nova alteração.
+            if stored_refresh_token.revoked_at is not None:
+                return
+
+            now = now_utc()
+
+            # Marca o refresh token como revogado para impedir
+            # sua utilização em futuras renovações de sessão.
+            self.user_refresh_token_repository.revoke(
+                stored_refresh_token.id,
+                now
+            )
+
+            self.unit_of_work.commit()
+        except Exception as ex:
+            self.unit_of_work.rollback()
+            raise UserAuthenticationError('Error logging out user.') from ex
 
 
 def get_user_authentication_service(

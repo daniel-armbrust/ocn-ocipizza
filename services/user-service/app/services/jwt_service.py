@@ -5,6 +5,7 @@
 from datetime import timedelta
 from uuid import UUID
 from pathlib import Path
+import json
 
 import jwt
 
@@ -69,11 +70,14 @@ class JwtService:
             em segundos.
         """
 
+        # TODO: Implementar suporte à rotação de chaves JWT.
+        # Cada chave deverá possuir um `kid` próprio, incluído no header do JWT.
+        # O endpoint JWKS deverá publicar as chaves públicas atualmente confiáveis
+        # e remover imediatamente chaves comprometidas em rotações emergenciais.
+
         now = now_utc()
 
-        expires_at = now + timedelta(
-            minutes=self.access_token_expiration_minutes
-        )
+        expires_at = now + timedelta(minutes=self.access_token_expiration_minutes)
 
         # Claims utilizadas para identificar o usuário e controlar
         # a validade e o contexto de utilização do token.
@@ -129,6 +133,37 @@ class JwtService:
             issuer=self.issuer,
             audience=self.audience
         )
+
+    def get_jwks(self) -> dict:
+        """
+        Retorna a chave pública utilizada para validação dos JWTs
+        no formato JSON Web Key Set.
+
+        Returns:
+            Documento JWKS contendo a chave pública utilizada
+            para validação dos access tokens.
+        """
+
+        # Converte a chave pública RSA em uma representação JWK.
+        public_jwk = json.loads(
+            jwt.algorithms.RSAAlgorithm.to_jwk(self.public_key)
+        )
+
+        # Adiciona os metadados utilizados pelos consumidores
+        # para identificar a finalidade e o algoritmo da chave.
+        public_jwk.update(
+            {
+                'kid': 'user-service-key-1',
+                'use': 'sig',
+                'alg': 'RS256'
+            }
+        )
+
+        return {
+            'keys': [
+                public_jwk
+            ]
+        }
 
 
 def get_jwt_service() -> JwtService:
