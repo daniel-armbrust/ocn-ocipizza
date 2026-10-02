@@ -13,21 +13,21 @@ class UserCreateRequest(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    full_name: str = Field(min_length=3)
+    full_name: str = Field(min_length=3, max_length=255)
     email: EmailStr
     whatsapp: str = Field(min_length=11, max_length=11)
-    password: str = Field(min_lenght=8)
+    password: str = Field(min_length=8, max_length=20)
 
 
 class UserResponse(BaseModel):
     """Contrato de saída com dados públicos do usuário."""
 
     id: UUID
-    full_name: str
+    full_name: str = Field(min_length=3, max_length=255)
     email: EmailStr
     confirmed: bool
     is_admin: bool
-    whatsapp: str
+    whatsapp: str = Field(min_length=11, max_length=11)
     created_at: datetime
     updated_at: datetime
 
@@ -80,4 +80,4 @@ class UserConfirmationRequest(BaseModel):
     """
 
     email: EmailStr
-    token: str
+    token: str = Field(min_length=20, max_length=255)

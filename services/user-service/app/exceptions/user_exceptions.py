@@ -69,3 +69,11 @@ class UserEmailConfirmationError(Exception):
     de confirmação do endereço de e-mail do usuário.
     """
     pass
+
+
+class UserQueryError(Exception):
+    """
+    Exceção lançada quando ocorre uma falha durante a consulta
+    dos dados de usuários.
+    """
+    pass

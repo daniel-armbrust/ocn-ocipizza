@@ -3,6 +3,7 @@
 #
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from uuid import UUID
 
 from app.models.user_email_confirmation_token import UserEmailConfirmationToken
@@ -53,14 +54,16 @@ class UserEmailConfirmationTokenRepository(ABC):
         pass
 
     @abstractmethod
-    def update(self, token: UserEmailConfirmationToken) -> UserEmailConfirmationToken:
+    def mark_as_used(self, token_id: int, used_at: datetime) -> bool:
         """
-        Atualiza um token de confirmação de e-mail.
+        Marca atomicamente um token de confirmação como utilizado.
 
         Args:
-            token: Token contendo os dados atualizados.
+            token_id: Identificador interno do token.
+            used_at: Data e hora em que o token foi utilizado.
 
         Returns:
-            Token de confirmação atualizado.
+            True quando o token foi consumido ou False quando ele não está
+            mais disponível para uso.
         """
         pass

@@ -10,12 +10,12 @@ from app.routes.user_routes import router as user_router
 from app.routes.user_password_routes import router as user_password_router
 from app.routes.user_authentication_routes import router as user_authentication_router
 from app.routes.jwks_routes import router as jwks_router
+from app.routes.user_admin_routes import router as user_admin_router
 
 app = FastAPI(
     title='OCI Pizza - User Service API',
     version='1.0.0'
 )
-
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, ex: RequestValidationError) -> JSONResponse:
@@ -108,3 +108,6 @@ app.include_router(user_authentication_router)
 
 # Rota de publicação das chaves públicas para validação de JWT.
 app.include_router(jwks_router)
+
+# Rotas dos usuários administradores.
+app.include_router(user_admin_router)

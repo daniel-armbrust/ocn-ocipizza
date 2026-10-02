@@ -24,12 +24,14 @@ de desenvolvimento:
 
 | Componente | Responsabilidade |
 | --- | --- |
-| MySQL | Armazena usuários, tokens e históricos de senha. |
+| MySQL | Provider de persistência para armazenar usuários, tokens e históricos de senha. |
+| OCI NoSQL | Provider de persistência para armazenar usuários, tokens e históricos de senha. |
 | RabbitMQ | Publica mensagens assíncronas, como solicitações de envio de e-mail. |
 
 O serviço não acessa diretamente o banco de dados de outro microsserviço. No
-Docker Compose, MySQL e RabbitMQ são serviços de infraestrutura independentes e
-devem estar disponíveis antes da inicialização do `user-service`.
+Docker Compose, MySQL, RabbitMQ e OCI NoSQL são serviços de infraestrutura
+independentes. O `user-service` pode utilizar MySQL ou OCI NoSQL como provider
+de persistência e RabbitMQ como provider de mensageria.
 
 ### Dependências Python
 
@@ -44,7 +46,7 @@ As bibliotecas Python são instaladas a partir do arquivo `requirements.txt`:
 | PyMySQL | 1.1.2 | Driver de conexão entre SQLAlchemy e MySQL. |
 | pika | 1.3.2 | Comunicação com o RabbitMQ. |
 | OCI SDK | 2.160.3 | Integração com provedores da Oracle Cloud Infrastructure. |
-| PyJWT | 2.10.1 | Suporte à criação e validação de tokens JWT. |
+| PyJWT com extra `crypto` | `>=2.10,<3` | Suporte à criação, assinatura e validação de tokens JWT. |
 | passlib | 1.7.4 | Suporte a mecanismos de proteção de senhas. |
 | bcrypt | 4.3.0 | Suporte ao algoritmo de hash bcrypt. |
 
@@ -63,14 +65,10 @@ dados, a execução das migrations e a inclusão dos usuários de demonstração
 
 ### Pré-requisitos
 
-Antes de executar o `bootstrap.sh`, suba os serviços necessários usando uma das
-alternativas abaixo:
-
-1. execute `make development-infra` para iniciar toda a infraestrutura do
-   ambiente de desenvolvimento e, em seguida, execute
-   `docker compose up -d user-service` para iniciar o serviço; ou
-2. execute `docker compose up -d mysql rabbitmq user-service` para iniciar
-   somente os componentes necessários ao desenvolvimento do `user-service`.
+Antes de executar o `bootstrap.sh`, inicie somente o MySQL e o RabbitMQ. O
+`user-service` deve ser iniciado depois do bootstrap, pois o script gera as
+chaves JWT, prepara o banco de dados e aplica as migrations utilizadas pelo
+container.
 
 ### Passo a passo
 
@@ -98,33 +96,27 @@ make development-infra
 Esse é o comando padrão do projeto. Ele inicia MySQL, Oracle NoSQL e RabbitMQ e
 aguarda até que a infraestrutura esteja disponível.
 
-Após a conclusão do comando, inicie o `user-service`:
-
-```bash
-docker compose up -d user-service
-```
-
 Para iniciar somente os componentes necessários ao desenvolvimento do
 `user-service`, execute:
 
 ```bash
-docker compose up -d mysql rabbitmq user-service
+docker compose up -d mysql nosql rabbitmq
 ```
 
 O argumento `-d` executa o container em segundo plano e libera o terminal para
-os próximos comandos. Esse comando inicia o banco de dados MySQL, o broker de
-mensagens RabbitMQ e o próprio `user-service`.
+os próximos comandos.
 
 #### 3. Verifique o estado dos serviços
 
 Execute:
 
 ```bash
-docker compose ps mysql rabbitmq user-service
+docker compose ps mysql nosql rabbitmq
 ```
 
-Na coluna de estado, aguarde até o MySQL e o RabbitMQ aparecerem como
-`healthy`. O `user-service` deve aparecer como `Up`. O bootstrap também
+Na coluna de estado, confirme que o MySQL, o OCI NoSQL e o RabbitMQ estão em
+execução e aguarde até que o MySQL e o RabbitMQ apareçam como `healthy`. O OCI
+NoSQL não possui health check configurado no Docker Compose. O bootstrap também
 espera o MySQL aceitar conexões, mas essa verificação ajuda a identificar
 antecipadamente problemas na inicialização dos containers.
 
@@ -177,6 +169,14 @@ Se uma mensagem iniciada por `Erro:` for exibida, corrija o pré-requisito
 indicado e execute novamente o Passo 5. O script foi preparado para poder ser
 executado mais de uma vez sem duplicar os usuários de demonstração.
 
+Depois da conclusão do bootstrap, volte à raiz do monorepo e inicie o serviço:
+
+```bash
+cd ../..
+docker compose up -d user-service
+docker compose ps user-service
+```
+
 ### O que o bootstrap executa
 
 Durante a execução, o `bootstrap.sh`:
@@ -194,7 +194,12 @@ Durante a execução, o `bootstrap.sh`:
 9. Inicializa e configura o Alembic quando sua estrutura ainda não existe
 10. Gera a migration inicial caso `alembic/versions` não contenha migrations
 11. Executa `alembic upgrade head` para atualizar o schema do banco
-12. Cria os usuários de demonstração que ainda não estiverem cadastrados
+12. Cria os usuários de demonstração e o administrador local que ainda não
+    estiverem cadastrados
+
+<!-- TODO: Incluir no bootstrap a preparação dos recursos de persistência do
+user-service no OCI NoSQL e a carga dos usuários de demonstração quando esse
+provider estiver selecionado. -->
 
 ### Configuração local criada
 
@@ -205,6 +210,9 @@ Quando o `.env` não existe, o script o cria com:
 - Mensageria via RabbitMQ em `127.0.0.1:5672`
 - Fila de notificações chamada `notifications`
 - Emissor JWT `user-service` e audiência `oci-pizza`
+
+<!-- TODO: Adicionar ao .env as configurações locais necessárias para selecionar
+e conectar o provider de persistência OCI NoSQL. -->
 
 Se o `.env` já existir, seu conteúdo é preservado sem alterações. Portanto,
 confirme se a `DATABASE_URL` existente aponta para o MySQL esperado antes de
@@ -263,18 +271,23 @@ alembic upgrade head
 
 Revise sempre a migration gerada automaticamente antes de aplicá-la.
 
+<!-- TODO: Documentar e automatizar o versionamento e a evolução das tabelas e
+dos índices utilizados pelo user-service, considerando que o Alembic se aplica
+somente ao provider SQLAlchemy. -->
+
 ## Usuários de demonstração
 
 O bootstrap inclui os seguintes usuários para demonstrações e testes locais:
 
-| Nome | E-mail | E-mail confirmado |
-| --- | --- | --- |
-| Maria Oliveira | `maria.oliveira@example.com` | Sim |
-| Joao Silva | `joao.silva@example.com` | Não |
-| Rita de Cássia | `rita.cassia@example.com` | Sim |
+| Nome | E-mail | E-mail confirmado | Administrador | Senha local |
+| --- | --- | --- | --- | --- |
+| Administrador | `admin@ocipizza.com.br` | Sim | Sim | `AdminPassword123!` |
+| Maria Oliveira | `maria.oliveira@example.com` | Sim | Não | `DemoPassword123!` |
+| Joao Silva | `joao.silva@example.com` | Não | Não | `DemoPassword123!` |
+| Rita de Cássia | `rita.cassia@example.com` | Sim | Não | `DemoPassword123!` |
 
-Todos utilizam a senha local `DemoPassword123!`. As senhas são persistidas como
-hash, usando o mesmo serviço de senha da aplicação.
+As senhas são persistidas como hash, usando o mesmo serviço de senha da
+aplicação.
 
 O processo é idempotente: antes de inserir cada registro, o script procura um
 usuário com o mesmo e-mail. Assim, novas execuções não duplicam os usuários de
@@ -292,13 +305,36 @@ docker compose ps user-service
 
 CRUD é o conjunto das quatro operações básicas realizadas sobre usuários:
 criação (Create), consulta (Read), atualização (Update) e exclusão (Delete).
+As rotas públicas e do usuário autenticado implementam criação, consulta e
+atualização do próprio perfil. Não existe uma rota para o usuário excluir a
+própria conta.
 
-| Operação | Método HTTP | Endpoint | Documentação |
+| Operação | Método HTTP | Endpoint | Acesso |
 | --- | --- | --- | --- |
-| CREATE | `POST` | `/users` | Disponível nesta seção. |
-| READ | `GET` | `/users/me` | Disponível nesta seção. |
-| UPDATE | `PUT` | `/users/me` | Disponível nesta seção. |
-| DELETE | A definir | A definir | Será preenchida posteriormente. |
+| CREATE | `POST` | `/users` | Público. |
+| READ | `GET` | `/users/me` | Usuário autenticado. |
+| UPDATE | `PUT` | `/users/me` | Usuário autenticado. |
+| DELETE | — | — | Não disponível para o próprio usuário. |
+
+Administradores possuem um conjunto completo de operações CRUD sob o prefixo
+`/admin/users`:
+
+| Operação | Método HTTP | Endpoint |
+| --- | --- | --- |
+| CREATE | `POST` | `/admin/users` |
+| READ | `GET` | `/admin/users` |
+| READ | `GET` | `/admin/users/{user_id}` |
+| UPDATE | `PUT` | `/admin/users/{user_id}` |
+| DELETE | `DELETE` | `/admin/users/{user_id}` |
+
+As rotas administrativas também permitem definir a senha com
+`PUT /admin/users/{user_id}/password`, confirmar o cadastro com
+`POST /admin/users/{user_id}/confirm` e revogar as sessões com
+`POST /admin/users/{user_id}/revoke-sessions`. Os exemplos e os detalhes dessas
+operações estão na seção [Operações administrativas](#operações-administrativas).
+
+Existe ainda a rota administrativa `GET /users`, que lista usuários e exige um
+access token com a claim `is_admin` igual a `true`.
 
 #### CREATE — Criar um usuário
 
@@ -311,7 +347,7 @@ curl --request POST \
   --data '{
     "full_name": "Ana Laura",
     "email": "ana.laura@example.com",
-    "whatsapp": "+5511966666666",
+    "whatsapp": "11966666666",
     "password": "LocalPassword123!"
   }'
 ```
@@ -322,7 +358,7 @@ Os campos enviados são:
 | --- | --- |
 | `full_name` | Nome completo do novo usuário. |
 | `email` | E-mail válido e ainda não cadastrado. |
-| `whatsapp` | Número do WhatsApp com código do país e DDD. |
+| `whatsapp` | Número do WhatsApp com DDD, contendo exatamente 11 caracteres. |
 | `password` | Senha do usuário, enviada apenas na criação. |
 
 Quando o cadastro for concluído, a API responderá com o status HTTP `201`
@@ -374,11 +410,53 @@ aceita somente o campo `whatsapp`, que deve conter exatamente 11 caracteres.
 O UUID do usuário não deve ser enviado na URL nem no corpo da requisição, pois
 é obtido por meio da identidade autenticada.
 
+| Campo | Descrição |
+| --- | --- |
+| `whatsapp` | Novo número de WhatsApp do usuário, contendo exatamente 11 caracteres. |
+
 Quando a atualização for concluída, a API responderá com o status HTTP `200 OK`
 e os dados públicos atualizados do usuário no padrão JSend. Se o usuário não
-for encontrado, a resposta terá o status HTTP `404 Not Found`. Se não for
-possível concluir a atualização, a resposta terá o status HTTP
+for encontrado, a resposta terá o status HTTP `404 Not Found`. Um WhatsApp já
+cadastrado resulta em `409 Conflict`. Outras falhas de atualização resultam em
 `500 Internal Server Error`.
+
+#### READ — Listar usuários pela rota `/users`
+
+A listagem de usuários é uma operação administrativa. O access token enviado
+na requisição deve possuir a claim `is_admin` com o valor `true`.
+
+Para listar os usuários utilizando todos os filtros disponíveis, execute:
+
+```bash
+curl --request GET \
+  --url 'http://localhost:8002/users?email=example.com&confirmed=true&is_admin=false&limit=50&offset=0' \
+  --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.xxxxx.yyyyy' \
+  --header 'Accept: application/json'
+```
+
+Substitua o token apresentado no exemplo pelo access token de um usuário
+administrador. Todos os parâmetros de consulta são opcionais:
+
+| Campo | Descrição |
+| --- | --- |
+| `email` | String opcional que filtra por parte do endereço de e-mail, sem diferenciar letras maiúsculas e minúsculas. |
+| `confirmed` | Booleano opcional que filtra pelo estado de confirmação do e-mail. |
+| `is_admin` | Booleano opcional que filtra pela presença de privilégios administrativos. |
+| `limit` | Inteiro opcional que define a quantidade máxima de usuários retornados; o padrão é `50`. |
+| `offset` | Inteiro opcional que define a quantidade de registros ignorados; o padrão é `0`. |
+
+Os filtros podem ser omitidos. Para listar a primeira página com os valores
+padrão de paginação, utilize somente `GET /users`. Os usuários são ordenados
+do cadastro mais recente para o mais antigo.
+
+Quando a consulta for concluída, a API responderá com o status HTTP `200 OK` e
+uma lista no campo `data.users` do padrão JSend. Quando nenhum usuário atender
+aos filtros, esse campo será uma lista vazia.
+
+A API responderá com `401 Unauthorized` quando o access token estiver ausente,
+inválido ou expirado; com `403 Forbidden` quando o usuário autenticado não
+possuir privilégios administrativos; e com `500 Internal Server Error` quando
+não for possível consultar os usuários.
 
 ### Autenticação do usuário
 
@@ -432,6 +510,12 @@ O `refresh_token` permite solicitar futuramente um novo access token sem
 informar novamente o e-mail e a senha. Ele não deve ser enviado no cabeçalho
 das requisições autenticadas nem exposto em logs.
 
+> Estado atual: as rotas `/auth/refresh` e `/auth/logout` ainda não estão
+> implementadas. Além disso, o schema de login aceita senhas com exatamente 11
+> caracteres, enquanto as contas criadas pelo bootstrap utilizam senhas mais
+> longas. Portanto, o exemplo de login com uma conta de demonstração somente
+> funcionará após a correção dessa validação no código.
+
 A API responderá com `401 Unauthorized` quando o e-mail ou a senha forem
 inválidos, com `403 Forbidden` quando o e-mail do usuário ainda não estiver
 confirmado e com `500 Internal Server Error` quando não for possível concluir
@@ -463,14 +547,21 @@ Os campos enviados são:
 | `email` | Endereço de e-mail associado ao cadastro do usuário. |
 | `token` | Token temporário recebido no e-mail de confirmação do cadastro. |
 
-O token é válido por 24 horas e pertence ao usuário associado ao e-mail
-informado. A API rejeita tokens inexistentes, expirados, utilizados
-anteriormente, revogados ou pertencentes a outro usuário. O token original não
-é armazenado no banco de dados; somente seu hash é persistido.
+O token é válido por 24 horas, pertence ao usuário associado ao e-mail
+informado e pode ser utilizado somente uma vez. A API rejeita tokens
+inexistentes, expirados, utilizados anteriormente, revogados ou pertencentes a
+outro usuário. O token original não é armazenado no banco de dados; somente seu
+hash é persistido.
 
 Quando a confirmação for concluída, o campo `confirmed` do usuário será alterado
 para `True`, o token será marcado como utilizado e a API responderá com o status
 HTTP `200 OK` e a mensagem `User confirmed successfully.` no padrão JSend.
+Caso o cadastro já tenha sido confirmado anteriormente, o usuário não será
+alterado novamente, mas o token válido apresentado será consumido.
+
+O consumo do token é atômico. Se duas requisições simultâneas tentarem utilizar
+o mesmo token, somente uma delas concluirá a confirmação; a outra receberá
+`400 Bad Request`, pois o token não estará mais disponível.
 
 A API responderá com `400 Bad Request` quando o usuário não for encontrado ou
 quando o token não puder ser validado. Falhas internas durante a consulta ou a
@@ -515,9 +606,9 @@ ao hash armazenado e se a nova senha coincide com sua confirmação. A nova senh
 Quando a troca for concluída, a API responderá com o status HTTP `200 OK` e a
 mensagem `Password updated successfully.` no padrão JSend. A API responderá com
 `400 Bad Request` quando a senha atual for inválida ou a confirmação for
-diferente da nova senha, com `403 Forbidden` quando o e-mail do usuário não
-estiver confirmado, com `404 Not Found` quando o usuário não for encontrado e
-com `500 Internal Server Error` quando não for possível concluir a alteração.
+diferente da nova senha ou quando o usuário não for encontrado, com
+`403 Forbidden` quando o e-mail do usuário não estiver confirmado e com
+`500 Internal Server Error` quando não for possível concluir a alteração.
 
 ### Redefinição de senha
 
@@ -603,6 +694,222 @@ marcado como utilizado, impedindo sua reutilização.
 Quando a redefinição for concluída, a API responderá com o status HTTP `200 OK`
 e a mensagem `Password reset successfully.` no padrão JSend. A API responderá
 com `400 Bad Request` quando a confirmação da senha for diferente da nova senha
-ou quando o token for inválido, expirado, utilizado ou revogado; com
-`404 Not Found` quando o usuário associado ao token não for encontrado; e com
-`500 Internal Server Error` quando não for possível concluir a redefinição.
+ou quando o token for inválido, expirado, utilizado ou revogado. O mesmo status
+`400 Bad Request` é retornado quando o usuário associado ao token não é
+encontrado. Falhas internas resultam em `500 Internal Server Error`.
+
+### Endpoints operacionais
+
+O serviço expõe dois endpoints públicos utilizados para verificação de saúde
+e validação dos access tokens:
+
+| Finalidade | Método HTTP | Endpoint |
+| --- | --- | --- |
+| Verificar se o serviço está ativo | `GET` | `/health` |
+| Consultar as chaves públicas JWT | `GET` | `/.well-known/jwks.json` |
+
+Para verificar o serviço localmente, execute:
+
+```bash
+curl --request GET \
+  --url http://localhost:8002/health \
+  --header 'Accept: application/json'
+```
+
+O endpoint JWKS retorna o conjunto de chaves públicas utilizado pelos demais
+serviços para validar a assinatura dos access tokens emitidos pelo
+`user-service`.
+
+### Operações administrativas
+
+As operações administrativas permitem gerenciar os usuários da aplicação.
+Todas exigem um access token JWT cuja claim `is_admin` possua o valor `true`.
+
+| Operação | Método HTTP | Endpoint |
+| --- | --- | --- |
+| Criar usuário | `POST` | `/admin/users` |
+| Listar usuários | `GET` | `/admin/users` |
+| Consultar usuário | `GET` | `/admin/users/{user_id}` |
+| Atualizar usuário | `PUT` | `/admin/users/{user_id}` |
+| Definir senha | `PUT` | `/admin/users/{user_id}/password` |
+| Confirmar cadastro | `POST` | `/admin/users/{user_id}/confirm` |
+| Revogar sessões | `POST` | `/admin/users/{user_id}/revoke-sessions` |
+| Excluir usuário | `DELETE` | `/admin/users/{user_id}` |
+
+Substitua `ADMIN_ACCESS_TOKEN` pelo access token de um administrador e
+`USER_ID` pelo UUID do usuário correspondente nos exemplos abaixo.
+
+#### Criar um usuário
+
+```bash
+curl --request POST \
+  --url http://localhost:8002/admin/users \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "full_name": "Juliana Martins",
+    "email": "juliana.martins@example.com",
+    "whatsapp": "11955555555",
+    "password": "LocalPassword123!",
+    "confirmed": true,
+    "is_admin": false
+  }'
+```
+
+| Campo | Descrição |
+| --- | --- |
+| `full_name` | Nome completo do usuário. |
+| `email` | Endereço de e-mail único do usuário. |
+| `whatsapp` | Número de WhatsApp único do usuário. |
+| `password` | Senha inicial do usuário. |
+| `confirmed` | Indica se o e-mail deve ser criado como confirmado; o padrão é `false`. |
+| `is_admin` | Indica se o usuário possuirá privilégios administrativos; o padrão é `false`. |
+
+Quando `confirmed` for `false`, o serviço inicia o fluxo de envio do e-mail de
+confirmação. A criação retorna `201 Created`; e-mail ou WhatsApp duplicado
+resulta em `409 Conflict`.
+
+#### Listar usuários
+
+```bash
+curl --request GET \
+  --url 'http://localhost:8002/admin/users?email=example.com&confirmed=true&is_admin=false&limit=50&offset=0' \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Accept: application/json'
+```
+
+Os filtros `email`, `confirmed` e `is_admin` são opcionais. `limit` possui o
+valor padrão `50` e `offset`, o valor padrão `0`. A resposta `200 OK` retorna
+os registros no campo `data.users`, ordenados do mais recente para o mais
+antigo.
+
+| Campo | Descrição |
+| --- | --- |
+| `email` | Filtra por parte do endereço de e-mail, sem diferenciar letras maiúsculas e minúsculas. |
+| `confirmed` | Filtra pelo estado de confirmação do e-mail; aceita `true` ou `false`. |
+| `is_admin` | Filtra pela presença de privilégios administrativos; aceita `true` ou `false`. |
+| `limit` | Define a quantidade máxima de usuários retornados; o padrão é `50`. |
+| `offset` | Define a quantidade de registros ignorados antes do retorno; o padrão é `0`. |
+
+#### Consultar um usuário
+
+```bash
+curl --request GET \
+  --url http://localhost:8002/admin/users/USER_ID \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Accept: application/json'
+```
+
+A resposta `200 OK` retorna o usuário no campo `data.user`. Um UUID sem usuário
+correspondente resulta em `404 Not Found`.
+
+| Campo | Descrição |
+| --- | --- |
+| `user_id` | UUID do usuário que será consultado, informado no caminho da requisição. |
+
+#### Atualizar um usuário
+
+```bash
+curl --request PUT \
+  --url http://localhost:8002/admin/users/USER_ID \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "full_name": "Juliana Martins",
+    "email": "juliana.martins@example.com",
+    "whatsapp": "11944444444",
+    "confirmed": true,
+    "is_admin": false
+  }'
+```
+
+Todos os campos do payload são obrigatórios. A operação permite alterar nome,
+e-mail, WhatsApp, estado de confirmação e privilégio administrativo. A resposta
+de sucesso é `200 OK`; usuário inexistente resulta em `404 Not Found` e e-mail
+ou WhatsApp duplicado resulta em `409 Conflict`.
+
+| Campo | Descrição |
+| --- | --- |
+| `user_id` | UUID do usuário que será atualizado, informado no caminho da requisição. |
+| `full_name` | Nome completo do usuário. |
+| `email` | Endereço de e-mail único do usuário. |
+| `whatsapp` | Número de WhatsApp único do usuário. |
+| `confirmed` | Indica se o endereço de e-mail do usuário está confirmado. |
+| `is_admin` | Indica se o usuário possui privilégios administrativos. |
+
+#### Definir a senha de um usuário
+
+```bash
+curl --request PUT \
+  --url http://localhost:8002/admin/users/USER_ID/password \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "new_password": "NewPassword123!",
+    "confirm_new_password": "NewPassword123!"
+  }'
+```
+
+A operação não exige a senha atual do usuário. A nova senha e sua confirmação
+devem ser iguais e possuir entre 8 e 20 caracteres. O sucesso retorna `200 OK`
+e a mensagem `User password updated successfully.`. Confirmação divergente
+resulta em `400 Bad Request` e usuário inexistente, em `404 Not Found`.
+
+#### Confirmar o cadastro de um usuário
+
+```bash
+curl --request POST \
+  --url http://localhost:8002/admin/users/USER_ID/confirm \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Accept: application/json'
+```
+
+Essa operação confirma o cadastro sem exigir o token enviado por e-mail e
+retorna os dados atualizados em `data.user`. Usuário inexistente resulta em
+`404 Not Found`.
+
+| Campo | Descrição |
+| --- | --- |
+| `user_id` | UUID do usuário cujo cadastro será confirmado, informado no caminho da requisição. |
+
+#### Revogar as sessões de um usuário
+
+```bash
+curl --request POST \
+  --url http://localhost:8002/admin/users/USER_ID/revoke-sessions \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Accept: application/json'
+```
+
+A operação revoga todos os refresh tokens ativos do usuário, impedindo que
+essas sessões renovem seus access tokens. O sucesso retorna `200 OK` e a mensagem
+`User sessions revoked successfully.`.
+
+| Campo | Descrição |
+| --- | --- |
+| `user_id` | UUID do usuário cujas sessões serão revogadas, informado no caminho da requisição. |
+
+#### Excluir um usuário
+
+```bash
+curl --request DELETE \
+  --url http://localhost:8002/admin/users/USER_ID \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Accept: application/json'
+```
+
+A exclusão remove o usuário e seus registros relacionados configurados com
+`ON DELETE CASCADE`. O sucesso retorna `200 OK` e a mensagem
+`User deleted successfully.`; usuário inexistente resulta em `404 Not Found`.
+
+| Campo | Descrição |
+| --- | --- |
+| `user_id` | UUID do usuário que será excluído, informado no caminho da requisição. |
+
+Para todas as operações administrativas, um access token ausente, inválido ou
+expirado resulta em `401 Unauthorized`, enquanto um usuário sem privilégios
+administrativos recebe `403 Forbidden`. Falhas internas de persistência ou
+consulta resultam em `500 Internal Server Error`.

@@ -52,8 +52,7 @@ class UserEmailService:
     def __init__(self,
                  message_publisher: MessagePublisher,
                  user_email_confirmation_token_repository: UserEmailConfirmationTokenRepository,
-                 token_service: TokenService
-                 ) -> None:
+                 token_service: TokenService) -> None:
         """
         Inicializa o serviço de e-mail do usuário. 
         
@@ -115,7 +114,7 @@ class UserEmailService:
         # Persiste o hash do token dentro da transação atual.
         # O UserService é o responsável pelo controle da transação através
         # do UnitOfWork.
-        self.email_confirmation_token_repository.create(confirmation_token)
+        self.user_email_confirmation_token_repository.create(confirmation_token)
 
         # TODO: documentar USER_CONFIRMATION
         payload = {

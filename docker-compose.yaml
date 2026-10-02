@@ -133,7 +133,7 @@ services:
   # aplicação.
   object-storage:
     container_name: oci-pizza-object-storage
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    image: ghcr.io/coollabsio/minio@sha256:69b55a1c1c5dc285ce04db96689f5b2102317fc77a50680a1874ca6efd1c87f9
     command:
       - server
       - /data
@@ -206,46 +206,49 @@ services:
   # Serviço responsável por carregar dados iniciais no 
   # ambiente de desenvolvimento, permitindo que a aplicação 
   # seja iniciada com informações básicas para testes.
-  # seed:
-  #   container_name: oci-pizza-seed
-  #   image: python:3.11.10-slim-bookworm
-  #   working_dir: /app
-  #   environment:
-  #     PYTHONDONTWRITEBYTECODE: 1
-  #     ENVIRONMENT: development
-  #     OCI_REGION: sa-saopaulo-1
-  #     OCI_NOSQL_ENDPOINT: http://nosql:8080
-  #     OCI_NOSQL_TABLE: pizzas
-  #     OCI_NOSQL_COMPARTMENT_ID: ""
-  #     OBJECT_STORAGE_ENDPOINT: http://object-storage:9000
-  #     OBJECT_STORAGE_PIZZA_BUCKET: pizza-images
-  #     OBJECT_STORAGE_ACCESS_KEY: minioadmin
-  #     OBJECT_STORAGE_SECRET_KEY: minioadmin
-  #     MYSQL_HOST: mysql
-  #     MYSQL_PORT: 3306
-  #     MYSQL_ROOT_USER: root
-  #     MYSQL_ROOT_PASSWORD: root
-  #     MYSQL_DATABASE: users
-  #     MYSQL_USER: user_service
-  #     MYSQL_PASSWORD: user_service
-  #   depends_on:
-  #     nosql:
-  #       condition: service_started
-  #     object-storage:
-  #       condition: service_started
-  #     mysql:
-  #       condition: service_healthy
-  #   networks:
-  #     - oci-pizza-network
-  #   volumes:
-  #     - ./seed:/app/seed:ro
-  #   command:
-  #     - sh
-  #     - -c
-  #     - |
-  #       pip install --no-cache-dir -r seed/requirements.txt
-  #       python seed/wait-for-infrastructure.py
-  #       python seed/run-seed.py
+  seed:
+    container_name: oci-pizza-seed
+    image: python:3.11.10-slim-bookworm
+    working_dir: /app
+    environment:
+      PYTHONDONTWRITEBYTECODE: 1
+      ENVIRONMENT: development
+      OCI_REGION: sa-saopaulo-1
+      OCI_NOSQL_ENDPOINT: http://nosql:8080
+      OCI_NOSQL_TABLE: pizzas
+      OCI_NOSQL_COMPARTMENT_ID: ""
+      
+      OBJECT_STORAGE_ENDPOINT: http://object-storage:9000
+      OBJECT_STORAGE_PIZZA_BUCKET: pizza-images
+      OBJECT_STORAGE_ACCESS_KEY: minioadmin
+      OBJECT_STORAGE_SECRET_KEY: minioadmin
+      
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_ROOT_USER: root
+      MYSQL_ROOT_PASSWORD: root
+      
+      MYSQL_DATABASE: users
+      MYSQL_USER: user_service
+      MYSQL_PASSWORD: user_service
+    depends_on:
+      nosql:
+        condition: service_started
+      object-storage:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - oci-pizza-network
+    volumes:
+      - ./seed:/app/seed:ro
+    command:
+      - sh
+      - -c
+      - |
+        pip install --no-cache-dir -r seed/requirements.txt
+        python seed/wait-for-infrastructure.py
+        python seed/run-seed.py
 
 # Rede utilizada para permitir a comunicação entre os 
 # containers que compõem a aplicação OCI-PIZZA.

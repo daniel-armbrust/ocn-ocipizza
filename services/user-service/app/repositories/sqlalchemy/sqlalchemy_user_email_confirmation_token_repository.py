@@ -2,9 +2,10 @@
 # repositories/sqlalchemy/sqlalchemy_user_email_confirmation_token_repository.py
 #
 
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.models.user_email_confirmation_token import UserEmailConfirmationToken
@@ -135,36 +136,32 @@ class SqlAlchemyUserEmailConfirmationTokenRepository(
 
         return self._to_model(orm_token)
 
-    def update(self, token: UserEmailConfirmationToken) -> UserEmailConfirmationToken:
+    def mark_as_used(self, token_id: int, used_at: datetime) -> bool:
         """
-        Atualiza um token de confirmação.
+        Marca atomicamente um token de confirmação como utilizado.
 
         Args:
-            token: Token contendo os dados atualizados.
+            token_id: Identificador interno do token.
+            used_at: Data e hora em que o token foi utilizado.
 
         Returns:
-            Token atualizado.
-        
-        Raises:
-            ValueError: Caso o token informado não seja encontrado.
-            
-            SQLAlchemyError: Caso ocorra uma falha durante a atualização.
+            True quando o token foi consumido ou False quando ele já foi
+            utilizado, revogado, expirou ou não existe.
         """
 
-        orm_token = self.session.get(
-            UserEmailConfirmationTokenORM,
-            token.id
+        statement = (
+            update(UserEmailConfirmationTokenORM)
+                .where(UserEmailConfirmationTokenORM.id == token_id)
+                .where(UserEmailConfirmationTokenORM.used_at.is_(None))
+                .where(UserEmailConfirmationTokenORM.revoked_at.is_(None))
+                .where(UserEmailConfirmationTokenORM.expires_at > used_at)
+                .values(used_at=used_at)
         )
 
-        if orm_token is None:
-            raise ValueError('Confirmation token not found.')
-
-        orm_token.used_at = token.used_at
-        orm_token.revoked_at = token.revoked_at
-
+        result = self.session.execute(statement)
         self.session.flush()
 
-        return self._to_model(orm_token)
+        return result.rowcount == 1
 
     @staticmethod
     def _to_model(orm_token: UserEmailConfirmationTokenORM) -> UserEmailConfirmationToken:

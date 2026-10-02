@@ -6,10 +6,10 @@ Aplicação cloud-native de referência para demonstrar desenvolvimento de aplic
 
 O ambiente local utiliza Docker Compose e os comandos definidos no `Makefile`.
 
-Para subir somente a infraestrutura local:
+Para subir a infraestrutura atualmente utilizada pelos serviços ativos:
 
 ```bash
-docker compose up -d nosql object-storage
+docker compose up -d mysql nosql rabbitmq
 ```
 
 Ou usando o Makefile:
@@ -30,7 +30,8 @@ Ou usando o Makefile:
 make development-seed
 ```
 
-Para subir infraestrutura, executar seed e iniciar os serviços da aplicação em sequência:
+Para subir infraestrutura, executar seed e iniciar os serviços da aplicação
+em sequência:
 
 ```bash
 make development-up
@@ -56,6 +57,9 @@ make development-up
 ```
 
 ## Testando o pizza-service
+
+> O `pizza-service` está comentado no `docker-compose.yaml` atual. Os comandos
+> abaixo se aplicam quando esse serviço estiver habilitado.
 
 Com o ambiente iniciado, o `pizza-service` fica disponível no host em:
 

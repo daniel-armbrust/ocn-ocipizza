@@ -24,7 +24,8 @@ from app.exceptions.user_exceptions import (
     UserUpdateError,
     UserDeletionError,
     UserEmailConfirmationError,
-    UserInvalidEmailConfirmationTokenError
+    UserInvalidEmailConfirmationTokenError,
+    UserQueryError
 ) 
 
 from app.repositories.unit_of_work import UnitOfWork
@@ -32,6 +33,10 @@ from app.dependencies.database import get_unit_of_work
 
 from app.repositories.user_repository import UserRepository
 from app.dependencies.database import get_user_repository
+from app.exceptions.repository_exceptions import RepositoryConflictError
+
+from app.repositories.user_email_confirmation_token_repository import UserEmailConfirmationTokenRepository
+from app.dependencies.database import get_user_email_confirmation_token_repository
 
 from app.services.user_password_service import (
     UserPasswordService, 
@@ -42,6 +47,9 @@ from app.services.user_email_service import (
     UserEmailService,
     get_user_email_service
 )
+
+from app.services.token_service import TokenService
+from app.dependencies.security import get_token_service
 
 
 class UserService:
@@ -66,8 +74,9 @@ class UserService:
                  unit_of_work: UnitOfWork,
                  user_password_service: UserPasswordService,
                  user_email_service: UserEmailService,
-                 user_repository: UserRepository                 
-                 ) -> None:
+                 user_repository: UserRepository,
+                 user_email_confirmation_token_repository: UserEmailConfirmationTokenRepository,
+                 token_service: TokenService) -> None:
         """
         Inicializa o serviço de usuários.
 
@@ -78,12 +87,18 @@ class UserService:
             user_email_service: Serviço responsável pela publicação das solicitações 
                 de envio de e-mail relacionadas ao usuário. 
             user_repository: Repositório utilizado para persistência de usuários.
+            user_email_confirmation_token_repository: Repositório utilizado para
+                persistência dos tokens de confirmação de e-mail.
+            token_service: Serviço responsável pela geração e criação do hash 
+                dos refresh tokens.
         """
 
         self.unit_of_work = unit_of_work
-        self.user_repository = user_repository
         self.user_password_service = user_password_service
         self.user_email_service = user_email_service
+        self.user_repository = user_repository
+        self.user_email_confirmation_token_repository = user_email_confirmation_token_repository
+        self.token_service = token_service
 
     def create(self, payload: UserCreateRequest) -> User:
         """
@@ -103,29 +118,31 @@ class UserService:
 
         normalized_email = normalize_email(payload.email)
 
-        if self.user_repository.get_by_email(normalized_email):
-            raise UserAlreadyExistsError('Email is already registered.')
-
-        if self.user_repository.get_by_whatsapp(payload.whatsapp):
-            raise UserAlreadyExistsError('WhatsApp number is already registered.')
-
-        now = now_utc()
-
-        user = User(
-            id=uuid4(),
-            full_name=payload.full_name,
-            email=email,
-            whatsapp=payload.whatsapp,
-            password_hash=self.user_password_service.hash_password(
-                payload.password
-            ),
-            confirmed=False,
-            is_admin=False,
-            created_at=now,
-            updated_at=now
-        )
-
         try:
+            if self.user_repository.get_by_email(normalized_email):
+                raise UserAlreadyExistsError('Email is already registered.')
+
+            if self.user_repository.get_by_whatsapp(payload.whatsapp):
+                raise UserAlreadyExistsError(
+                    'WhatsApp number is already registered.'
+                )
+
+            now = now_utc()
+
+            user = User(
+                id=uuid4(),
+                full_name=payload.full_name,
+                email=normalized_email,
+                whatsapp=payload.whatsapp,
+                password_hash=self.user_password_service.hash_password(
+                    payload.password
+                ),
+                confirmed=False,
+                is_admin=False,
+                created_at=now,
+                updated_at=now
+            )
+
             # Cria o usuário.
             user = self.user_repository.create(user)
 
@@ -136,6 +153,14 @@ class UserService:
             self.unit_of_work.commit()
 
             return user            
+        except UserAlreadyExistsError:
+            self.unit_of_work.rollback()
+            raise
+        except RepositoryConflictError as ex:
+            self.unit_of_work.rollback()
+            raise UserAlreadyExistsError(
+                'Email or WhatsApp is already registered.'
+            ) from ex
         except Exception as ex:
             self.unit_of_work.rollback()
             raise UserCreationError('Error creating user.') from ex
@@ -156,25 +181,27 @@ class UserService:
             UserUpdateError: Caso ocorra falha durante a atualização. 
         """
 
+        user = self.user_repository.get_by_id(user_id)
+
+        if user is None:
+            raise UserNotFoundError('User not found.')
+
+        user.whatsapp = payload.whatsapp
+        user.updated_at = now_utc()
+
         try:
-            user = self.user_repository.get_by_id(user_id)
-
-            if user is None:
-                raise UserNotFoundError('User not found.')
-
-            user.whatsapp = payload.whatsapp
-            user.updated_at = now_utc()
-
             user = self.user_repository.update(user)
-
             self.unit_of_work.commit()
-            
-            return user
-        except UserNotFoundError:
-            raise
+        except RepositoryConflictError as ex:
+            self.unit_of_work.rollback()
+            raise UserAlreadyExistsError(
+                'Email or WhatsApp is already registered.'
+            ) from ex
         except Exception as ex:
             self.unit_of_work.rollback()
             raise UserUpdateError('Error updating the user.') from ex
+
+        return user
 
     def delete(self, user_id: UUID) -> None:
         """
@@ -197,7 +224,6 @@ class UserService:
         
         try: 
             self.user_repository.delete(user_id) 
-            
             self.unit_of_work.commit() 
         except Exception: 
             self.unit_of_work.rollback() 
@@ -246,7 +272,7 @@ class UserService:
         try:
             # Localiza o token de confirmação através de seu hash.
             email_confirmation_token = (
-                self.email_confirmation_token_repository.get_by_hash(token_hash)
+                self.user_email_confirmation_token_repository.get_by_token_hash(token_hash)
             )
         except Exception as ex:
             raise UserEmailConfirmationError(
@@ -267,25 +293,32 @@ class UserService:
                 'Email confirmation token does not belong to the user.'
             )
 
-        # Caso o usuário já esteja confirmado, não é necessário
-        # realizar nenhuma nova alteração.
-        if user.confirmed:
-            return
-
-        user.confirmed = True
-        user.updated_at = now
-
         try:
-            # Persiste a alteração do usuário.
-            self.user_repository.update(user)
-
-            # Marca o token como utilizado para impedir sua reutilização.
-            self.email_confirmation_token_repository.mark_as_used(
-                email_confirmation_token.id,
-                now
+            # Consome o token atomicamente. Apenas uma requisição concorrente
+            # consegue alterar um token que ainda esteja disponível.
+            token_consumed = (
+                self.user_email_confirmation_token_repository.mark_as_used(
+                    email_confirmation_token.id,
+                    now
+                )
             )
 
+            if not token_consumed:
+                raise UserInvalidEmailConfirmationTokenError(
+                    'Email confirmation token is no longer available.'
+                )
+
+            # Atualiza o usuário somente quando ele ainda não estiver
+            # confirmado.
+            if not user.confirmed:
+                user.confirmed = True
+                user.updated_at = now
+                self.user_repository.update(user)
+
             self.unit_of_work.commit()
+        except UserInvalidEmailConfirmationTokenError:
+            self.unit_of_work.rollback()
+            raise
         except Exception as ex:
             self.unit_of_work.rollback()
             raise UserEmailConfirmationError('Error confirming user email.') from ex        
@@ -334,11 +367,43 @@ class UserService:
         
         return user
 
-    def _validate_email_confirmation_token(
-            self,
-            email_confirmation_token: UserEmailConfirmationToken | None,
-            now: datetime,
-    ) -> UserEmailConfirmationToken:
+    def get_all(self,
+                email: str | None = None,
+                confirmed: bool | None = None,
+                is_admin: bool | None = None,
+                limit: int = 50,
+                offset: int = 0) -> list[User]:
+        """
+        Retorna os usuários cadastrados de acordo com os filtros informados.
+
+        Args:
+            email: Parte do endereço de e-mail utilizada como filtro.
+            confirmed: Filtra usuários de acordo com o estado de confirmação.
+            is_admin: Filtra usuários de acordo com o privilégio administrativo.
+            limit: Quantidade máxima de usuários retornados.
+            offset: Quantidade de registros ignorados antes do retorno.
+
+        Returns:
+            Lista contendo os usuários encontrados.
+
+        Raises:
+            UserQueryError: Caso ocorra uma falha durante a consulta.
+        """
+
+        try:
+            return self.user_repository.get_all(
+                email=email,
+                confirmed=confirmed,
+                is_admin=is_admin,
+                limit=limit,
+                offset=offset
+            )
+        except Exception as ex:
+            raise UserQueryError('Error retrieving users.') from ex
+
+    def _validate_email_confirmation_token(self,
+                                           email_confirmation_token: UserEmailConfirmationToken | None,
+                                           now: datetime) -> UserEmailConfirmationToken:
         """
         Valida se um token de confirmação de e-mail pode ser utilizado.
 
@@ -390,6 +455,10 @@ def get_user_service(
     user_repository: UserRepository = Depends(
         get_user_repository
     ),
+    user_email_confirmation_token_repository: UserEmailConfirmationTokenRepository = Depends(
+        get_user_email_confirmation_token_repository
+    ),
+    token_service: TokenService = Depends(get_token_service)
 ) -> UserService:
     """
     Monta o serviço de domínio de usuários para uso nas rotas.
@@ -403,6 +472,11 @@ def get_user_service(
             de e-mail.
         user_repository: Repositório utilizado para persistência de 
             usuários.
+        user_email_confirmation_token_repository: Repositório 
+            utilizado para persistência dos tokens de confirmação 
+            de e-mail.
+        token_service: Serviço responsável pela geração e criação
+            do hash dos refresh tokens.
 
     Returns:
         Instância de `UserService`.
@@ -413,4 +487,6 @@ def get_user_service(
         user_password_service=user_password_service,
         user_email_service=user_email_service,
         user_repository=user_repository,
+        user_email_confirmation_token_repository=user_email_confirmation_token_repository,
+        token_service=token_service
     )

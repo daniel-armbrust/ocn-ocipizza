@@ -2,7 +2,7 @@
 # schemas/user_password_schema.py
 #
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 class UserPasswordUpdateRequest(BaseModel):
@@ -21,9 +21,9 @@ class UserPasswordUpdateRequest(BaseModel):
              pelo usuário.
     """
 
-    current_password: str
-    new_password: str
-    confirm_new_password: str
+    current_password: str = Field(min_length=8, max_length=20)
+    new_password: str = Field(min_length=8, max_length=20)
+    confirm_new_password: str = Field(min_length=8, max_length=20)
 
 
 class UserPasswordResetRequest(BaseModel):
@@ -63,6 +63,6 @@ class UserPasswordResetConfirmRequest(BaseModel):
             pelo usuário.
     """
 
-    token: str
-    new_password: str
-    confirm_new_password: str
+    token: str = Field(min_length=20, max_length=255)
+    new_password: str = Field(min_length=8, max_length=20)
+    confirm_new_password: str = Field(min_length=8, max_length=20)

@@ -4,7 +4,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Query
 from fastapi.responses import JSONResponse
 
 from app.schemas.user_schema import (
@@ -14,18 +14,19 @@ from app.schemas.user_schema import (
     UserConfirmationRequest
 )
 
-from app.schemas.jsend_schema import JSendSuccessResponse
-
 from app.exceptions.user_exceptions import (
     UserAlreadyExistsError, 
     UserCreationError,
     UserNotFoundError,
     UserUpdateError,
-    UserInvalidEmailConfirmationTokenError
+    UserInvalidEmailConfirmationTokenError,
+    UserQueryError
 )
 
 from app.services.user_service import UserService, get_user_service
-from app.dependencies.authentication import get_current_user_id
+from app.dependencies.authentication import get_current_user_id, get_current_admin_id
+
+from app.schemas.jsend_schema import JSendSuccessResponse
 from app.responses.jsend import fail_response, success_response
 
 router = APIRouter()
@@ -34,9 +35,9 @@ router = APIRouter()
 # POST: /users
 #
 @router.post(
-        '/users', 
-        status_code=status.HTTP_201_CREATED,
-        response_model=JSendSuccessResponse
+    '/users', 
+    status_code=status.HTTP_201_CREATED,
+    response_model=JSendSuccessResponse
 )
 def create_user(
     payload: UserCreateRequest,
@@ -73,7 +74,7 @@ def create_user(
             'USER_CREATION_ERROR',
             'Unable to create user.'
         )
-
+    
     return success_response(
         {
             'user': UserResponse.from_model(user).model_dump(mode='json')
@@ -113,7 +114,7 @@ def get_me(
             'USER_NOT_FOUND',
             'User not found.'
         ) 
-
+    
     return success_response(
         {
             'user': UserResponse.from_model(user).model_dump(mode='json')
@@ -160,6 +161,12 @@ def update_me(
             'USER_NOT_FOUND',
             'User not found.'
         )
+    except UserAlreadyExistsError:
+        return fail_response(
+            status.HTTP_409_CONFLICT,
+            'USER_ALREADY_REGISTERED',
+            'E-mail or WhatsApp already registered.'
+        )
     except UserUpdateError:
         return fail_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -172,7 +179,6 @@ def update_me(
             'user': UserResponse.from_model(user).model_dump(mode='json')
         }
     )
-
 
 #
 # GET: /users/confirm
@@ -221,5 +227,64 @@ def confirm_user(
     return success_response(
         {
             'message': 'User confirmed successfully.',
+        }
+    )
+
+#
+# GET: /users
+#
+@router.get(
+    '/users',
+    status_code=status.HTTP_200_OK,
+    response_model=JSendSuccessResponse
+)
+def list_users(
+    email: str | None = None,
+    confirmed: bool | None = None,
+    is_admin: bool | None = None,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    _: UUID = Depends(get_current_admin_id),
+    service: UserService = Depends(get_user_service)
+) -> JSendSuccessResponse | JSONResponse:
+    """
+    Retorna os usuários cadastrados de acordo com os filtros informados.
+
+    Esta operação é restrita a usuários com privilégios administrativos.
+
+    Args:
+        email: Parte do endereço de e-mail utilizada como filtro.
+        confirmed: Filtra usuários de acordo com o estado de confirmação.
+        is_admin: Filtra usuários de acordo com o privilégio administrativo.
+        limit: Quantidade máxima de usuários retornados.
+        offset: Quantidade de registros ignorados antes do retorno.
+        service: Serviço responsável pelos casos de uso relacionados
+            aos usuários.
+
+    Returns:
+        Resposta no padrão JSend contendo os usuários encontrados.
+    """
+
+    try:
+        users = service.get_all(
+            email=email,
+            confirmed=confirmed,
+            is_admin=is_admin,
+            limit=limit,
+            offset=offset
+        )
+    except UserQueryError:
+        return fail_response(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            'USER_QUERY_ERROR',
+            'Error retrieving users.'
+        )
+    
+    return success_response(
+        {
+            'users': [
+                UserResponse.from_model(user).model_dump(mode='json')
+                for user in users
+            ]
         }
     )

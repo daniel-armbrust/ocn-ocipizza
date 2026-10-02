@@ -37,7 +37,6 @@ from app.responses.jsend import fail_response, success_response
 
 router = APIRouter()
 
-
 #
 # PUT: /users/me/password
 #

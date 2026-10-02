@@ -2,15 +2,12 @@
 # routes/jwks_routes.py
 #
 
-import json
-
 from fastapi import APIRouter, Depends
 
 from app.dependencies.security import get_jwt_service
 from app.services.jwt_service import JwtService
 
 router = APIRouter()
-
 
 #
 # GET: /.well-known/jwks.json

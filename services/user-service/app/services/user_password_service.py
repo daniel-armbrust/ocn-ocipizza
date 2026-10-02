@@ -247,6 +247,55 @@ class UserPasswordService:
                 self.unit_of_work.rollback()
                 raise UserUpdateError('Error updating the user password.') from ex
 
+    def set_password_by_admin(self,
+                              user_id: UUID,
+                              new_password: str,
+                              confirm_new_password: str) -> None:
+        """
+        Define administrativamente uma nova senha para um usuário.
+
+        Este caso de uso não exige a senha atual nem a confirmação prévia do
+        endereço de e-mail, pois a autorização da operação é responsabilidade
+        da rota administrativa.
+
+        Args:
+            user_id: Identificador UUID do usuário.
+            new_password: Nova senha definida pelo administrador.
+            confirm_new_password: Confirmação da nova senha.
+
+        Returns:
+            None.
+
+        Raises:
+            UserNotFoundError: Caso o usuário não seja encontrado.
+            UserPasswordMismatchError: Caso a nova senha e sua confirmação
+                sejam diferentes.
+            UserUpdateError: Caso não seja possível persistir a nova senha.
+        """
+
+        user = self.user_repository.get_by_id(user_id)
+
+        if user is None:
+            raise UserNotFoundError('User not found.')
+
+        self.validate_password_confirmation(
+            new_password,
+            confirm_new_password
+        )
+
+        user.password_hash = self.hash_password(new_password)
+        user.updated_at = now_utc()
+
+        try:
+            # TODO: Registrar o hash da senha anterior no histórico.
+            self.user_repository.update(user)
+            self.unit_of_work.commit()
+        except Exception as ex:
+            self.unit_of_work.rollback()
+            raise UserUpdateError(
+                'Error setting the user password by administrator.'
+            ) from ex
+
     def request_password_reset(self, email: str) -> None:
         """
         Inicia o processo de redefinição da senha de um usuário.

@@ -5,12 +5,14 @@
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.utils.utils import uuid_to_bin, bin_to_uuid
 
 from app.models.user import User
 
+from app.exceptions.repository_exceptions import RepositoryConflictError
 from app.repositories.orm.user_orm import UserORM
 from app.repositories.user_repository import UserRepository
 
@@ -44,8 +46,8 @@ class SqlAlchemyUserRepository(UserRepository):
             Usuário persistido, incluindo valores gerados pelo banco.
         
         Raises:
-            IntegrityError: Caso ocorra uma violação de integridade no banco
-                de dados, como e-mail ou WhatsApp duplicado.
+            RepositoryConflictError: Caso uma restrição de integridade seja
+                violada durante a persistência.
 
             SQLAlchemyError: Caso ocorra uma falha durante a persistência.
         """
@@ -62,16 +64,24 @@ class SqlAlchemyUserRepository(UserRepository):
             updated_at=user.updated_at
         )
 
-        self.session.add(orm_user)
+        try:
+            self.session.add(orm_user)
 
-        # Envia as alterações pendentes ao banco sem finalizar a transação.
-        # Isso permite validar a operação e sincronizar valores gerados 
-        # pelo banco.
-        self.session.flush()
+            # Envia as alterações pendentes ao banco sem finalizar a transação.
+            # Isso permite validar a operação e sincronizar valores gerados
+            # pelo banco.
+            self.session.flush()
 
-        # Atualiza o objeto ORM com os valores efetivamente persistidos no 
-        # banco.
-        self.session.refresh(orm_user)
+            # Atualiza o objeto ORM com os valores efetivamente persistidos no
+            # banco.
+            self.session.refresh(orm_user)
+        except IntegrityError as ex:
+            # Traduz a exceção do mecanismo de persistência para uma exceção
+            # conhecida pela aplicação, sem interpretar mensagens ou códigos
+            # específicos do banco de dados utilizado.
+            raise RepositoryConflictError(
+                'Unable to create user due to a data conflict.'
+            ) from ex
 
         return self._to_model(orm_user)
 
@@ -107,12 +117,11 @@ class SqlAlchemyUserRepository(UserRepository):
             Usuário encontrado ou None caso não exista.
         
         Raises:
-            SQLAlchemyError: Caso ocorra uma falha durante a consulta ao banco.
+            SQLAlchemyError: Caso ocorra uma falha durante a 
+                consulta ao banco.
         """
 
-        statement = select(UserORM).where(
-            UserORM.email == email
-        )
+        statement = select(UserORM).where(UserORM.email == email)
 
         orm_user = self.session.scalar(statement)
 
@@ -132,12 +141,11 @@ class SqlAlchemyUserRepository(UserRepository):
             Usuário encontrado ou None caso não exista.
 
         Raises:
-            SQLAlchemyError: Caso ocorra uma falha durante a consulta ao banco.
+            SQLAlchemyError: Caso ocorra uma falha durante 
+                a consulta ao banco.
         """
 
-        statement = select(UserORM).where(
-            UserORM.whatsapp == whatsapp
-        )
+        statement = select(UserORM).where(UserORM.whatsapp == whatsapp)
 
         orm_user = self.session.scalar(statement)
 
@@ -145,6 +153,60 @@ class SqlAlchemyUserRepository(UserRepository):
             return None
 
         return self._to_model(orm_user)
+
+    def get_all(self,
+                email: str | None = None,
+                confirmed: bool | None = None,
+                is_admin: bool | None = None,
+                limit: int = 50,
+                offset: int = 0) -> list[User]:
+        """
+        Retorna os usuários cadastrados de acordo com os filtros informados.
+
+        Args:
+            email: Parte do endereço de e-mail utilizada como filtro.
+            confirmed: Filtra usuários de acordo com o estado de confirmação.
+            is_admin: Filtra usuários de acordo com o privilégio administrativo.
+            limit: Quantidade máxima de usuários retornados.
+            offset: Quantidade de registros ignorados antes do retorno.
+
+        Returns:
+            Lista contendo os usuários encontrados.
+        """
+
+        # Inicia a consulta utilizando a tabela de usuários.
+        query = select(UserORM)
+
+        # Filtro por e-mail.
+        if email is not None:
+            query = query.where(UserORM.email.ilike(f'%{email}%'))
+
+        # Filtro pelo estado de confirmação.
+        if confirmed is not None:
+            query = query.where(UserORM.confirmed == confirmed)
+
+        # Filtro pelo privilégio administrativo.
+        if is_admin is not None:
+            query = query.where(UserORM.is_admin == is_admin)
+
+        # Ordena os usuários do mais recente para o mais antigo e aplica
+        # paginação através de offset e limit.
+        query = (
+            query
+            .order_by(UserORM.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+
+        # Executa a consulta e retorna os registros ORM encontrados.
+        orm_users = self.session.scalars(query).all()
+
+        # Converte os registros SQLAlchemy para modelos da aplicação,
+        # evitando que a camada de serviço conheça detalhes do ORM.
+        return [
+            self._to_model(orm_user)
+            for orm_user in orm_users
+        ]
         
     def update(self, user: User) -> User:
         """
@@ -159,14 +221,15 @@ class SqlAlchemyUserRepository(UserRepository):
         Raises:
             ValueError: Caso o usuário informado não seja encontrado.
 
-            IntegrityError: Caso ocorra uma violação de integridade no banco de dados.
+            RepositoryConflictError: Caso uma restrição de integridade seja
+                violada durante a atualização.
 
             SQLAlchemyError: Caso ocorra uma falha durante a atualização.
         """
 
         orm_user = self.session.get(
             UserORM,
-            uuid_to_bin(user.id),
+            uuid_to_bin(user.id)
         )
 
         if orm_user is None:
@@ -180,7 +243,12 @@ class SqlAlchemyUserRepository(UserRepository):
         orm_user.is_admin = user.is_admin
         orm_user.updated_at = user.updated_at
 
-        self.session.flush()
+        try:
+            self.session.flush()
+        except IntegrityError as ex:
+            raise RepositoryConflictError(
+                'Unable to update user due to a data conflict.'
+            ) from ex
 
         return self._to_model(orm_user)
 
@@ -201,7 +269,7 @@ class SqlAlchemyUserRepository(UserRepository):
         """
         orm_user = self.session.get(
             UserORM,
-            uuid_to_bin(user_id),
+            uuid_to_bin(user_id)
         )
 
         if orm_user is None:

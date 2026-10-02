@@ -27,6 +27,10 @@ class UserRepository(ABC):
 
         Returns:
             Usuário persistido.
+
+        Raises:
+            RepositoryConflictError: Caso os dados violem uma restrição de
+                integridade da persistência.
         """
         pass
 
@@ -40,6 +44,10 @@ class UserRepository(ABC):
 
         Returns:
             Usuário atualizado.
+
+        Raises:
+            RepositoryConflictError: Caso os dados violem uma restrição de
+                integridade da persistência.
         """
         pass
 
@@ -89,6 +97,28 @@ class UserRepository(ABC):
         
         Returns: 
             Usuário encontrado ou None caso não exista.
+        """
+        pass
+
+    @abstractmethod
+    def get_all(self,
+                email: str | None = None,
+                confirmed: bool | None = None,
+                is_admin: bool | None = None,
+                limit: int = 50,
+                offset: int = 0) -> list[User]:
+        """
+        Retorna os usuários cadastrados de acordo com os filtros informados.
+
+        Args:
+            email: Parte do endereço de e-mail utilizada como filtro.
+            confirmed: Filtra usuários de acordo com o estado de confirmação.
+            is_admin: Filtra usuários de acordo com o privilégio administrativo.
+            limit: Quantidade máxima de usuários retornados.
+            offset: Quantidade de registros ignorados antes do retorno.
+
+        Returns:
+            Lista contendo os usuários encontrados.
         """
         pass
 

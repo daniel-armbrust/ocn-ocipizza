@@ -2,8 +2,6 @@
 # routes/user_authentication_router.py
 #
 
-from uuid import UUID
-
 from fastapi import APIRouter, status, Depends
 from fastapi.responses import JSONResponse
 
@@ -16,15 +14,16 @@ from app.schemas.user_authentication_schema import (
 from app.schemas.jsend_schema import JSendSuccessResponse
 from app.responses.jsend import success_response, fail_response
 
-from app.services.user_authentication_service import UserAuthenticationService
-from app.dependencies.authentication import get_user_authentication_service
+from app.services.user_authentication_service import (
+    UserAuthenticationService,
+    get_user_authentication_service
+)
 
 from app.exceptions.user_exceptions import UserNotFoundError, UserNotConfirmedError
 from app.exceptions.user_password_exceptions import UserInvalidPasswordError
 from app.exceptions.user_authentication_exceptions import UserAuthenticationError
 
 router = APIRouter()
-
 
 #
 # POST: /auth/login
@@ -90,6 +89,10 @@ def login(
             expires_in=tokens.expires_in
         ).model_dump()
     )
+
+#
+# POST: /auth/logout
+#
 
 #
 # POST: /auth/refresh

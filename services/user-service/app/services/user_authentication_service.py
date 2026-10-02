@@ -3,6 +3,7 @@
 #
 
 from datetime import timedelta
+from uuid import UUID
 
 from fastapi import Depends
 
@@ -56,8 +57,7 @@ class UserAuthenticationService:
             jwt_service: JwtService,
             token_service: TokenService,
             unit_of_work: UnitOfWork,
-            refresh_token_expiration_days: int
-    ) -> None:
+            refresh_token_expiration_days: int) -> None:
         """
         Inicializa o serviço responsável pela autenticação dos usuários.
 
@@ -250,6 +250,9 @@ class UserAuthenticationService:
         except Exception as ex:
             self.unit_of_work.rollback()
             raise UserAuthenticationError('Error logging out user.') from ex
+
+    def revoke_user_sessions(self, user_id: UUID):
+        pass
 
 
 def get_user_authentication_service(
