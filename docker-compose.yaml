@@ -2,62 +2,33 @@ services:
 
   # Microserviço responsável pelo gerenciamento do catálogo 
   # de pizzas.
-  # pizza-service:
-  #   container_name: oci-pizza-pizza-service
-  #   build:
-  #     context: ./services/pizza-service
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "8001:8000"
-  #   networks:
-  #     - oci-pizza-network
-  #   environment:
-  #     ENVIRONMENT: development
-  #     LOG_LEVEL: INFO
+  pizza-service:
+    container_name: oci-pizza-pizza-service
+    build:
+      context: ./services/pizza-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    networks:
+      - oci-pizza-network
+    environment:
+      APP_ENV: development
+      LOG_LEVEL: INFO
 
-  #     OCI_REGION: sa-saopaulo-1
+      PERSISTENCE_PROVIDER: nosql
 
-  #     OCI_NOSQL_ENDPOINT: http://nosql:8080
-  #     OCI_NOSQL_TABLE: pizzas
-  #     OCI_NOSQL_COMPARTMENT_ID: ""
-  #     OCI_CONFIG_FILE: /home/appuser/.oci/config
-  #     OCI_CONFIG_PROFILE: DEFAULT
+      NOSQL_ENDPOINT: http://nosql:8080
+      NOSQL_TABLE: pizzas
 
-  #     OBJECT_STORAGE_ENDPOINT: http://object-storage:9000
-  #     OBJECT_STORAGE_BUCKET: pizza-images
+      OBJECTSTORAGE_ENDPOINT: http://object-storage:9000
+      OBJECTSTORAGE_BUCKET: pizza-images
 
-  #     AUTH_SERVICE_URL: http://auth-service:8000
-  #     PIZZA_SERVICE_ADMIN_TOKEN: admin-token
-  #   depends_on:
-  #     - nosql
-  #     - object-storage
-  #   volumes:
-  #     - ${HOME}/.oci:/home/appuser/.oci:ro
-
-  # Microserviço responsável pela interface web da aplicação.
-  # frontend-service:
-  #   container_name: oci-pizza-frontend-service
-  #   build:
-  #     context: ./services/frontend-service
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "8085:8000"
-  #   networks:
-  #     - oci-pizza-network
-  #   environment:
-  #     ENVIRONMENT: development
-  #     FRONTEND_REQUEST_TIMEOUT: 2.0
-
-  #     PIZZA_SERVICE_URL: http://pizza-service:8000
-  #     PIZZA_IMAGE_BASE_URL: http://localhost:9000/pizza-images
-  #     ORDER_SERVICE_URL: http://order-service:8000
-  #     PAYMENT_SERVICE_URL: http://payment-service:8000
-  #     AUTH_SERVICE_URL: http://auth-service:8000
-  #     USER_SERVICE_URL: http://user-service:8000
-  #     NOTIFICATION_SERVICE_URL: http://notification-service:8000
-  #     CHATBOT_SERVICE_URL: http://chatbot-service:8000
-  #   depends_on:
-  #     - pizza-service
+      JWT_ISSUER: user-service
+      JWT_AUDIENCE: oci-pizza
+      JWT_JWKS_URL: http://user-service:8000/.well-known/jwks.json
+    depends_on:
+      - nosql
+      - object-storage
 
   # Microserviço responsável pelo ciclo de vida dos usuários.
   # Persiste dados no MySQL e publica notificações no RabbitMQ
@@ -72,7 +43,7 @@ services:
     networks:
       - oci-pizza-network
     environment:
-      ENVIRONMENT: development
+      APP_ENV: development
       LOG_LEVEL: INFO
 
       OCI_REGION: sa-saopaulo-1
@@ -112,6 +83,31 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+
+  # Microserviço responsável pela interface web da aplicação.
+  # frontend-service:
+  #   container_name: oci-pizza-frontend-service
+  #   build:
+  #     context: ./services/frontend-service
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8085:8000"
+  #   networks:
+  #     - oci-pizza-network
+  #   environment:
+  #     ENVIRONMENT: development
+  #     FRONTEND_REQUEST_TIMEOUT: 2.0
+
+  #     PIZZA_SERVICE_URL: http://pizza-service:8000
+  #     PIZZA_IMAGE_BASE_URL: http://localhost:9000/pizza-images
+  #     ORDER_SERVICE_URL: http://order-service:8000
+  #     PAYMENT_SERVICE_URL: http://payment-service:8000
+  #     AUTH_SERVICE_URL: http://auth-service:8000
+  #     USER_SERVICE_URL: http://user-service:8000
+  #     NOTIFICATION_SERVICE_URL: http://notification-service:8000
+  #     CHATBOT_SERVICE_URL: http://chatbot-service:8000
+  #   depends_on:
+  #     - pizza-service
 
   # Banco de dados NoSQL utilizado pelos serviços da 
   # aplicação que necessitam de persistência orientada 
@@ -206,49 +202,49 @@ services:
   # Serviço responsável por carregar dados iniciais no 
   # ambiente de desenvolvimento, permitindo que a aplicação 
   # seja iniciada com informações básicas para testes.
-  seed:
-    container_name: oci-pizza-seed
-    image: python:3.11.10-slim-bookworm
-    working_dir: /app
-    environment:
-      PYTHONDONTWRITEBYTECODE: 1
-      ENVIRONMENT: development
-      OCI_REGION: sa-saopaulo-1
-      OCI_NOSQL_ENDPOINT: http://nosql:8080
-      OCI_NOSQL_TABLE: pizzas
-      OCI_NOSQL_COMPARTMENT_ID: ""
+  # seed:
+  #   container_name: oci-pizza-seed
+  #   image: python:3.11.10-slim-bookworm
+  #   working_dir: /app
+  #   environment:
+  #     PYTHONDONTWRITEBYTECODE: 1
+  #     ENVIRONMENT: development
+  #     OCI_REGION: sa-saopaulo-1
+  #     OCI_NOSQL_ENDPOINT: http://nosql:8080
+  #     OCI_NOSQL_TABLE: pizzas
+  #     OCI_NOSQL_COMPARTMENT_ID: ""
       
-      OBJECT_STORAGE_ENDPOINT: http://object-storage:9000
-      OBJECT_STORAGE_PIZZA_BUCKET: pizza-images
-      OBJECT_STORAGE_ACCESS_KEY: minioadmin
-      OBJECT_STORAGE_SECRET_KEY: minioadmin
+  #     OBJECTSTORAGE_ENDPOINT: http://object-storage:9000
+  #     OBJECTSTORAGE_PIZZA_BUCKET: pizza-images
+  #     OBJECTSTORAGE_ACCESS_KEY: minioadmin
+  #     OBJECTSTORAGE_SECRET_KEY: minioadmin
       
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_ROOT_USER: root
-      MYSQL_ROOT_PASSWORD: root
+  #     MYSQL_HOST: mysql
+  #     MYSQL_PORT: 3306
+  #     MYSQL_ROOT_USER: root
+  #     MYSQL_ROOT_PASSWORD: root
       
-      MYSQL_DATABASE: users
-      MYSQL_USER: user_service
-      MYSQL_PASSWORD: user_service
-    depends_on:
-      nosql:
-        condition: service_started
-      object-storage:
-        condition: service_started
-      mysql:
-        condition: service_healthy
-    networks:
-      - oci-pizza-network
-    volumes:
-      - ./seed:/app/seed:ro
-    command:
-      - sh
-      - -c
-      - |
-        pip install --no-cache-dir -r seed/requirements.txt
-        python seed/wait-for-infrastructure.py
-        python seed/run-seed.py
+  #     MYSQL_DATABASE: users
+  #     MYSQL_USER: user_service
+  #     MYSQL_PASSWORD: user_service
+  #   depends_on:
+  #     nosql:
+  #       condition: service_started
+  #     object-storage:
+  #       condition: service_started
+  #     mysql:
+  #       condition: service_healthy
+  #   networks:
+  #     - oci-pizza-network
+  #   volumes:
+  #     - ./seed:/app/seed:ro
+  #   command:
+  #     - sh
+  #     - -c
+  #     - |
+  #       pip install --no-cache-dir -r seed/requirements.txt
+  #       python seed/wait-for-infrastructure.py
+  #       python seed/run-seed.py
 
 # Rede utilizada para permitir a comunicação entre os 
 # containers que compõem a aplicação OCI-PIZZA.

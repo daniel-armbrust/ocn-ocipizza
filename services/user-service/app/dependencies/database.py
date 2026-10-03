@@ -35,7 +35,7 @@ from app.repositories.nosql.nosql_user_refresh_token_repository import NosqlUser
 
 
 def get_unit_of_work(
-    session: Session = Depends(get_session)
+        session: Session = Depends(get_session)
 ) -> UnitOfWork:
     """
     Monta a unidade de trabalho de acordo com o provider de persistência.
@@ -123,7 +123,7 @@ def get_user_email_confirmation_token_repository(
 
 
 def get_user_password_reset_token_repository(
-    session: Session = Depends(get_session),
+        session: Session = Depends(get_session)
 ) -> UserPasswordResetTokenRepository:
     """
     Fornece o repositório responsável pela persistência dos tokens
@@ -150,7 +150,7 @@ def get_user_password_reset_token_repository(
 
 
 def get_user_password_history_repository(
-    session: Session = Depends(get_session),
+        session: Session = Depends(get_session)
 ) -> UserPasswordHistoryRepository:
     """
     Fornece o repositório responsável pela persistência do histórico
@@ -177,7 +177,7 @@ def get_user_password_history_repository(
 
 
 def get_user_refresh_token_repository(
-    session: Session = Depends(get_session),
+        session: Session = Depends(get_session)
 ) -> UserRefreshTokenRepository:
     """
     Fornece o repositório responsável pela persistência e consulta

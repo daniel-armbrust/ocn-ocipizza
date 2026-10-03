@@ -1,154 +1,298 @@
-from fastapi import APIRouter, Depends, Path, status
+#
+# routes/pizza_routes.py
+#
 
-from app.dependencies.auth import require_admin
-from app.dependencies.nosql import get_pizza_service
-from app.routes.responses import fail_response
-from app.schemas.pizza_schema import PizzaCreateRequest, PizzaUpdateRequest
-from app.services.pizza_service import PizzaNotFoundError, PizzaService
+from uuid import UUID
 
-router = APIRouter(prefix="/pizzas", tags=["Pizzas"])
+from fastapi import APIRouter, status, Depends, Query
+from fastapi.responses import JSONResponse
 
+from app.services.pizza_service import PizzaService, get_pizza_service
+from app.dependencies.authentication import get_current_admin_id
 
-@router.get("")
+from app.exceptions.pizza_exception import (
+    PizzaQueryError,
+    PizzaNotFoundError,
+    PizzaCreationError,
+    PizzaUpdateError,
+    PizzaDeletionError
+)
+
+from app.schemas.pizza_schema import (
+    PizzaCreateRequest,
+    PizzaUpdateRequest,
+    PizzaResponse,
+    PizzaCategory
+)
+
+from app.schemas.jsend_schema import JSendSuccessResponse
+from app.responses.jsend import fail_response, success_response
+
+router = APIRouter()
+
+#
+# GET: /pizzas
+#
+@router.get(
+    '/pizzas',
+    status_code=status.HTTP_200_OK,
+    response_model=JSendSuccessResponse
+)
 def list_pizzas(
-    service: PizzaService = Depends(get_pizza_service),
-) -> dict:
+    category: PizzaCategory | None = None,
+    available: bool | None = None,
+    limit: int = Query(default=10, ge=1, le=50),
+    offset: int = Query(default=0, ge=0),
+    service: PizzaService = Depends(get_pizza_service)
+) -> JSendSuccessResponse | JSONResponse:
     """
-    Lista pizzas disponíveis no catálogo.
+    Retorna as pizzas cadastradas de acordo com os filtros informados.
 
     Args:
-        service: Serviço de domínio usado para consultar pizzas.
+        category: Categoria utilizada para filtrar as pizzas.
+        available: Filtra pizzas de acordo com sua disponibilidade.
+        limit: Quantidade máxima de pizzas retornadas.
+        offset: Quantidade de registros ignorados antes do retorno.
+        service: Serviço responsável pelos casos de uso relacionados
+            às pizzas.
 
     Returns:
-        Dicionário JSend contendo a lista de pizzas disponíveis.
-    """
-
-    pizzas = service.list_available_pizzas()
-    return {
-        "status": "success",
-        "data": {"pizzas": [pizza.model_dump(mode="json") for pizza in pizzas]},
-    }
-
-
-@router.get("/{id}")
-def get_pizza(
-    pizza_id: int = Path(alias="id", ge=1),
-    service: PizzaService = Depends(get_pizza_service),
-) -> dict:
-    """
-    Consulta uma pizza pelo identificador informado na rota.
-
-    Args:
-        pizza_id: Identificador da pizza extraído do caminho da requisição.
-        service: Serviço de domínio usado para consultar pizzas.
-
-    Returns:
-        Dicionário JSend com os dados da pizza ou falha de não encontrado.
+        Resposta no padrão JSend contendo as pizzas encontradas.
     """
 
     try:
-        pizza = service.get_pizza(pizza_id)
+        pizzas = service.get_all(
+            category=category,
+            available=available,
+            limit=limit,
+            offset=offset    
+        )
+    except PizzaQueryError:
+        return fail_response(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            'PIZZA_QUERY_ERROR',
+            'Error retrieving pizzas.'
+        )
+
+    return success_response(
+        {
+            'pizzas': [
+                PizzaResponse.from_model(
+                    pizza,
+                    image_url=image_url
+                ).model_dump(mode='json')
+                for pizza, image_url in pizzas
+            ]
+        }
+    )
+
+#
+# GET: /pizzas/{pizza_id}
+#
+@router.get(
+    '/pizzas/{pizza_id}',
+    status_code=status.HTTP_200_OK,
+    response_model=JSendSuccessResponse
+)
+def get_pizza(
+    pizza_id: UUID,
+    service: PizzaService = Depends(get_pizza_service)
+) -> JSendSuccessResponse | JSONResponse:
+    """
+    Retorna os dados de uma pizza específica.
+
+    Args:
+        pizza_id: Identificador UUID da pizza que será consultada.
+        service: Serviço responsável pelos casos de uso relacionados
+            às pizzas.
+
+    Returns:
+        Resposta no padrão JSend contendo os dados da pizza encontrada.
+        Caso a pizza não exista, retorna uma resposta JSend com status
+        HTTP 404. Em caso de falha durante a consulta, retorna uma
+        resposta JSend com status HTTP 500.
+    """
+
+    try:
+        pizza, image_url = service.get_by_id(pizza_id=pizza_id)
     except PizzaNotFoundError:
         return fail_response(
             status.HTTP_404_NOT_FOUND,
-            "PIZZA_NOT_FOUND",
-            "Pizza not found",
-            field="id",
+            'PIZZA_NOT_FOUND',
+            'Pizza not found.',
         )
+    except PizzaQueryError:
+        return fail_response(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            'PIZZA_QUERY_ERROR',
+            'Error retrieving pizza.',
+        )
+    
+    return success_response(
+        {
+            'pizza': PizzaResponse.from_model(
+                pizza,
+                image_url=image_url
+            ).model_dump(mode='json')
+        }
+    )
 
-    return {
-        "status": "success",
-        "data": {"pizza": pizza.model_dump(mode="json")},
-    }
-
-
-@router.post("", status_code=status.HTTP_201_CREATED)
+#
+# POST: /pizzas
+#
+@router.post(
+    '/pizzas',
+    status_code=status.HTTP_201_CREATED,
+    response_model=JSendSuccessResponse
+)
 def create_pizza(
     payload: PizzaCreateRequest,
-    service: PizzaService = Depends(get_pizza_service),
-    _: None = Depends(require_admin),
-) -> dict:
+    _: UUID = Depends(get_current_admin_id),
+    service: PizzaService = Depends(get_pizza_service)
+) -> JSendSuccessResponse | JSONResponse:
     """
-    Cadastra uma nova pizza em operação administrativa.
+    Cria uma nova pizza.
+
+    Esta operação é restrita a usuários com privilégios
+    administrativos.
 
     Args:
-        payload: Dados validados para criação da pizza.
-        service: Serviço de domínio usado para criar pizzas.
-        _: Dependência que valida permissão administrativa.
+        payload: Dados necessários para criação da pizza.
+        service: Serviço responsável pelos casos de uso relacionados
+            às pizzas.
 
     Returns:
-        Dicionário JSend contendo a pizza criada.
+        Resposta no padrão JSend contendo os dados da pizza criada.
+        Em caso de falha durante a criação, retorna uma resposta
+        JSend com status HTTP 500.
     """
 
-    pizza = service.create_pizza(payload)
-    return {
-        "status": "success",
-        "data": {"pizza": pizza.model_dump(mode="json")},
-    }
+    try:
+        pizza, image_url = service.create(payload=payload)
+    except PizzaCreationError:
+        return fail_response(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            'PIZZA_CREATION_ERROR',
+            'Error creating pizza.',
+        )
 
+    return success_response(
+        {
+            'pizza': PizzaResponse.from_model(
+                pizza,
+                image_url=image_url
+            ).model_dump(mode='json')
+        }
+    )
 
-@router.patch("/{id}")
+#
+# PUT: /pizzas/{pizza_id}
+#
+@router.put(
+    '/pizzas/{pizza_id}',
+    status_code=status.HTTP_200_OK,
+    response_model=JSendSuccessResponse
+)
 def update_pizza(
+    pizza_id: UUID,
     payload: PizzaUpdateRequest,
-    pizza_id: int = Path(alias="id", ge=1),
-    service: PizzaService = Depends(get_pizza_service),
-    _: None = Depends(require_admin),
-) -> dict:
+    _: UUID = Depends(get_current_admin_id),
+    service: PizzaService = Depends(get_pizza_service)
+) -> JSendSuccessResponse | JSONResponse:
     """
-    Atualiza dados de uma pizza existente em operação administrativa.
+    Atualiza os dados de uma pizza.
+
+    Esta operação é restrita a usuários com privilégios
+    administrativos.
 
     Args:
-        payload: Campos validados enviados para atualização.
-        pizza_id: Identificador da pizza extraído do caminho da requisição.
-        service: Serviço de domínio usado para atualizar pizzas.
-        _: Dependência que valida permissão administrativa.
+        pizza_id: Identificador UUID da pizza que será atualizada.
+        payload: Dados permitidos para atualização da pizza.
+        service: Serviço responsável pelos casos de uso relacionados
+            às pizzas.
 
     Returns:
-        Dicionário JSend com a pizza atualizada ou falha de não encontrado.
+        Resposta no padrão JSend contendo os dados atualizados da pizza.
+        Caso a pizza não exista, retorna uma resposta JSend com status
+        HTTP 404. Em caso de falha durante a atualização, retorna uma
+        resposta JSend com status HTTP 500.
     """
 
     try:
-        pizza = service.update_pizza(pizza_id, payload)
+        pizza, image_url = service.update(
+            pizza_id,
+            payload
+        )
     except PizzaNotFoundError:
         return fail_response(
             status.HTTP_404_NOT_FOUND,
-            "PIZZA_NOT_FOUND",
-            "Pizza not found",
-            field="id",
+            'PIZZA_NOT_FOUND',
+            'Pizza not found.'
+        )
+    except PizzaUpdateError:
+        return fail_response(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            'PIZZA_UPDATE_ERROR',
+            'Error updating pizza.',
         )
 
-    return {
-        "status": "success",
-        "data": {"pizza": pizza.model_dump(mode="json")},
-    }
+    return success_response(
+        {
+            'pizza': PizzaResponse.from_model(
+                pizza,
+                image_url=image_url
+            ).model_dump(mode='json')
+        }
+    )
 
-
-@router.delete("/{id}")
+#
+# DELETE: /pizzas/{pizza_id}
+#
+@router.delete(
+    '/pizzas/{pizza_id}',
+    status_code=status.HTTP_200_OK,
+    response_model=JSendSuccessResponse
+)
 def delete_pizza(
-    pizza_id: int = Path(alias="id", ge=1),
-    service: PizzaService = Depends(get_pizza_service),
-    _: None = Depends(require_admin),
-) -> dict:
+    pizza_id: UUID,
+    _: UUID = Depends(get_current_admin_id),
+    service: PizzaService = Depends(get_pizza_service)
+) -> JSendSuccessResponse | JSONResponse:
     """
-    Remove uma pizza do catálogo em operação administrativa.
+    Remove uma pizza.
+
+    Esta operação é restrita a usuários com privilégios
+    administrativos.
 
     Args:
-        pizza_id: Identificador da pizza extraído do caminho da requisição.
-        service: Serviço de domínio usado para remover pizzas.
-        _: Dependência que valida permissão administrativa.
+        pizza_id: Identificador UUID da pizza que será removida.
+        service: Serviço responsável pelos casos de uso relacionados
+            às pizzas.
 
     Returns:
-        Dicionário JSend com sucesso ou falha de não encontrado.
+        Resposta no padrão JSend indicando o resultado da operação.
+        Caso a pizza não exista, retorna uma resposta JSend com status
+        HTTP 404. Em caso de falha durante a remoção, retorna uma
+        resposta JSend com status HTTP 500.
     """
 
     try:
-        service.delete_pizza(pizza_id)
+        service.delete(pizza_id=pizza_id)
     except PizzaNotFoundError:
         return fail_response(
             status.HTTP_404_NOT_FOUND,
-            "PIZZA_NOT_FOUND",
-            "Pizza not found",
-            field="id",
+            'PIZZA_NOT_FOUND',
+            'Pizza not found.'
+        )
+    except PizzaDeletionError:
+        return fail_response(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            'PIZZA_DELETION_ERROR',
+            'Error deleting pizza.'
         )
 
-    return {"status": "success", "data": None}
+    return success_response(
+        {
+            'message': 'Pizza deleted successfully.',
+        }
+    )

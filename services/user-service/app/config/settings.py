@@ -19,8 +19,10 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # Persistência
-    persistence_provider: str
-    database_url: str
+    persistence_provider: str = 'sqlalchemy'
+
+    # SQLAlchemy
+    database_url: str | None = None
 
     # Mensageria
     messaging_provider: str
@@ -51,10 +53,12 @@ class Settings(BaseSettings):
     # Refresh token
     refresh_token_expiration_days: int = 30
 
+    # Logging
+    log_level: str = 'INFO'
+    oci_log_id: str | None = None
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-
 
 settings = get_settings()

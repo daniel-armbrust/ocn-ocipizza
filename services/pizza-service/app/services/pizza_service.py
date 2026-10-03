@@ -1,112 +1,312 @@
-from __future__ import annotations
+#
+# services/pizza_service.py
+#
 
-from typing import List
+from uuid import UUID
+from uuid import uuid4
 
-from app.models.pizza_model import Pizza
+from fastapi import Depends
+
+from app.exceptions.pizza_exception import (
+    PizzaCreationError,
+    PizzaDeletionError,
+    PizzaNotFoundError,
+    PizzaQueryError,
+    PizzaUpdateError
+)
+
+from app.models.pizza import Pizza
+
 from app.repositories.pizza_repository import PizzaRepository
-from app.schemas.pizza_schema import PizzaCreateRequest, PizzaUpdateRequest
+from app.dependencies.database import get_pizza_repository
 
+from app.dependencies.database import UnitOfWork, get_unit_of_work
 
-class PizzaNotFoundError(Exception):
-    """Erro lançado quando uma pizza não é encontrada."""
+from app.schemas.pizza_schema import (
+    PizzaCategory,
+    PizzaCreateRequest,
+    PizzaUpdateRequest
+)
 
-    pass
+from app.services.objectstorage_service import (
+    ObjectStorageService, 
+    get_objectstorage_service
+)
+
+from app.utils.utils import now_utc
 
 
 class PizzaService:
-    """Implementa os casos de uso do domínio de catálogo de pizzas."""
+    """
+    Serviço responsável pelos casos de uso relacionados às pizzas.
 
-    def __init__(self, repository: PizzaRepository) -> None:
+    Esta camada concentra as regras de negócio utilizadas para criação,
+    consulta, atualização e remoção das pizzas.
+
+    O serviço não possui conhecimento sobre a tecnologia utilizada
+    para persistência dos dados. O acesso aos dados é realizado através
+    da abstração `PizzaRepository`.
+    """
+
+    def __init__(self, 
+                 pizza_repository: PizzaRepository,
+                 unit_of_work: UnitOfWork,
+                 objectstorage_service: ObjectStorageService) -> None:
         """
-        Inicializa o serviço de catálogo de pizzas.
+        Inicializa o serviço responsável pelos casos de uso
+        relacionados às pizzas.
 
         Args:
-            repository: Repositório usado para persistir e consultar pizzas.
-        """
-
-        self.repository = repository
-
-    def list_available_pizzas(self) -> List[Pizza]:
-        """
-        Lista pizzas disponíveis para apresentação no catálogo.
+            pizza_repository: Repositório utilizado para persistir
+                e consultar os dados das pizzas.
 
         Returns:
-            Lista de pizzas marcadas como disponíveis.
+            None.
         """
 
-        return self.repository.list_available()
+        self.pizza_repository = pizza_repository
+        self.unit_of_work = unit_of_work
+        self.objectstorage_service = objectstorage_service
 
-    def get_pizza(self, pizza_id: int) -> Pizza:
+    def get_all(self,
+                    category: PizzaCategory | None = None,
+                    available: bool | None = None,
+                    limit: int = 10,
+                    offset: int = 0) -> list[tuple[Pizza, str]]:
         """
-        Retorna uma pizza pelo identificador.
+        Retorna as pizzas cadastradas de acordo com os filtros informados.
 
         Args:
-            pizza_id: Identificador da pizza consultada.
+            category: Categoria utilizada para filtrar as pizzas.
+            available: Filtra pizzas de acordo com sua disponibilidade.
+            limit: Quantidade máxima de pizzas retornadas.
+            offset: Quantidade de registros ignorados antes do retorno.
 
         Returns:
-            Pizza encontrada no catálogo.
+            Lista contendo as pizzas encontradas.
 
         Raises:
-            PizzaNotFoundError: Se nenhuma pizza existir para o identificador.
+            PizzaQueryError: Caso ocorra uma falha durante a consulta
+                das pizzas.
         """
 
-        pizza = self.repository.get_by_id(pizza_id)
+        try:
+            pizzas = self.pizza_repository.get_all(
+                category=category,
+                available=available,
+                limit=limit,
+                offset=offset
+            )
 
-        if pizza is None:
-            raise PizzaNotFoundError
+            return [
+                (
+                    pizza,
+                    self.objectstorage_service.get_object_url(
+                        pizza.image_name
+                    )
+                )
+                for pizza in pizzas
+            ]
+        except Exception as ex:
+            raise PizzaQueryError('Error retrieving pizzas.') from ex
 
-        return pizza
-
-    def create_pizza(self, payload: PizzaCreateRequest) -> Pizza:
+    def get_by_id(self, pizza_id: UUID) -> tuple[Pizza, str]:
         """
-        Cria uma pizza a partir do contrato de entrada da API.
+        Retorna uma pizza através de seu identificador.
 
         Args:
-            payload: Dados validados para criação da pizza.
+            pizza_id: Identificador UUID da pizza.
 
         Returns:
-            Pizza criada no catálogo.
+            Pizza encontrada.
+
+        Raises:
+            PizzaNotFoundError: Caso a pizza não seja encontrada.
+            PizzaQueryError: Caso ocorra uma falha durante a consulta.
         """
 
-        pizza = Pizza(**payload.model_dump())
+        try:
+            pizza = self.pizza_repository.get_by_id(pizza_id)
+        except Exception as ex:
+            raise PizzaQueryError(
+                'Error retrieving pizza.'
+            ) from ex
 
-        return self.repository.create(pizza)
+        if pizza is None:
+            raise PizzaNotFoundError('Pizza not found.')
 
-    def update_pizza(self, pizza_id: int, payload: PizzaUpdateRequest) -> Pizza:
+        image_url = self.object_storage_service.get_object_url(
+            pizza.image_name
+        )
+
+        return pizza, image_url
+
+    def create(self, payload: PizzaCreateRequest) -> tuple[Pizza, str]:
         """
-        Atualiza parcialmente uma pizza existente.
+        Cria uma nova pizza.
 
         Args:
-            pizza_id: Identificador da pizza que será atualizada.
-            payload: Campos validados enviados para atualização.
+            payload: Dados necessários para criação da pizza.
+
+        Returns:
+            Pizza criada.
+
+        Raises:
+            PizzaCreationError: Caso ocorra uma falha durante
+                a criação da pizza.
+        """
+
+        now = now_utc()
+
+        # Cria o modelo da aplicação a partir dos dados recebidos
+        # pela camada HTTP.
+        pizza = Pizza(
+            id=uuid4(),
+            name=payload.name,
+            description=payload.description,
+            category=payload.category,
+            price=payload.price,
+            image_name=payload.image_name,
+            available=payload.available,
+            created_at=now,
+            updated_at=now
+        )
+
+        try:
+            pizza = self.pizza_repository.create(pizza)
+            self.unit_of_work.commit()
+        except Exception as exc:
+            self.unit_of_work.rollback()
+            raise PizzaCreationError('Failed to create pizza.') from exc
+
+        # A URL da imagem é derivada somente após a persistência.
+        # Ela não é armazenada junto com a pizza.
+        image_url = self.object_storage_service.get_object_url(
+            pizza.image_name
+        )
+
+        return pizza, image_url
+
+    def update(self, 
+               pizza_id: UUID, 
+               payload: PizzaUpdateRequest) -> tuple[Pizza, str]:
+        """
+        Atualiza os dados de uma pizza.
+
+        Somente os campos informados na requisição são alterados.
+        Os demais valores permanecem inalterados.
+
+        Args:
+            pizza_id: Identificador UUID da pizza que será atualizada.
+            payload: Dados permitidos para atualização da pizza.
 
         Returns:
             Pizza atualizada.
 
         Raises:
-            PizzaNotFoundError: Se a pizza informada não existir.
+            PizzaNotFoundError: Caso a pizza não seja encontrada.
+            PizzaUpdateError: Caso ocorra uma falha durante
+                a atualização da pizza.
         """
 
-        values = payload.model_dump(exclude_unset=True)
-        pizza = self.repository.update(pizza_id, values)
+        try:
+            pizza = self.pizza_repository.get_by_id(pizza_id)
+        except Exception as exc:
+            # Converte falhas técnicas da consulta em uma exceção
+            # específica do caso de uso de atualização.
+            raise PizzaUpdateError(
+                'Failed to query pizza for update.'
+            ) from exc
 
+        # Interrompe a operação caso a pizza não exista.
         if pizza is None:
-            raise PizzaNotFoundError
+            raise PizzaNotFoundError()
 
-        return pizza
+        # Obtém somente os campos efetivamente enviados na requisição.
+        update_data = payload.model_dump(exclude_unset=True)
 
-    def delete_pizza(self, pizza_id: int) -> None:
+        # Atualiza dinamicamente apenas os atributos enviados.
+        for field, value in update_data.items():
+            setattr(pizza, field, value)
+
+        # Registra a data da última modificação.
+        pizza.updated_at = now_utc()
+
+        try:
+            pizza = self.pizza_repository.update(pizza)
+            self.unit_of_work.commit()
+        except Exception as ex:
+            self.unit_of_work.rollback()
+            # Converte falhas técnicas da persistência em uma exceção
+            # específica do caso de uso de atualização.
+            raise PizzaUpdateError('Failed to update pizza.') from ex
+
+        # Constrói a URL completa da imagem somente após a persistência
+        # ter sido concluída com sucesso.
+        image_url = self.objectstorage_service.get_object_url(
+            pizza.image_name
+        )
+
+        return pizza, image_url
+
+    def delete(self, pizza_id: UUID) -> None:
         """
-        Remove uma pizza existente do catálogo.
+        Remove uma pizza.
 
         Args:
-            pizza_id: Identificador da pizza que será removida.
+            pizza_id: Identificador UUID da pizza que será removida.
+
+        Returns:
+            None.
 
         Raises:
-            PizzaNotFoundError: Se a pizza informada não existir.
+            PizzaNotFoundError: Caso a pizza não seja encontrada.
+            PizzaDeletionError: Caso ocorra uma falha durante
+                a remoção da pizza.
         """
 
-        deleted = self.repository.delete(pizza_id)
+        try:
+            pizza = self.pizza_repository.get_by_id(pizza_id)
+        except Exception as ex:
+            raise PizzaDeletionError(
+                'Error retrieving pizza for deletion.'
+            ) from ex
 
-        if not deleted:
-            raise PizzaNotFoundError
+        # Interrompe a operação caso a pizza não exista.
+        if pizza is None:
+            raise PizzaNotFoundError('Pizza not found.')
+
+        try:
+            self.pizza_repository.delete(pizza_id)
+            self.unit_of_work.commit()
+        except Exception as ex:
+            self.unit_of_work.rollback()
+            raise PizzaDeletionError('Error deleting pizza.') from ex
+
+
+def get_pizza_service(
+        pizza_repository: PizzaRepository = Depends(
+            get_pizza_repository
+        ),
+        unit_of_work: UnitOfWork = Depends(get_unit_of_work),
+        objectstorage_service: ObjectStorageService = Depends(
+            get_objectstorage_service
+        )
+) -> PizzaService:
+    """
+    Fornece o serviço responsável pelos casos de uso relacionados
+    às pizzas.
+
+    Args:
+        pizza_repository: Repositório utilizado para persistir
+            e consultar os dados das pizzas.
+
+    Returns:
+        Instância de `PizzaService`.
+    """
+
+    return PizzaService(
+        pizza_repository=pizza_repository,
+        unit_of_work=unit_of_work,
+        objectstorage_service=objectstorage_service
+    )

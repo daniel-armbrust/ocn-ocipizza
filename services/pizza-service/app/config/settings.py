@@ -1,68 +1,50 @@
-from __future__ import annotations
+#
+# config/settings.py
+#
 
-import os
-import re
-from dataclasses import dataclass
 from functools import lru_cache
-from typing import Optional
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-_TABLE_NAME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file='.env',
+        env_file_encoding='utf-8',
+        extra='ignore'
+    )
 
+    app_name: str = 'pizza-service'
+    app_env: str = 'development'
+    debug: bool = False
 
-@dataclass(frozen=True)
-class Settings:
-    """Representa as configurações de execução do `pizza-service`."""
+    # Persistência
+    persistence_provider: str = 'nosql'
 
-    environment: str
-    oci_region: str
-    nosql_endpoint: Optional[str]
-    nosql_table: str
-    nosql_compartment_id: Optional[str]
-    oci_config_file: str
-    oci_config_profile: str
+    # Oracle NoSQL
+    nosql_table_name: str = 'pizzas'
+    nosql_endpoint: str | None = None
+    nosql_compartment_id: str | None = None
 
-    @property
-    def is_development(self) -> bool:
-        """Indica se o serviço está executando em ambiente de desenvolvimento."""
+    # SQLAlchemy
+    database_url: str | None = None
 
-        return self.environment == "development"
+    # JWT
+    jwt_issuer: str = 'user-service'
+    jwt_audience: str = 'oci-pizza'
+    jwt_jwks_url: str = 'http://user-service:8000/.well-known/jwks.json'
 
-    @property
-    def is_production(self) -> bool:
-        """Indica se o serviço está executando em ambiente de produção."""
+    # Object Storage
+    objectstorage_endpoint: str | None = None
+    objectstorage_namespace: str | None = None
+    objectstorage_bucket: str | None = None
 
-        return self.environment == "production"
-
-
-def _getenv(name: str, default: Optional[str] = None) -> Optional[str]:
-    """Lê uma variável de ambiente e aplica valor padrão quando estiver vazia."""
-
-    value = os.getenv(name)
+    # Logging
+    log_level: str = 'INFO'
+    oci_log_id: str | None = None
     
-    if value is None or value == "":
-        return default
-
-    return value
-
-
 @lru_cache
 def get_settings() -> Settings:
-    """Carrega e valida as configurações do `pizza-service`."""
+    return Settings()
 
-    table_name = _getenv("OCI_NOSQL_TABLE", "pizzas")
-
-    if table_name is None or _TABLE_NAME_PATTERN.match(table_name) is None:
-        raise ValueError("OCI_NOSQL_TABLE must be a valid NoSQL table name")
-
-    return Settings(
-        environment=_getenv("ENVIRONMENT", "development") or "development",
-        
-        nosql_endpoint=_getenv("OCI_NOSQL_ENDPOINT"),
-        nosql_table=table_name,
-        nosql_compartment_id=_getenv("OCI_NOSQL_COMPARTMENT_ID"),
-
-        oci_region=_getenv("OCI_REGION", "sa-saopaulo-1") or "sa-saopaulo-1",
-        oci_config_file=_getenv("OCI_CONFIG_FILE", "~/.oci/config") or "~/.oci/config",
-        oci_config_profile=_getenv("OCI_CONFIG_PROFILE", "DEFAULT") or "DEFAULT",
-    )
+settings = get_settings()

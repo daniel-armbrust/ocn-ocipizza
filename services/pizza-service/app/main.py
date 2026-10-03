@@ -1,76 +1,106 @@
+#
+# main.py
+#
+
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.config.logging import configure_logging
+
 from app.routes.pizza_routes import router as pizza_router
 
+from app.responses.jsend import fail_response
+
 app = FastAPI(
-    title="OCI Pizza - Pizza Service API",
-    version="1.0.0",
+    title='OCI Pizza - Pizza Service API',
+    version='1.0.0'
 )
+
+configure_logging()
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(
-    request: Request,
-    exc: RequestValidationError,
-) -> JSONResponse:
-    """Converte erros de validação do FastAPI para resposta JSend fail."""
+    request: Request, 
+    ex: RequestValidationError) -> JSONResponse:
+    """
+    Converte erros de validação do FastAPI para o padrão JSend fail.
 
-    error = exc.errors()[0]
-    location = error.get("loc", [])
-    field = str(location[-1]) if location else "request"
+    Args:
+        request: Requisição HTTP que originou o erro de validação.
+        exc: Exceção de validação emitida pelo FastAPI/Pydantic.
 
-    return JSONResponse(
+    Returns:
+        Resposta JSON JSend `fail` com o primeiro erro de validação.
+    """
+
+    error = ex.errors()[0]
+    location = error.get('loc', [])
+    field = str(location[-1]) if location else 'request'
+
+    return fail_response(
         status_code=status.HTTP_400_BAD_REQUEST,
-        content={
-            "status": "fail",
-            "data": {
-                "field": field,
-                "code": "VALIDATION_ERROR",
-                "message": error.get("msg", "Invalid request"),
-            },
-        },
+        code='VALIDATION_ERROR',
+        message=error.get('msg', 'Invalid request'),
+        field=field
     )
 
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(
-    request: Request,
-    exc: HTTPException,
-) -> JSONResponse:
-    """Converte exceções HTTP conhecidas para resposta JSend error."""
+    request: Request, 
+    ex: HTTPException) -> JSONResponse:
+    """
+    Converte exceções HTTP conhecidas para o padrão JSend fail.
 
-    if isinstance(exc.detail, dict):
-        return JSONResponse(
-            status_code=exc.status_code,
-            content={"status": "error", "message": exc.detail["message"]},
-        )
+    Args:
+        request: Requisição HTTP que originou a exceção.
+        exc: Exceção HTTP lançada por dependências, rotas ou serviços.
 
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"status": "error", "message": str(exc.detail)},
+    Returns:
+        Resposta JSON JSend `fail` preservando o status HTTP da exceção.
+    """
+
+    return fail_response(
+        status_code=ex.status_code,
+        code='HTTP_ERROR',
+        message=str(ex.detail)
     )
 
 
 @app.exception_handler(Exception)
 async def unexpected_exception_handler(
-    request: Request,
-    exc: Exception,
-) -> JSONResponse:
-    """Oculta falhas inesperadas e retorna resposta JSend error genérica."""
+    request: Request, 
+    ex: Exception) -> JSONResponse:
+    """
+    Oculta detalhes de erros inesperados e retorna resposta JSend fail.
 
-    return JSONResponse(
+    Args:
+        request: Requisição HTTP que originou a falha inesperada.
+        exc: Exceção não tratada durante o processamento da requisição.
+
+    Returns:
+        Resposta JSON JSend `fail` genérica com HTTP 500.
+    """
+
+    return fail_response(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"status": "error", "message": "Internal server error"},
+        code='INTERNAL_SERVER_ERROR',
+        message='Internal server error.'
     )
 
 
-@app.get("/health")
+@app.get('/health')
 def health_check() -> dict:
-    """Retorna o estado básico de saúde do `pizza-service`."""
+    """
+    Retorna o estado básico de saúde do `pizza-service`.
 
-    return {"status": "success", "data": {"service": "pizza-service"}}
+    Returns:
+        Dicionário JSend simples identificando o serviço ativo.
+    """
+
+    return {'status': 'success', 'data': {'service': 'pizza-service'}}
 
 
 app.include_router(pizza_router)

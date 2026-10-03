@@ -6,20 +6,6 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 
-def normalize_email(email: str) -> str:
-    """
-    Normaliza e-mails para comparação e persistência consistentes.
-
-    Args:
-        email: Endereço de e-mail recebido pela aplicação.
-
-    Returns:
-        E-mail sem espaços nas bordas e em letras minúsculas.
-    """
-
-    return email.strip().lower()
-
-
 def now_utc() -> datetime:
     """
     Retorna a data e hora atual em UTC.

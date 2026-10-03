@@ -6,19 +6,28 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.config.logging import configure_logging
+
 from app.routes.user_routes import router as user_router
 from app.routes.user_password_routes import router as user_password_router
 from app.routes.user_authentication_routes import router as user_authentication_router
 from app.routes.jwks_routes import router as jwks_router
 from app.routes.user_admin_routes import router as user_admin_router
 
+from app.responses.jsend import fail_response
+
 app = FastAPI(
     title='OCI Pizza - User Service API',
     version='1.0.0'
 )
 
+configure_logging()
+
+
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, ex: RequestValidationError) -> JSONResponse:
+async def validation_exception_handler(
+    request: Request, 
+    ex: RequestValidationError) -> JSONResponse:
     """
     Converte erros de validação do FastAPI para o padrão JSend fail.
 
@@ -34,58 +43,59 @@ async def validation_exception_handler(request: Request, ex: RequestValidationEr
     location = error.get('loc', [])
     field = str(location[-1]) if location else 'request'
 
-    return JSONResponse(
+    return fail_response(
         status_code=status.HTTP_400_BAD_REQUEST,
-        content={
-            'status': 'fail',
-            'data': {
-                'field': field,
-                'code': 'VALIDATION_ERROR',
-                'message': error.get('msg', 'Invalid request')
-            },
-        }
+        code='VALIDATION_ERROR',
+        message=error.get('msg', 'Invalid request'),
+        field=field
     )
 
 
 @app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, ex: HTTPException) -> JSONResponse:
+async def http_exception_handler(
+    request: Request, 
+    ex: HTTPException) -> JSONResponse:
     """
-    Converte exceções HTTP conhecidas para o padrão JSend error.
+    Converte exceções HTTP conhecidas para o padrão JSend fail.
 
     Args:
         request: Requisição HTTP que originou a exceção.
         exc: Exceção HTTP lançada por dependências, rotas ou serviços.
 
     Returns:
-        Resposta JSON JSend `error` preservando o status HTTP da exceção.
+        Resposta JSON JSend `fail` preservando o status HTTP da exceção.
     """
 
-    return JSONResponse(
+    return fail_response(
         status_code=ex.status_code,
-        content={'status': 'error', 'message': str(ex.detail)}
+        code='HTTP_ERROR',
+        message=str(ex.detail)
     )
 
 
 @app.exception_handler(Exception)
-async def unexpected_exception_handler(request: Request, ex: Exception) -> JSONResponse:
+async def unexpected_exception_handler(
+    request: Request, 
+    ex: Exception) -> JSONResponse:
     """
-    Oculta detalhes de erros inesperados e retorna resposta JSend error.
+    Oculta detalhes de erros inesperados e retorna resposta JSend fail.
 
     Args:
         request: Requisição HTTP que originou a falha inesperada.
         exc: Exceção não tratada durante o processamento da requisição.
 
     Returns:
-        Resposta JSON JSend `error` genérica com HTTP 500.
+        Resposta JSON JSend `fail` genérica com HTTP 500.
     """
 
-    return JSONResponse(
+    return fail_response(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={'status': 'error', 'message': 'Internal server error'}
+        code='INTERNAL_SERVER_ERROR',
+        message='Internal server error.'
     )
 
 
-@app.get("/health")
+@app.get('/health')
 def health_check() -> dict:
     """
     Retorna o estado básico de saúde do `user-service`.

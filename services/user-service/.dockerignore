@@ -1,37 +1,54 @@
+# Bytecode e caches Python
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
 
+# Ambientes virtuais
 .venv/
 venv/
 env/
 
+# Configurações locais e credenciais
 .env
 .env.*
-!.env.example
+.oci/
+secrets/
+*.pem
+*.key
 
+# Controle de versão
 .git/
 .gitignore
 
+# Testes, cobertura e caches de ferramentas
+tests/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.tox/
+.nox/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
 
+# IDEs e arquivos do sistema operacional
 .idea/
 .vscode/
+.DS_Store
+Thumbs.db
 
+# Logs e artefatos de build
 *.log
-
 dist/
 build/
 *.egg-info/
 
-tests/
-docs/
-
+# Arquivos usados somente no desenvolvimento
 README.md
 AGENTS.md
 PLANS.md
+docs/
+bootstrap.sh
+seeds/

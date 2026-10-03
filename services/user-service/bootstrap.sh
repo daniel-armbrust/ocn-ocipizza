@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# bootstrap.sh
+# bootstrap.sh - user-service
 #
 # Script de inicialização do ambiente de desenvolvimento do user-service.
 #
@@ -120,7 +120,6 @@ display_step 'Preparando o ambiente virtual Python'
 
 if [ ! -d "$VENV_DIR" ]; then
     echo 'Criando ambiente virtual Python...'
-
     python3.11 -m venv "$VENV_DIR"
 else
     echo 'Ambiente virtual Python já existe.'
@@ -167,18 +166,19 @@ fi
 display_step 'Configurando o arquivo .env do ambiente local'
 
 if [ ! -f "$ENV_FILE" ]; then
-
-    echo 'Criando arquivo .env de desenvolvimento...'
+    echo 'Criando arquivo .env para desenvolvimento local...'
 
     cat > "$ENV_FILE" <<EOF
 APP_NAME=user-service
 APP_ENV=development
 DEBUG=true
 
+# Persistência
 PERSISTENCE_PROVIDER=sqlalchemy
 
 DATABASE_URL=mysql+pymysql://${DATABASE_USER}:${DATABASE_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${DATABASE_NAME}
 
+# Mensageria
 MESSAGING_PROVIDER=rabbitmq
 
 RABBITMQ_HOST=127.0.0.1
@@ -187,6 +187,7 @@ RABBITMQ_USERNAME=oci_pizza
 RABBITMQ_PASSWORD=oci_pizza
 RABBITMQ_QUEUE_NAME=notifications
 
+# JWT
 JWT_ISSUER=user-service
 JWT_AUDIENCE=oci-pizza
 EOF
@@ -194,6 +195,14 @@ EOF
 else
     echo 'Arquivo .env já existe. Nenhuma alteração será realizada.'
 fi
+
+# Carregamento das variáveis do .env
+
+echo "Carregando configurações do ambiente..."
+
+set -a
+source .env
+set +a
 
 # Verifica se os clientes do MySQL estão disponíveis.
 
@@ -296,7 +305,7 @@ if config.config_file_name is not None:
 
 config.set_main_option(
     'sqlalchemy.url',
-    settings.database_url,
+    settings.database_url
 )
 
 #
@@ -317,7 +326,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={
-            'paramstyle': 'named',
+            'paramstyle': 'named'
         },
     )
 
@@ -332,17 +341,17 @@ def run_migrations_online() -> None:
     connectable = engine_from_config(
         config.get_section(
             config.config_ini_section,
-            {},
+            {}
         ),
         prefix='sqlalchemy.',
-        poolclass=pool.NullPool,
+        poolclass=pool.NullPool
     )
 
     with connectable.connect() as connection:
 
         context.configure(
             connection=connection,
-            target_metadata=target_metadata,
+            target_metadata=target_metadata
         )
 
         with context.begin_transaction():
@@ -362,7 +371,6 @@ fi
 display_step 'Verificando as migrations do Alembic'
 
 if ! find alembic/versions -maxdepth 1 -type f -name '*.py' | grep -q .; then
-
     echo 'Nenhuma migration encontrada.'
     echo 'Gerando migration inicial do user-service...'
 
