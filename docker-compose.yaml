@@ -18,10 +18,12 @@ services:
       PERSISTENCE_PROVIDER: nosql
 
       NOSQL_ENDPOINT: http://nosql:8080
-      NOSQL_TABLE: pizzas
+      NOSQL_TABLE_NAME: pizzas
 
       OBJECTSTORAGE_ENDPOINT: http://object-storage:9000
       OBJECTSTORAGE_BUCKET: pizza-images
+      OBJECTSTORAGE_ACCESS_KEY: minioadmin
+      OBJECTSTORAGE_SECRET_KEY: minioadmin
 
       JWT_ISSUER: user-service
       JWT_AUDIENCE: oci-pizza
@@ -29,6 +31,7 @@ services:
     depends_on:
       - nosql
       - object-storage
+      - user-service
 
   # Microserviço responsável pelo ciclo de vida dos usuários.
   # Persiste dados no MySQL e publica notificações no RabbitMQ

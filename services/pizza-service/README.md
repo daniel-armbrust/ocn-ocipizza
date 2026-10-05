@@ -24,10 +24,15 @@ script `bootstrap.sh`.
 
 | Componente | Responsabilidade |
 | --- | --- |
-| Oracle NoSQL | Provider padrão de persistência do catálogo de pizzas. |
-| MySQL | Provider relacional selecionado por meio do SQLAlchemy. |
+| Oracle NoSQL | Provider primário e padrão de persistência do catálogo de pizzas. |
+| MySQL | Provider alternativo de persistência, acessado por meio do SQLAlchemy. |
 | Object Storage | Armazena os arquivos de imagem referenciados pelo campo `image_name`. |
 | `user-service` | Publica o JWKS utilizado para validar access tokens JWT nas operações administrativas. |
+
+O serviço utiliza somente um provider de persistência por execução. Oracle
+NoSQL é a implementação principal e a configuração padrão; MySQL com
+SQLAlchemy é uma segunda opção suportada, selecionada explicitamente pela
+configuração do serviço.
 
 O `pizza-service` não acessa diretamente os dados pertencentes a outros
 microsserviços.
@@ -40,10 +45,11 @@ As bibliotecas Python são instaladas a partir do arquivo `requirements.txt`:
 | --- | --- | --- |
 | FastAPI | 0.141.1 | Implementação da API REST e injeção de dependências. |
 | pydantic-settings | 2.10.1 | Leitura e validação das configurações de ambiente. |
-| SQLAlchemy | 2.0.43 | Mapeamento ORM e acesso ao provider relacional. |
-| Alembic | 1.16.5 | Versionamento do schema relacional. |
-| PyMySQL | 1.1.2 | Driver de conexão entre SQLAlchemy e MySQL. |
+| SQLAlchemy | 2.0.43 | Mapeamento ORM do provider relacional alternativo. |
+| Alembic | 1.16.5 | Versionamento do schema relacional alternativo. |
+| PyMySQL | 1.1.2 | Driver do provider alternativo MySQL. |
 | OCI SDK | 2.160.3 | Integração com serviços da Oracle Cloud Infrastructure. |
+| MinIO | 7.2.20 | Integração com o Object Storage local em desenvolvimento. |
 | borneo | 5.4.3 | SDK de acesso ao Oracle NoSQL Database. |
 | PyJWT com extra `crypto` | `>=2.10,<3` | Validação de access tokens JWT assinados. |
 
@@ -59,7 +65,8 @@ prepara o provider de persistência selecionado e inclui pizzas de demonstraçã
 - Python 3.11
 - Oracle NoSQL local disponível na porta `18080`, quando o provider for `nosql`
 - MySQL disponível, quando o provider for `sqlalchemy`
-- Object Storage com o bucket de imagens disponível
+- MinIO disponível na porta `9000`, com o bucket `pizza-images`, para o Object
+  Storage local
 
 Para iniciar a infraestrutura padrão a partir da raiz do monorepo, execute:
 
@@ -67,11 +74,11 @@ Para iniciar a infraestrutura padrão a partir da raiz do monorepo, execute:
 make development-infra
 ```
 
-Ou inicie somente o Oracle NoSQL:
+Ou inicie somente o Oracle NoSQL e o MinIO:
 
 ```bash
-docker compose up -d nosql
-docker compose ps nosql
+docker compose up -d nosql object-storage
+docker compose ps nosql object-storage
 ```
 
 ### Execução
@@ -122,19 +129,16 @@ O `.env` criado pelo bootstrap utiliza:
 - `PERSISTENCE_PROVIDER=nosql`
 - Tabela `pizzas`
 - Oracle NoSQL em `http://localhost:18080`
+- MinIO em `http://localhost:9000`
+- Bucket `pizza-images`
+- Credenciais locais do MinIO `minioadmin`/`minioadmin`
 - Emissor JWT `user-service`
 - Audiência JWT `oci-pizza`
 - JWKS em `http://localhost:8002/.well-known/jwks.json`
 
-Se o `.env` já existir, seu conteúdo é preservado.
-
-O bootstrap ainda não inclui a configuração do Object Storage no `.env`. Para
-que as rotas construam `image_url` em desenvolvimento, adicione manualmente:
-
-```dotenv
-OBJECTSTORAGE_ENDPOINT=http://localhost:9000
-OBJECTSTORAGE_BUCKET=pizza-images
-```
+Se o `.env` já existir, seu conteúdo é preservado. Nesse caso, confira se ele
+contém `OBJECTSTORAGE_ENDPOINT`, `OBJECTSTORAGE_BUCKET`,
+`OBJECTSTORAGE_ACCESS_KEY` e `OBJECTSTORAGE_SECRET_KEY`.
 
 ## Reconstruir a imagem Docker
 
@@ -148,18 +152,23 @@ docker compose ps pizza-service
 
 ## Persistência
 
-O provider é selecionado por `PERSISTENCE_PROVIDER`.
+Oracle NoSQL é o provider primário e padrão do `pizza-service`. Como alternativa,
+o serviço também pode persistir o catálogo no MySQL por meio do SQLAlchemy. O
+provider utilizado em cada execução é selecionado por `PERSISTENCE_PROVIDER`.
 
 ### Oracle NoSQL
 
 O valor `nosql` utiliza a tabela definida por `NOSQL_TABLE_NAME`. Em
 desenvolvimento, `NOSQL_ENDPOINT` é obrigatório. Fora do ambiente de
-desenvolvimento, a conexão utiliza Instance Principal e requer `OCI_REGION`.
+desenvolvimento, a aplicação opera em uma arquitetura multi-region. Cada
+instância do `pizza-service` acessa o Oracle NoSQL correspondente à região OCI
+em que está sendo executada. A conexão utiliza Instance Principal e a variável
+`OCI_REGION` é obrigatória para selecionar o endpoint regional do Oracle NoSQL.
 
 A tabela criada pelo bootstrap possui os campos `id`, `name`, `description`,
 `category`, `price`, `image_name`, `available`, `created_at` e `updated_at`.
 
-### SQLAlchemy
+### MySQL com SQLAlchemy — alternativa
 
 O valor `sqlalchemy` utiliza a conexão definida por `DATABASE_URL`. O bootstrap
 inicializa o Alembic, gera a migration inicial quando necessário e executa:
@@ -170,8 +179,14 @@ alembic upgrade head
 
 ## Object Storage e URLs das imagens
 
-O `ObjectStorageService` converte o valor persistido em `image_name` para a URL
+O `ObjectStorageService` envia, substitui e remove os arquivos de imagem no
+bucket. Ele também converte o valor persistido em `image_name` para a URL
 completa retornada em `image_url`.
+
+Na criação, o arquivo recebido no campo `image` é enviado ao Object Storage
+depois da persistência da pizza. Na atualização, uma nova imagem é enviada
+somente quando o campo `image` é informado; se o `image_name` também mudar, o
+objeto anterior é removido. Na exclusão, o serviço remove a pizza e sua imagem.
 
 Em desenvolvimento, a URL é formada pela combinação de
 `OBJECTSTORAGE_ENDPOINT`, `OBJECTSTORAGE_BUCKET` e o nome do objeto:
@@ -187,6 +202,12 @@ retorna:
 ```text
 http://localhost:9000/pizza-images/pizza-calabresa.jpg
 ```
+
+O cliente MinIO utiliza `OBJECTSTORAGE_ACCESS_KEY` e
+`OBJECTSTORAGE_SECRET_KEY` para autenticação. O `.env` criado pelo bootstrap e
+o `docker-compose.yaml` usam `minioadmin` para ambas as variáveis, de acordo com
+as credenciais do MinIO local. Essas credenciais são exclusivas do ambiente de
+desenvolvimento.
 
 Fora do ambiente de desenvolvimento, o serviço utiliza Instance Principal para
 obter a região OCI e constrói a URL a partir de `OBJECTSTORAGE_NAMESPACE`,
@@ -236,9 +257,10 @@ As operações administrativas esperam um access token JWT com a claim
 Authorization: Bearer <access_token>
 ```
 
-> Estado atual: a dependência `get_current_admin_id` ainda não implementa a
-> validação do token. Portanto, a proteção administrativa descrita nesta
-> seção representa o contrato esperado, mas ainda não é aplicada pela API.
+O token é validado com a chave pública correspondente ao `kid`, obtida no
+endpoint JWKS do `user-service`. A validação verifica a assinatura RS256, o
+emissor, a audiência e a expiração do token. Após a validação, a claim `sub`
+deve conter um UUID válido e a claim `is_admin` deve ser `true`.
 
 ### READ — Listar pizzas
 
@@ -283,16 +305,18 @@ curl --request POST \
   --url http://localhost:8001/pizzas \
   --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
   --header 'Accept: application/json' \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "name": "Margherita Especial",
-    "description": "Molho de tomate, mussarela e manjericão.",
-    "category": "vegetariana",
-    "price": 49.90,
-    "image_name": "pizza-margherita-especial.jpg",
-    "available": true
-  }'
+  --form 'name=Margherita Especial' \
+  --form 'description=Molho de tomate, mussarela e manjericão.' \
+  --form 'category=vegetariana' \
+  --form 'price=49.90' \
+  --form 'image_name=pizza-margherita-especial.jpg' \
+  --form 'available=true' \
+  --form 'image=@/caminho/pizza-margherita-especial.jpg;type=image/jpeg'
 ```
+
+A requisição utiliza `multipart/form-data`. Os dados da pizza são enviados como
+campos de formulário e o campo `image` contém o arquivo que será armazenado no
+Object Storage.
 
 | Campo | Regra |
 | --- | --- |
@@ -301,11 +325,13 @@ curl --request POST \
 | `category` | Obrigatório; `salgada`, `vegetariana` ou `doce`. |
 | `price` | Obrigatório; deve ser maior que zero. |
 | `image_name` | Obrigatório; entre 1 e 255 caracteres. |
+| `image` | Obrigatório; arquivo não vazio com um `Content-Type` de imagem. |
 | `available` | Opcional; o padrão é `true`. |
 
 O sucesso retorna `201 Created` e a pizza criada em `data.pizza`, incluindo
 `image_url`. Erros de validação retornam `400 Bad Request`; falhas de
-persistência ou construção da URL retornam `500 Internal Server Error`.
+persistência, upload da imagem ou construção da URL retornam `500 Internal
+Server Error`.
 
 ### UPDATE — Atualizar uma pizza
 
@@ -317,18 +343,23 @@ curl --request PUT \
   --url http://localhost:8001/pizzas/PIZZA_ID \
   --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
   --header 'Accept: application/json' \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "price": 54.90,
-    "available": true
-  }'
+  --form 'price=54.90' \
+  --form 'available=true' \
+  --form 'image_name=pizza-margherita-atualizada.jpg' \
+  --form 'image=@/caminho/pizza-margherita-atualizada.jpg;type=image/jpeg'
 ```
 
-Todos os campos de criação podem ser enviados e são opcionais. Quando
-informado, `price` deve ser maior que zero e possuir no máximo duas casas
-decimais. O sucesso retorna `200 OK`; pizza inexistente resulta em
-`404 Not Found`; falhas de persistência resultam em `500 Internal Server Error`.
-A resposta atualizada inclui `image_url`, recalculada a partir do `image_name`.
+A requisição utiliza `multipart/form-data`. Todos os campos da pizza são
+opcionais. O arquivo `image` também é opcional; quando enviado, deve ser não
+vazio e possuir um `Content-Type` de imagem. Se `image_name` for alterado junto
+com o arquivo, a nova imagem é armazenada com esse nome e a imagem anterior é
+removida do Object Storage.
+
+Quando informado, `price` deve ser maior que zero e possuir no máximo duas
+casas decimais. O sucesso retorna `200 OK`; pizza inexistente resulta em `404
+Not Found`; falhas de persistência ou de atualização da imagem resultam em `500
+Internal Server Error`. A resposta atualizada inclui `image_url`, recalculada a
+partir do `image_name`.
 
 ### DELETE — Excluir uma pizza
 
@@ -340,8 +371,8 @@ curl --request DELETE \
 ```
 
 O sucesso retorna `200 OK` e a mensagem `Pizza deleted successfully.`. Pizza
-inexistente resulta em `404 Not Found`; falhas de persistência resultam em
-`500 Internal Server Error`.
+inexistente resulta em `404 Not Found`; falhas de persistência ou de remoção da
+imagem resultam em `500 Internal Server Error`.
 
 ## Modelo retornado pela API
 
@@ -420,6 +451,7 @@ expõem detalhes internos e retornam `INTERNAL_SERVER_ERROR`.
 | `403 Forbidden` | Usuário autenticado sem privilégio administrativo. |
 | `404 Not Found` | Pizza não encontrada. |
 | `500 Internal Server Error` | Falha interna de consulta ou persistência. |
+| `503 Service Unavailable` | Endpoint JWKS indisponível durante a validação do token. |
 
 ## Configurações
 
@@ -428,25 +460,31 @@ expõem detalhes internos e retornam `INTERNAL_SERVER_ERROR`.
 | `APP_NAME` | `pizza-service` | Nome da aplicação. |
 | `APP_ENV` | `development` | Ambiente de execução. |
 | `DEBUG` | `false` | Ativa o modo de depuração. |
-| `PERSISTENCE_PROVIDER` | `nosql` | Provider `nosql` ou `sqlalchemy`. |
+| `PERSISTENCE_PROVIDER` | `nosql` | Provider de persistência: `nosql` (primário e padrão) ou `sqlalchemy` (alternativo). |
 | `NOSQL_TABLE_NAME` | `pizzas` | Nome da tabela Oracle NoSQL. |
 | `NOSQL_ENDPOINT` | — | Endpoint NoSQL utilizado em desenvolvimento. |
 | `NOSQL_COMPARTMENT_ID` | — | OCID do compartment relacionado ao NoSQL. |
 | `DATABASE_URL` | — | URL de conexão utilizada pelo SQLAlchemy. |
-| `OCI_REGION` | — | Região OCI usada fora de desenvolvimento. |
+| `OCI_REGION` | — | Região do Oracle NoSQL acessado pela instância; obrigatória fora de desenvolvimento. |
 | `JWT_ISSUER` | `user-service` | Emissor esperado no JWT. |
 | `JWT_AUDIENCE` | `oci-pizza` | Audiência esperada no JWT. |
 | `JWT_JWKS_URL` | `http://user-service:8000/.well-known/jwks.json` | URL das chaves públicas JWT. |
 | `OBJECTSTORAGE_ENDPOINT` | — | URL-base pública dos objetos em desenvolvimento. |
 | `OBJECTSTORAGE_NAMESPACE` | — | Namespace do OCI Object Storage fora de desenvolvimento. |
 | `OBJECTSTORAGE_BUCKET` | — | Nome do bucket de imagens. |
+| `OBJECTSTORAGE_ACCESS_KEY` | — | Chave de acesso do MinIO, obrigatória em desenvolvimento. |
+| `OBJECTSTORAGE_SECRET_KEY` | — | Chave secreta do MinIO, obrigatória em desenvolvimento. |
 | `LOG_LEVEL` | `INFO` | Nível de logging da aplicação. |
 | `OCI_LOG_ID` | — | OCID do Custom Log fora de desenvolvimento. |
 
 ## Documentação interativa
 
-Com o serviço em execução:
+Em `development`, o serviço disponibiliza:
 
 - Swagger UI: `http://localhost:8001/docs`
 - ReDoc: `http://localhost:8001/redoc`
 - OpenAPI JSON: `http://localhost:8001/openapi.json`
+
+Fora de `development`, esses três endpoints são desabilitados. O health check
+permanece disponível em `http://localhost:8001/health` para monitoramento da
+instância e deve ter sua exposição controlada pela infraestrutura.

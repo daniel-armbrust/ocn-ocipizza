@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     nosql_table_name: str = 'pizzas'
     nosql_endpoint: str | None = None
     nosql_compartment_id: str | None = None
+    oci_region: str | None = None
 
     # SQLAlchemy
     database_url: str | None = None
@@ -35,9 +36,13 @@ class Settings(BaseSettings):
     jwt_jwks_url: str = 'http://user-service:8000/.well-known/jwks.json'
 
     # Object Storage
-    objectstorage_endpoint: str | None = None
+    objectstorage_endpoint: str | None = 'http://minio:9000'
     objectstorage_namespace: str | None = None
     objectstorage_bucket: str | None = None
+
+    # Credenciais utilizadas apenas no ambiente de desenvolvimento
+    objectstorage_access_key: str | None = None
+    objectstorage_secret_key: str | None = None
 
     # Logging
     log_level: str = 'INFO'

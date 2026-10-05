@@ -5,7 +5,6 @@
 from datetime import timedelta
 from uuid import UUID
 from pathlib import Path
-import json
 
 import jwt
 
@@ -24,6 +23,8 @@ class JwtService:
     Este serviço não possui conhecimento sobre persistência, usuários
     ou refresh tokens.
     """
+
+    KEY_ID = 'user-service-key-1'
 
     def __init__(self,
                  private_key: str,
@@ -95,7 +96,8 @@ class JwtService:
         access_token = jwt.encode(
             payload,
             self.private_key,
-            algorithm='RS256'
+            algorithm='RS256',
+            headers={'kid': self.KEY_ID}
         )
 
         expires_in = int(
@@ -144,16 +146,20 @@ class JwtService:
             para validação dos access tokens.
         """
 
-        # Converte a chave pública RSA em uma representação JWK.
-        public_jwk = json.loads(
-            jwt.algorithms.RSAAlgorithm.to_jwk(self.public_key)
+        # Converte a chave pública PEM em um objeto RSA e depois
+        # em uma representação JWK.
+        rsa_algorithm = jwt.get_algorithm_by_name('RS256')
+        public_key = rsa_algorithm.prepare_key(self.public_key)
+        public_jwk = jwt.algorithms.RSAAlgorithm.to_jwk(
+            public_key,
+            as_dict=True
         )
 
         # Adiciona os metadados utilizados pelos consumidores
         # para identificar a finalidade e o algoritmo da chave.
         public_jwk.update(
             {
-                'kid': 'user-service-key-1',
+                'kid': self.KEY_ID,
                 'use': 'sig',
                 'alg': 'RS256'
             }

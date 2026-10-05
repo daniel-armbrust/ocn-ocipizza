@@ -128,10 +128,9 @@ def configure_logging() -> None:
 
         handler = OciLoggingHandler(
             log_id=settings.oci_log_id,
-            source='pizza-service'
+            source='user-service'
         )
 
     handler.setFormatter(formatter)
 
     root_logger.addHandler(handler)
-

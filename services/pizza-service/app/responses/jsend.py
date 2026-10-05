@@ -33,7 +33,8 @@ def fail_response(
     status_code: int,
     code: str,
     message: str,
-    field: str | None = None
+    field: str | None = None,
+    headers: dict[str, str] | None = None
 ) -> JSONResponse:
     """
     Cria uma resposta HTTP no formato JSend para falhas de validação ou regras de negócio.
@@ -45,6 +46,7 @@ def fail_response(
         code: Código interno utilizado para identificar o tipo da falha.
         message: Mensagem descritiva apresentada ao consumidor da API.
         field: Nome do campo relacionado à falha, quando aplicável.
+        headers: Cabeçalhos HTTP adicionais da resposta, quando aplicável.
 
     Returns:
         Resposta HTTP no formato JSend contendo os detalhes da falha.
@@ -64,6 +66,7 @@ def fail_response(
     # Retorna a resposta HTTP utilizando o formato JSend.
     return JSONResponse(
         status_code=status_code,
+        headers=headers,
         content={
             'status': 'fail',
             'data': data

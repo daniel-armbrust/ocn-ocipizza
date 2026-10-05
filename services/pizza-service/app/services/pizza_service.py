@@ -135,25 +135,30 @@ class PizzaService:
         if pizza is None:
             raise PizzaNotFoundError('Pizza not found.')
 
-        image_url = self.object_storage_service.get_object_url(
+        image_url = self.objectstorage_service.get_object_url(
             pizza.image_name
         )
 
         return pizza, image_url
 
-    def create(self, payload: PizzaCreateRequest) -> tuple[Pizza, str]:
+    def create(self,
+               payload: PizzaCreateRequest,
+               image_data: bytes,
+               content_type: str) -> tuple[Pizza, str]:
         """
-        Cria uma nova pizza.
+        Cria uma nova pizza e armazena sua respectiva imagem.
 
         Args:
-            payload: Dados necessários para criação da pizza.
+            payload: Dados utilizados para criação da pizza.
+            image_data: Conteúdo binário da imagem da pizza.
+            content_type: Tipo MIME da imagem.
 
         Returns:
-            Pizza criada.
+            Pizza criada e a respectiva URL de imagem.
 
         Raises:
-            PizzaCreationError: Caso ocorra uma falha durante
-                a criação da pizza.
+            PizzaCreationError: Caso ocorra uma falha durante a criação
+                da pizza.
         """
 
         now = now_utc()
@@ -175,74 +180,118 @@ class PizzaService:
         try:
             pizza = self.pizza_repository.create(pizza)
             self.unit_of_work.commit()
-        except Exception as exc:
+        except Exception as ex:
             self.unit_of_work.rollback()
-            raise PizzaCreationError('Failed to create pizza.') from exc
+            raise PizzaCreationError('Failed to create pizza.') from ex
 
-        # A URL da imagem é derivada somente após a persistência.
-        # Ela não é armazenada junto com a pizza.
-        image_url = self.object_storage_service.get_object_url(
+        try:
+            # Envia a imagem para o Object Storage somente após a
+            # persistência da pizza ter sido confirmada.
+            self.objectstorage_service.upload_object(
+                object_name=pizza.image_name,
+                data=image_data,
+                content_type=content_type
+            )
+        except Exception as ex:
+            # TODO: Implementar tratamento de inconsistência entre a criação
+            # da pizza e o upload da imagem no Object Storage, incluindo
+            # compensação, retry ou processamento assíncrono.
+            raise PizzaCreationError(
+                'Pizza created, but failed to upload image.'
+            ) from ex
+
+        # Obtém a URL correspondente ao objeto armazenado.
+        image_url = self.objectstorage_service.get_object_url(
             pizza.image_name
         )
 
         return pizza, image_url
 
-    def update(self, 
-               pizza_id: UUID, 
-               payload: PizzaUpdateRequest) -> tuple[Pizza, str]:
+    def update(self,
+               pizza_id: UUID,
+               payload: PizzaUpdateRequest,
+               image_data: bytes | None = None,
+               content_type: str | None = None) -> tuple[Pizza, str]:
         """
-        Atualiza os dados de uma pizza.
-
-        Somente os campos informados na requisição são alterados.
-        Os demais valores permanecem inalterados.
+        Atualiza os dados de uma pizza e, quando informado,
+        substitui sua imagem.
 
         Args:
-            pizza_id: Identificador UUID da pizza que será atualizada.
-            payload: Dados permitidos para atualização da pizza.
+            pizza_id: Identificador da pizza.
+            payload: Dados utilizados para atualização da pizza.
+            image_data: Conteúdo binário da nova imagem.
+            content_type: Tipo MIME da nova imagem.
 
         Returns:
-            Pizza atualizada.
+            Pizza atualizada e a respectiva URL de imagem.
 
         Raises:
             PizzaNotFoundError: Caso a pizza não seja encontrada.
-            PizzaUpdateError: Caso ocorra uma falha durante
-                a atualização da pizza.
+            PizzaUpdateError: Caso ocorra uma falha durante a atualização.
         """
 
         try:
+            # Consulta a pizza atualmente persistida.
             pizza = self.pizza_repository.get_by_id(pizza_id)
-        except Exception as exc:
-            # Converte falhas técnicas da consulta em uma exceção
-            # específica do caso de uso de atualização.
-            raise PizzaUpdateError(
-                'Failed to query pizza for update.'
-            ) from exc
 
-        # Interrompe a operação caso a pizza não exista.
-        if pizza is None:
-            raise PizzaNotFoundError()
+            if pizza is None:
+                raise PizzaNotFoundError()
 
-        # Obtém somente os campos efetivamente enviados na requisição.
-        update_data = payload.model_dump(exclude_unset=True)
+            # Mantém o nome da imagem atual para permitir sua remoção
+            # caso uma nova imagem seja enviada.
+            previous_image_name = pizza.image_name
 
-        # Atualiza dinamicamente apenas os atributos enviados.
-        for field, value in update_data.items():
-            setattr(pizza, field, value)
+            # Obtém somente os campos efetivamente enviados.
+            update_data = payload.model_dump(exclude_unset=True)
 
-        # Registra a data da última modificação.
-        pizza.updated_at = now_utc()
+            # Atualiza apenas os atributos informados na requisição.
+            for field, value in update_data.items():
+                setattr(pizza, field, value)
 
-        try:
+            pizza.updated_at = now_utc()
+
+            # Persiste as alterações.
             pizza = self.pizza_repository.update(pizza)
+
             self.unit_of_work.commit()
+        except PizzaNotFoundError:
+            self.unit_of_work.rollback()
+            raise
         except Exception as ex:
             self.unit_of_work.rollback()
-            # Converte falhas técnicas da persistência em uma exceção
-            # específica do caso de uso de atualização.
             raise PizzaUpdateError('Failed to update pizza.') from ex
 
-        # Constrói a URL completa da imagem somente após a persistência
-        # ter sido concluída com sucesso.
+        # Quando uma nova imagem é enviada, realiza o upload após
+        # a atualização da pizza ter sido confirmada.
+        if image_data is not None:
+            try:
+                if not content_type:
+                    raise ValueError(
+                        'Content type is required when image data is provided.'
+                    )
+
+                self.objectstorage_service.upload_object(
+                    object_name=pizza.image_name,
+                    data=image_data,
+                    content_type=content_type
+                )
+
+                # Remove a imagem anterior somente quando o nome do objeto
+                # tiver sido alterado.
+                if previous_image_name != pizza.image_name:
+                    self.objectstorage_service.delete_object(
+                        previous_image_name
+                    )
+            except Exception as ex:
+                # TODO: Implementar tratamento de inconsistência entre a
+                # atualização da pizza e as operações no Object Storage,
+                # incluindo compensação, retry ou processamento assíncrono.
+                raise PizzaUpdateError(
+                    'Pizza updated, but failed to update image.'
+                ) from ex
+
+        # A URL é calculada a partir do nome da imagem atualmente
+        # associado à pizza.
         image_url = self.objectstorage_service.get_object_url(
             pizza.image_name
         )
@@ -282,6 +331,16 @@ class PizzaService:
         except Exception as ex:
             self.unit_of_work.rollback()
             raise PizzaDeletionError('Error deleting pizza.') from ex
+
+        try:
+            self.objectstorage_service.delete_object(pizza.image_name)
+        except Exception as ex:
+            # TODO: Implementar tratamento de inconsistência entre a
+            # exclusão da pizza e a remoção da imagem no Object Storage,
+            # incluindo retry ou processamento assíncrono.
+            raise PizzaDeletionError(
+                'Pizza deleted, but failed to delete image.'
+            ) from ex
 
 
 def get_pizza_service(

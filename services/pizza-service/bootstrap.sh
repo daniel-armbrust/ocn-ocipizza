@@ -104,6 +104,12 @@ PERSISTENCE_PROVIDER=nosql
 NOSQL_TABLE_NAME=pizzas
 NOSQL_ENDPOINT=http://localhost:18080
 
+# Object Storage (MinIO)
+OBJECTSTORAGE_ENDPOINT=http://localhost:9000
+OBJECTSTORAGE_BUCKET=pizza-images
+OBJECTSTORAGE_ACCESS_KEY=minioadmin
+OBJECTSTORAGE_SECRET_KEY=minioadmin
+
 # JWT
 JWT_ISSUER=user-service
 JWT_AUDIENCE=oci-pizza

@@ -3,12 +3,18 @@
 #
 
 from uuid import UUID
+from typing import Annotated
 
-from fastapi import APIRouter, status, Depends, Query
+from fastapi import APIRouter, status, Depends, File, Query, UploadFile
 from fastapi.responses import JSONResponse
 
 from app.services.pizza_service import PizzaService, get_pizza_service
+
 from app.dependencies.authentication import get_current_admin_id
+from app.dependencies.pizza_form import (
+    get_pizza_create_form,
+    get_pizza_update_form
+)
 
 from app.exceptions.pizza_exception import (
     PizzaQueryError,
@@ -119,13 +125,13 @@ def get_pizza(
         return fail_response(
             status.HTTP_404_NOT_FOUND,
             'PIZZA_NOT_FOUND',
-            'Pizza not found.',
+            'Pizza not found.'
         )
     except PizzaQueryError:
         return fail_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             'PIZZA_QUERY_ERROR',
-            'Error retrieving pizza.',
+            'Error retrieving pizza.'
         )
     
     return success_response(
@@ -146,7 +152,8 @@ def get_pizza(
     response_model=JSendSuccessResponse
 )
 def create_pizza(
-    payload: PizzaCreateRequest,
+    image: Annotated[UploadFile, File()],
+    payload: PizzaCreateRequest = Depends(get_pizza_create_form),
     _: UUID = Depends(get_current_admin_id),
     service: PizzaService = Depends(get_pizza_service)
 ) -> JSendSuccessResponse | JSONResponse:
@@ -158,6 +165,7 @@ def create_pizza(
 
     Args:
         payload: Dados necessários para criação da pizza.
+        image: Arquivo de imagem associado à pizza.
         service: Serviço responsável pelos casos de uso relacionados
             às pizzas.
 
@@ -167,13 +175,35 @@ def create_pizza(
         JSend com status HTTP 500.
     """
 
+    if not image.content_type or not image.content_type.startswith('image/'):
+        return fail_response(
+            status.HTTP_400_BAD_REQUEST,
+            'PIZZA_INVALID_IMAGE_CONTENT_TYPE',
+            'The uploaded file must be an image.',
+            field='image'
+        )
+
+    image_data = image.file.read()
+
+    if not image_data:
+        return fail_response(
+            status.HTTP_400_BAD_REQUEST,
+            'PIZZA_EMPTY_IMAGE',
+            'The uploaded image must not be empty.',
+            field='image'
+        )
+
     try:
-        pizza, image_url = service.create(payload=payload)
+        pizza, image_url = service.create(
+            payload=payload,
+            image_data=image_data,
+            content_type=image.content_type
+        )
     except PizzaCreationError:
         return fail_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             'PIZZA_CREATION_ERROR',
-            'Error creating pizza.',
+            'Error creating pizza.'
         )
 
     return success_response(
@@ -195,7 +225,8 @@ def create_pizza(
 )
 def update_pizza(
     pizza_id: UUID,
-    payload: PizzaUpdateRequest,
+    payload: PizzaUpdateRequest = Depends(get_pizza_update_form),
+    image: Annotated[UploadFile | None, File()] = None,
     _: UUID = Depends(get_current_admin_id),
     service: PizzaService = Depends(get_pizza_service)
 ) -> JSendSuccessResponse | JSONResponse:
@@ -208,6 +239,7 @@ def update_pizza(
     Args:
         pizza_id: Identificador UUID da pizza que será atualizada.
         payload: Dados permitidos para atualização da pizza.
+        image: Novo arquivo de imagem, quando a imagem também for atualizada.
         service: Serviço responsável pelos casos de uso relacionados
             às pizzas.
 
@@ -218,10 +250,36 @@ def update_pizza(
         resposta JSend com status HTTP 500.
     """
 
+    image_data = None
+    content_type = None
+
+    if image is not None:
+        if not image.content_type or not image.content_type.startswith('image/'):
+            return fail_response(
+                status.HTTP_400_BAD_REQUEST,
+                'PIZZA_INVALID_IMAGE_CONTENT_TYPE',
+                'The uploaded file must be an image.',
+                field='image'
+            )
+
+        image_data = image.file.read()
+
+        if not image_data:
+            return fail_response(
+                status.HTTP_400_BAD_REQUEST,
+                'PIZZA_EMPTY_IMAGE',
+                'The uploaded image must not be empty.',
+                field='image'
+            )
+
+        content_type = image.content_type
+
     try:
         pizza, image_url = service.update(
             pizza_id,
-            payload
+            payload,
+            image_data=image_data,
+            content_type=content_type
         )
     except PizzaNotFoundError:
         return fail_response(
@@ -233,7 +291,7 @@ def update_pizza(
         return fail_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             'PIZZA_UPDATE_ERROR',
-            'Error updating pizza.',
+            'Error updating pizza.'
         )
 
     return success_response(

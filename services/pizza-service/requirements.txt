@@ -6,6 +6,7 @@ alembic==1.16.5
 PyMySQL==1.1.2
 
 oci==2.160.3
+minio==7.2.20
 
 borneo==5.4.3
 

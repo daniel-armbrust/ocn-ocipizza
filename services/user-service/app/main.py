@@ -7,6 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.config.logging import configure_logging
+from app.config.settings import settings
 
 from app.routes.user_routes import router as user_router
 from app.routes.user_password_routes import router as user_password_router
@@ -16,12 +17,16 @@ from app.routes.user_admin_routes import router as user_admin_router
 
 from app.responses.jsend import fail_response
 
+configure_logging()
+is_development = settings.app_env == 'development'
+
 app = FastAPI(
     title='OCI Pizza - User Service API',
-    version='1.0.0'
+    version='1.0.0',
+    docs_url='/docs' if is_development else None,
+    redoc_url='/redoc' if is_development else None,
+    openapi_url='/openapi.json' if is_development else None
 )
-
-configure_logging()
 
 
 @app.exception_handler(RequestValidationError)

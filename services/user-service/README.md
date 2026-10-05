@@ -275,6 +275,19 @@ Revise sempre a migration gerada automaticamente antes de aplicá-la.
 dos índices utilizados pelo user-service, considerando que o Alembic se aplica
 somente ao provider SQLAlchemy. -->
 
+## Logging
+
+O logging é configurado durante a inicialização da aplicação:
+
+- Em `development`, os logs são enviados para `stdout`.
+- Nos demais ambientes, os logs são enviados ao OCI Logging pela Logging
+  Ingestion API, com autenticação via Instance Principal.
+- Fora de `development`, `OCI_LOG_ID` é obrigatório e deve conter o OCID do
+  Custom Log utilizado para ingestão.
+- `LOG_LEVEL` define o nível global dos logs e utiliza `INFO` como padrão.
+
+Os registros enviados ao OCI Logging identificam o `user-service` como origem.
+
 ## Usuários de demonstração
 
 O bootstrap inclui os seguintes usuários para demonstrações e testes locais:
@@ -913,3 +926,57 @@ Para todas as operações administrativas, um access token ausente, inválido ou
 expirado resulta em `401 Unauthorized`, enquanto um usuário sem privilégios
 administrativos recebe `403 Forbidden`. Falhas internas de persistência ou
 consulta resultam em `500 Internal Server Error`.
+
+## Códigos HTTP
+
+| Status | Uso |
+| --- | --- |
+| `200 OK` | Consultas, atualizações, autenticação e operações administrativas concluídas. |
+| `201 Created` | Usuário criado. |
+| `400 Bad Request` | Payload, parâmetro, token de confirmação ou regra de senha inválida. |
+| `401 Unauthorized` | Access token ausente, inválido ou expirado, ou credenciais de autenticação inválidas. |
+| `403 Forbidden` | Usuário sem privilégio administrativo, não confirmado ou sem autorização para a operação. |
+| `404 Not Found` | Usuário ou recurso solicitado não encontrado. |
+| `409 Conflict` | E-mail ou WhatsApp já utilizado por outro usuário. |
+| `500 Internal Server Error` | Falha interna de persistência, mensageria, consulta ou processamento. |
+
+## Configurações
+
+| Variável | Padrão | Descrição |
+| --- | --- | --- |
+| `APP_NAME` | `user-service` | Nome da aplicação. |
+| `APP_ENV` | `development` | Ambiente de execução. |
+| `DEBUG` | `false` | Ativa o modo de depuração. |
+| `PERSISTENCE_PROVIDER` | `sqlalchemy` | Provider de persistência: `sqlalchemy` ou `nosql`. |
+| `DATABASE_URL` | — | URL de conexão utilizada pelo SQLAlchemy. |
+| `MESSAGING_PROVIDER` | — | Provider de mensageria: `rabbitmq` ou `oci_queue`. |
+| `RABBITMQ_HOST` | — | Host do RabbitMQ. |
+| `RABBITMQ_PORT` | — | Porta do RabbitMQ. |
+| `RABBITMQ_USERNAME` | — | Usuário utilizado na conexão com o RabbitMQ. |
+| `RABBITMQ_PASSWORD` | — | Senha utilizada na conexão com o RabbitMQ. |
+| `RABBITMQ_QUEUE_NAME` | — | Nome da fila de notificações no RabbitMQ. |
+| `OCI_QUEUE_ID` | — | OCID da fila utilizada pelo provider OCI Queue. |
+| `OCI_QUEUE_MESSAGES_ENDPOINT` | — | Endpoint de mensagens da OCI Queue. |
+| `OCI_REGION` | — | Região dos serviços OCI utilizados pela instância. |
+| `JWT_KEY_PROVIDER` | `local` | Provider das chaves JWT: `local` ou `oci`. |
+| `JWT_ISSUER` | `user-service` | Emissor incluído e esperado nos access tokens. |
+| `JWT_AUDIENCE` | `oci-pizza` | Audiência incluída e esperada nos access tokens. |
+| `JWT_ACCESS_TOKEN_EXPIRATION_MINUTES` | `15` | Validade do access token em minutos. |
+| `JWT_PRIVATE_KEY_PATH` | `/run/secrets/jwt_private_key.pem` | Caminho da chave privada RSA local. |
+| `JWT_PUBLIC_KEY_PATH` | `/run/secrets/jwt_public_key.pem` | Caminho da chave pública RSA local. |
+| `JWT_PRIVATE_KEY_SECRET_ID` | — | OCID do secret que contém a chave privada no provider OCI. |
+| `REFRESH_TOKEN_EXPIRATION_DAYS` | `30` | Validade do refresh token em dias. |
+| `LOG_LEVEL` | `INFO` | Nível global de logging da aplicação. |
+| `OCI_LOG_ID` | — | OCID do Custom Log, obrigatório fora de desenvolvimento. |
+
+## Documentação interativa
+
+Em `development`, o serviço disponibiliza:
+
+- Swagger UI: `http://localhost:8002/docs`
+- ReDoc: `http://localhost:8002/redoc`
+- OpenAPI JSON: `http://localhost:8002/openapi.json`
+
+Fora de `development`, esses três endpoints são desabilitados. O health check
+permanece disponível em `http://localhost:8002/health` para monitoramento da
+instância e deve ter sua exposição controlada pela infraestrutura.
