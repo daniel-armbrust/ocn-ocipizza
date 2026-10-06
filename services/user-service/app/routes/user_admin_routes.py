@@ -304,7 +304,7 @@ def set_admin_password(
     except UserPasswordMismatchError:
         return fail_response(
             status.HTTP_400_BAD_REQUEST,
-            'PASSWORD_MISMATCH',
+            'USER_PASSWORD_MISMATCH',
             'New password confirmation does not match.'
         )
     except UserUpdateError:
@@ -411,7 +411,7 @@ def revoke_user_sessions(
     except UserAuthenticationError:
         return fail_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            'SESSION_REVOCATION_ERROR',
+            'USER_SESSION_REVOCATION_ERROR',
             'Error revoking user sessions.'
         )
 

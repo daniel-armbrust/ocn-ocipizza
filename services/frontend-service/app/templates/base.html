@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#e5252a">
+    <meta name="description" content="OCI Pizza — pizzas preparadas para todos os gostos.">
+
+    <title>{% block title %}OCI Pizza{% endblock %}</title>
+
+    <link rel="icon" type="image/png" href="{{ url_for('static', path='img/favicon.png') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Ir para o conteúdo</a>
+
+    <header class="site-header" data-header>
+        <div class="container header-inner">
+            <a class="brand" href="/pizzas" aria-label="OCI Pizza — página inicial">
+                <img
+                    class="brand-logo"
+                    src="{{ url_for('static', path='img/ocipizza-logo-1.png') }}"
+                    alt="OCI Pizza"
+                    width="440"
+                    height="181"
+                >
+            </a>
+
+            <button
+                class="nav-toggle"
+                type="button"
+                aria-expanded="false"
+                aria-controls="primary-navigation"
+                data-nav-toggle
+            >
+                <span class="sr-only">Abrir menu</span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </button>
+
+            <nav id="primary-navigation" class="primary-nav" aria-label="Navegação principal" data-nav>
+                <a class="nav-link{% if request.url.path == '/pizzas' %} is-active{% endif %}" href="/pizzas">
+                    Cardápio
+                </a>
+                <a class="nav-link{% if request.url.path == '/users/login' %} is-active{% endif %}" href="/users/login">
+                    Entrar
+                </a>
+                <a class="nav-link{% if request.url.path == '/users/register' %} is-active{% endif %}" href="/users/register">
+                    Cadastrar
+                </a>
+                <button
+                    class="order-indicator"
+                    type="button"
+                    aria-label="Pedido com 0 pizzas"
+                    title="Pizzas no pedido"
+                    data-order-indicator
+                >
+                    <img
+                        src="{{ url_for('static', path='img/favicon.png') }}"
+                        alt=""
+                        width="42"
+                        height="42"
+                    >
+                    <span class="order-count" data-order-count>0</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <div class="footer-brand">
+                <img src="{{ url_for('static', path='img/pizza-logo.png') }}" alt="" width="52" height="38">
+                <div>
+                    <strong>OCI Pizza</strong>
+                    <span>Feita para compartilhar.</span>
+                </div>
+            </div>
+            <p>&copy; <span data-current-year></span> OCI Pizza. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <div class="toast-region" aria-live="polite" aria-atomic="true" data-toast-region></div>
+
+    <script src="{{ url_for('static', path='js/app.js') }}" defer></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

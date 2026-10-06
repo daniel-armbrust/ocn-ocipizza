@@ -15,7 +15,7 @@ class UserLoginRequest(BaseModel):
     """
 
     email: EmailStr
-    password: str = Field(min_length=11, max_length=11)
+    password: str = Field(min_length=8, max_length=20)
 
 
 class UserRefreshTokenRequest(BaseModel):
@@ -29,7 +29,7 @@ class UserRefreshTokenRequest(BaseModel):
         refresh_token: Token utilizado para renovação da sessão.
     """
 
-    refresh_token: str = Field(min_length=20, max_length=255)
+    refresh_token: str = Field(min_length=20, max_length=256)
 
 
 class UserLogoutRequest(BaseModel):
@@ -43,7 +43,7 @@ class UserLogoutRequest(BaseModel):
         refresh_token: Token associado à sessão que será encerrada.
     """
 
-    refresh_token: str = Field(min_length=20, max_length=255)
+    refresh_token: str = Field(min_length=20, max_length=256)
 
 
 class UserTokenResponse(BaseModel):
@@ -58,7 +58,7 @@ class UserTokenResponse(BaseModel):
         expires_in: Tempo de validade do access token, em segundos.
     """
 
-    access_token: str = Field(min_length=20, max_length=255)
-    refresh_token: str = Field(min_length=20, max_length=255)
+    access_token: str = Field(min_length=20, max_length=4096)
+    refresh_token: str = Field(min_length=20, max_length=256)
     token_type: str = 'Bearer'
     expires_in: int

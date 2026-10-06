@@ -5,35 +5,35 @@
 
 help:
 	@echo ""
-	@echo "OCI Pizza Development Commands"
+	@echo "Comandos de desenvolvimento do OCI Pizza"
 	@echo ""
-	@echo "Development:"
+	@echo "Desenvolvimento:"
 	@echo "  make development-up"
 	@echo "  make development-down"
 	@echo "  make development-restart"
 	@echo "  make development-logs"
 	@echo ""
-	@echo "Seed:"
+	@echo "Carga inicial de dados:"
 	@echo "  make development-seed"
 	@echo ""
-	@echo "Validation:"
+	@echo "Validação:"
 	@echo "  make test"
 	@echo "  make build"
 	@echo ""
 
 
-## Development
+## Desenvolvimento
 development-up: development-infra development-seed development-services
 
 development-infra:
-	@echo "Starting infrastructure services..."
-	docker compose up -d mysql nosql rabbitmq
+	@echo "Iniciando os serviços de infraestrutura..."
+	docker compose up -d mysql nosql rabbitmq redis
 
-	@echo "Waiting infrastructure readiness..."
+	@echo "Aguardando a infraestrutura ficar pronta..."
 	./scripts/wait-for-infrastructure.sh
 
 development-services:
-	@echo "Starting application services..."
+	@echo "Iniciando os serviços da aplicação..."
 	docker compose up -d
 
 development-down:
@@ -46,26 +46,26 @@ development-restart:
 development-logs:
 	docker compose logs -f
 
-## Seed
+## Carga inicial de dados
 development-seed:
-	@echo "Executing seed process..."
+	@echo "Executando a carga inicial de dados..."
 	docker compose run --rm seed
 
-## Python Environment
+## Ambiente Python
 setup-dev:
 	@if [ ! -d "seed/.venv" ]; then \
-		echo "Creating seed virtual environment..."; \
+		echo "Criando o ambiente virtual da carga inicial de dados..."; \
 		python3 -m venv seed/.venv; \
 	fi
 
-	@echo "Installing seed dependencies..."
+	@echo "Instalando as dependências da carga inicial de dados..."
 	seed/.venv/bin/pip install \
 		--upgrade pip
 
 	seed/.venv/bin/pip install \
 		-r seed/requirements.txt
 
-## Validation
+## Validação
 test:
 	docker compose run --rm pizza-service pytest
 

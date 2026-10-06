@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "components/message.html" import render_message %}
+
+{% block title %}Entrar | OCI Pizza{% endblock %}
+
+{% block content %}
+<section class="login-section{% if message %} has-message{% endif %}" aria-labelledby="login-title">
+    {% if message %}
+    <div class="message-area">
+        {{ render_message(
+            message | default(none, true),
+            type | default('info', true),
+            'login-notice'
+        ) }}
+        <br aria-hidden="true">
+        <br aria-hidden="true">
+    </div>
+    {% endif %}
+
+    <div class="container login-layout">
+        <div class="login-copy">
+                <span class="eyebrow">Bem-vindo de volta</span>
+                <h1 id="login-title">Entre para continuar seu pedido.</h1>
+                <p>Acesse sua conta para acompanhar pedidos e salvar seus sabores favoritos.</p>
+        </div>
+
+        <form class="login-card" method="post" action="/users/login" data-login-form>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <div class="form-field">
+                    {{ form.email.label }}
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                    <small id="email-error" class="field-error">{{ form.email.errors | first }}</small>
+                    {% endif %}
+                </div>
+
+                <div class="form-field">
+                    {{ form.password.label }}
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                    <small id="password-error" class="field-error">{{ form.password.errors | first }}</small>
+                    {% endif %}
+                </div>
+
+                <button class="button login-button" type="submit">Entrar</button>
+
+                <p>
+                    Ainda não possui uma conta?
+                    <a href="/users/register">Criar conta</a>
+                </p>
+        </form>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Cardápio | OCI Pizza{% endblock %}
+
+{% block content %}
+{% set pizza_items = pizzas.get('data', {}).get('pizzas', []) if pizzas is mapping else [] %}
+<section class="menu-hero" aria-labelledby="menu-title">
+    <div class="container hero-grid">
+        <div class="hero-copy">
+            <span class="eyebrow">Sabor que reúne</span>
+            <h1 id="menu-title">Sua próxima pizza favorita está aqui.</h1>
+            <p>
+                Explore nosso cardápio, escolha seu sabor e descubra pizzas
+                preparadas para transformar qualquer momento em celebração.
+            </p>
+            <a class="button" href="#pizza-catalog">Ver cardápio</a>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+            <span class="hero-blob"></span>
+            <img src="{{ url_for('static', path='img/pizza-logo.png') }}" alt="">
+            <span class="hero-badge">Humm!</span>
+        </div>
+    </div>
+</section>
+
+<section
+    id="pizza-catalog"
+    class="catalog-section"
+    aria-labelledby="catalog-title"
+    data-pizza-catalog
+    data-fallback-image="{{ url_for('static', path='img/pizza-logo.png') }}"
+>
+    <div class="container">
+        <div class="section-heading">
+            <div>
+                <span class="eyebrow">Nosso cardápio</span>
+                <h2 id="catalog-title">Encontre o sabor ideal</h2>
+            </div>
+            <p>
+                {{ pizza_items | length }}
+                {{ 'pizza encontrada' if pizza_items | length == 1 else 'pizzas encontradas' }}
+            </p>
+        </div>
+
+        <form class="filter-bar" method="get" action="{{ url_for('list_all_pizzas') }}" data-pizza-filters>
+            <input type="hidden" name="limit" value="{{ limit }}">
+
+            <div class="form-field">
+                <label for="category">Categoria</label>
+                <select id="category" name="category">
+                    <option value=""{% if not category %} selected{% endif %}>Todas as categorias</option>
+                    <option value="salgada"{% if category == 'salgada' %} selected{% endif %}>Salgadas</option>
+                    <option value="vegetariana"{% if category == 'vegetariana' %} selected{% endif %}>Vegetarianas</option>
+                    <option value="doce"{% if category == 'doce' %} selected{% endif %}>Doces</option>
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label for="availability">Disponibilidade</label>
+                <select id="availability" name="available">
+                    <option value=""{% if available is none %} selected{% endif %}>Todas</option>
+                    <option value="true"{% if available is sameas true %} selected{% endif %}>Disponíveis agora</option>
+                    <option value="false"{% if available is sameas false %} selected{% endif %}>Indisponíveis</option>
+                </select>
+            </div>
+
+            <button class="button filter-button" type="submit">Aplicar filtros</button>
+        </form>
+
+        {% if message %}
+        <div class="catalog-status error-state" role="alert">
+            <span class="error-icon" aria-hidden="true">!</span>
+            <h3>Não foi possível carregar o cardápio</h3>
+            <p>{{ message }}</p>
+            <a class="button button-secondary" href="{{ request.url }}">Carregar novamente</a>
+        </div>
+        {% elif not pizza_items %}
+        <div class="catalog-status empty-state">
+            <img src="{{ url_for('static', path='img/pizza-logo.png') }}" alt="" width="150" height="108">
+            <h3>Nenhuma pizza encontrada</h3>
+            <p>Tente selecionar outros filtros para encontrar mais sabores.</p>
+            <button class="button button-secondary" type="button" data-clear-filters>Limpar filtros</button>
+        </div>
+        {% else %}
+        <div class="pizza-grid" aria-live="polite">
+            {% for pizza in pizza_items %}
+            <article class="pizza-card">
+                <div class="pizza-card-media">
+                    <img
+                        src="{{ pizza.image_url }}"
+                        alt="Pizza {{ pizza.name }}"
+                        loading="lazy"
+                        data-pizza-image
+                    >
+                    <span class="availability {{ 'is-available' if pizza.available else 'is-unavailable' }}">
+                        {{ 'Disponível' if pizza.available else 'Indisponível' }}
+                    </span>
+                </div>
+                <div class="pizza-card-content">
+                    <span class="pizza-category">{{ pizza.category | capitalize }}</span>
+                    <h3>{{ pizza.name }}</h3>
+                    <p>{{ pizza.description }}</p>
+                    <div class="pizza-card-footer">
+                        <strong class="pizza-price">R$ {{ '%.2f' | format(pizza.price | float) | replace('.', ',') }}</strong>
+                        <button
+                            class="button button-card"
+                            type="button"
+                            data-add-pizza
+                            data-pizza-name="{{ pizza.name }}"
+                            {% if not pizza.available %}disabled{% endif %}
+                        >
+                            {{ 'Escolher' if pizza.available else 'Indisponível' }}
+                        </button>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        <form class="pagination" method="get" action="{{ url_for('list_all_pizzas') }}" aria-label="Paginação do cardápio">
+            {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+            {% if available is not none %}<input type="hidden" name="available" value="{{ 'true' if available else 'false' }}">{% endif %}
+            <input type="hidden" name="limit" value="{{ limit }}">
+
+            <button
+                class="pagination-button"
+                type="submit"
+                name="offset"
+                value="{{ [offset - limit, 0] | max }}"
+                {% if offset == 0 %}disabled{% endif %}
+            >
+                <span aria-hidden="true">←</span> Anterior
+            </button>
+            <span class="page-indicator">Página {{ (offset // limit) + 1 }}</span>
+            <button
+                class="pagination-button"
+                type="submit"
+                name="offset"
+                value="{{ offset + limit }}"
+                {% if pizza_items | length < limit %}disabled{% endif %}
+            >
+                Próxima <span aria-hidden="true">→</span>
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/pizza_client.js') }}" defer></script>
+{% endblock %}

@@ -8,6 +8,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """
+    Configurações utilizadas pelo user-service.
+    """
+
     model_config = SettingsConfigDict(
         env_file='.env',
         env_file_encoding='utf-8',

@@ -33,6 +33,8 @@ from app.repositories.user_refresh_token_repository import UserRefreshTokenRepos
 from app.repositories.sqlalchemy.sqlalchemy_user_refresh_token_repository import SqlAlchemyUserRefreshTokenRepository
 from app.repositories.nosql.nosql_user_refresh_token_repository import NosqlUserRefreshTokenRepository
 
+# TODO: yield SqlAlchemyUserRepository(session)
+
 
 def get_unit_of_work(
         session: Session = Depends(get_session)

@@ -66,7 +66,7 @@ def login(
     ):
         return fail_response(
             status.HTTP_401_UNAUTHORIZED,
-            'INVALID_CREDENTIALS',
+            'USER_INVALID_CREDENTIALS',
             'Invalid email or password.'
         )
     except UserNotConfirmedError:
@@ -78,7 +78,7 @@ def login(
     except UserAuthenticationError:
         return fail_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            'AUTHENTICATION_ERROR',
+            'USER_AUTHENTICATION_ERROR',
             'Error authenticating user.'
         )
     return success_response(

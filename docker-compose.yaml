@@ -29,9 +29,10 @@ services:
       JWT_AUDIENCE: oci-pizza
       JWT_JWKS_URL: http://user-service:8000/.well-known/jwks.json
     depends_on:
-      - nosql
-      - object-storage
-      - user-service
+      nosql:
+        condition: service_started
+      object-storage:
+        condition: service_started
 
   # Microserviço responsável pelo ciclo de vida dos usuários.
   # Persiste dados no MySQL e publica notificações no RabbitMQ
@@ -48,8 +49,6 @@ services:
     environment:
       APP_ENV: development
       LOG_LEVEL: INFO
-
-      OCI_REGION: sa-saopaulo-1
 
       # Provider de persistência.
       PERSISTENCE_PROVIDER: sqlalchemy
@@ -88,29 +87,32 @@ services:
         condition: service_healthy
 
   # Microserviço responsável pela interface web da aplicação.
-  # frontend-service:
-  #   container_name: oci-pizza-frontend-service
-  #   build:
-  #     context: ./services/frontend-service
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "8085:8000"
-  #   networks:
-  #     - oci-pizza-network
-  #   environment:
-  #     ENVIRONMENT: development
-  #     FRONTEND_REQUEST_TIMEOUT: 2.0
+  frontend-service:
+    container_name: oci-pizza-frontend-service
+    build:
+      context: ./services/frontend-service
+      dockerfile: Dockerfile
+    ports:
+      - "8010:8000"
+    networks:
+      - oci-pizza-network
+    environment:
+        APP_ENV: development
+        LOG_LEVEL: INFO
 
-  #     PIZZA_SERVICE_URL: http://pizza-service:8000
-  #     PIZZA_IMAGE_BASE_URL: http://localhost:9000/pizza-images
-  #     ORDER_SERVICE_URL: http://order-service:8000
-  #     PAYMENT_SERVICE_URL: http://payment-service:8000
-  #     AUTH_SERVICE_URL: http://auth-service:8000
-  #     USER_SERVICE_URL: http://user-service:8000
-  #     NOTIFICATION_SERVICE_URL: http://notification-service:8000
-  #     CHATBOT_SERVICE_URL: http://chatbot-service:8000
-  #   depends_on:
-  #     - pizza-service
+        PERSISTENCE_PROVIDER: redis
+
+        REDIS_ENDPOINT: redis://redis:6379/0
+
+        PIZZA_SERVICE_URL: http://pizza-service:8000
+        USER_SERVICE_URL: http://user-service:8000
+    depends_on:
+      pizza-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   # Banco de dados NoSQL utilizado pelos serviços da 
   # aplicação que necessitam de persistência orientada 
@@ -202,52 +204,26 @@ services:
       retries: 10
       start_period: 20s
 
-  # Serviço responsável por carregar dados iniciais no 
-  # ambiente de desenvolvimento, permitindo que a aplicação 
-  # seja iniciada com informações básicas para testes.
-  # seed:
-  #   container_name: oci-pizza-seed
-  #   image: python:3.11.10-slim-bookworm
-  #   working_dir: /app
-  #   environment:
-  #     PYTHONDONTWRITEBYTECODE: 1
-  #     ENVIRONMENT: development
-  #     OCI_REGION: sa-saopaulo-1
-  #     OCI_NOSQL_ENDPOINT: http://nosql:8080
-  #     OCI_NOSQL_TABLE: pizzas
-  #     OCI_NOSQL_COMPARTMENT_ID: ""
-      
-  #     OBJECTSTORAGE_ENDPOINT: http://object-storage:9000
-  #     OBJECTSTORAGE_PIZZA_BUCKET: pizza-images
-  #     OBJECTSTORAGE_ACCESS_KEY: minioadmin
-  #     OBJECTSTORAGE_SECRET_KEY: minioadmin
-      
-  #     MYSQL_HOST: mysql
-  #     MYSQL_PORT: 3306
-  #     MYSQL_ROOT_USER: root
-  #     MYSQL_ROOT_PASSWORD: root
-      
-  #     MYSQL_DATABASE: users
-  #     MYSQL_USER: user_service
-  #     MYSQL_PASSWORD: user_service
-  #   depends_on:
-  #     nosql:
-  #       condition: service_started
-  #     object-storage:
-  #       condition: service_started
-  #     mysql:
-  #       condition: service_healthy
-  #   networks:
-  #     - oci-pizza-network
-  #   volumes:
-  #     - ./seed:/app/seed:ro
-  #   command:
-  #     - sh
-  #     - -c
-  #     - |
-  #       pip install --no-cache-dir -r seed/requirements.txt
-  #       python seed/wait-for-infrastructure.py
-  #       python seed/run-seed.py
+  redis:
+    image: redis:7.0
+    container_name: ocipizza-redis
+    restart: unless-stopped
+    ports:
+      - "16379:6379"
+    command:
+      - redis-server
+      - --appendonly
+      - "no"
+      - --save
+      - ""
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 # Rede utilizada para permitir a comunicação entre os 
 # containers que compõem a aplicação OCI-PIZZA.

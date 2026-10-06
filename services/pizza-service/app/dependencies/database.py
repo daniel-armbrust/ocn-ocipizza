@@ -12,9 +12,11 @@ from app.config.settings import settings
 from app.repositories.sqlalchemy.connection import get_session
 
 from app.repositories.unit_of_work import UnitOfWork
+
 from app.repositories.sqlalchemy.connection import SessionLocal
 from app.repositories.sqlalchemy.sqlalchemy_unit_of_work import SqlAlchemyUnitOfWork
-from app.repositories.nosql.nosql_unit_of_work import NoOpUnitOfWork
+
+from app.repositories.nosql.nosql_unit_of_work import NosqlNoOpUnitOfWork
 
 from app.repositories.pizza_repository import PizzaRepository
 
@@ -44,7 +46,7 @@ def get_unit_of_work() -> UnitOfWork:
         return SqlAlchemyUnitOfWork(session)
 
     if settings.persistence_provider == 'nosql':
-        return NoOpUnitOfWork()
+        return NosqlNoOpUnitOfWork()
 
     raise ValueError(
         f'Unsupported persistence provider: '

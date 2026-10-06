@@ -8,6 +8,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """
+    Configurações utilizadas pelo pizza-service.
+    """
+
     model_config = SettingsConfigDict(
         env_file='.env',
         env_file_encoding='utf-8',
@@ -36,7 +40,7 @@ class Settings(BaseSettings):
     jwt_jwks_url: str = 'http://user-service:8000/.well-known/jwks.json'
 
     # Object Storage
-    objectstorage_endpoint: str | None = 'http://minio:9000'
+    objectstorage_endpoint: str | None = 'http://object-storage:9000'
     objectstorage_namespace: str | None = None
     objectstorage_bucket: str | None = None
 

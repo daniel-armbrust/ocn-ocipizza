@@ -63,6 +63,6 @@ class UserPasswordResetConfirmRequest(BaseModel):
             pelo usuário.
     """
 
-    token: str = Field(min_length=20, max_length=255)
+    token: str = Field(min_length=20, max_length=4096)
     new_password: str = Field(min_length=8, max_length=20)
     confirm_new_password: str = Field(min_length=8, max_length=20)

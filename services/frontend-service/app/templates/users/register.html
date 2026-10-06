@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% from "components/message.html" import render_message %}
+
+{% block title %}Criar conta | OCI Pizza{% endblock %}
+
+{% block content %}
+<section class="login-section{% if message %} has-message{% endif %}" aria-labelledby="register-title">
+    {% if message %}
+    <div class="message-area">
+        {{ render_message(
+            message | default(none, true),
+            type | default('error', true),
+            'login-notice'
+        ) }}
+        <br aria-hidden="true">
+        <br aria-hidden="true">
+    </div>
+    {% endif %}
+
+    <div class="container login-layout">
+        <div class="login-copy">
+                <span class="eyebrow">Faça parte da OCI Pizza</span>
+                <h1 id="register-title">Crie sua conta e escolha seus sabores.</h1>
+                <p>
+                    Cadastre-se para acompanhar pedidos e manter seus dados de
+                    contato sempre atualizados.
+                </p>
+        </div>
+
+        <form class="login-card" method="post" action="/users/register" data-register-form>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <div class="form-field">
+                    {{ form.full_name.label }}
+                    {{ form.full_name }}
+                    {% if form.full_name.errors %}
+                    <small id="full-name-error" class="field-error">{{ form.full_name.errors | first }}</small>
+                    {% endif %}
+                </div>
+
+                <div class="form-field">
+                    {{ form.email.label }}
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                    <small id="email-error" class="field-error">{{ form.email.errors | first }}</small>
+                    {% endif %}
+                </div>
+
+                <div class="form-field">
+                    {{ form.whatsapp.label }}
+                    {{ form.whatsapp }}
+                    <small id="whatsapp-help">Formato: (99) 99999-9999.</small>
+                    {% if form.whatsapp.errors %}
+                    <small id="whatsapp-error" class="field-error">{{ form.whatsapp.errors | first }}</small>
+                    {% endif %}
+                </div>
+
+                <div class="form-field">
+                    {{ form.password.label }}
+                    {{ form.password }}
+                    <small id="password-help">Utilize entre 8 e 20 caracteres.</small>
+                    {% if form.password.errors %}
+                    <small id="password-error" class="field-error">{{ form.password.errors | first }}</small>
+                    {% endif %}
+                </div>
+
+                <button class="button login-button" type="submit">Criar conta</button>
+
+                <p>
+                    Já possui uma conta?
+                    <a href="/users/login">Entrar</a>
+                </p>
+        </form>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/user_client.js') }}" defer></script>
+{% endblock %}

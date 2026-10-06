@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Falha ao consultar o serviço | OCI Pizza{% endblock %}
+
+{% block content %}
+<section class="http-error-page" aria-labelledby="error-title">
+    <div class="container http-error-layout">
+        <div class="http-error-art" aria-hidden="true">
+            <span class="http-error-code">502</span>
+            <img
+                src="{{ url_for('static', path='img/pizza-logo.png') }}"
+                alt=""
+                width="800"
+                height="570"
+            >
+        </div>
+
+        <div class="http-error-copy">
+            <span class="eyebrow">O pedido não chegou à cozinha</span>
+            <h1 id="error-title">Não foi possível consultar o cardápio.</h1>
+            <p>
+                Recebemos uma resposta inesperada do serviço responsável pelas
+                pizzas. Tente novamente em alguns instantes.
+            </p>
+            <div class="http-error-actions">
+                <a class="button" href="{{ request.url.path }}">Tentar novamente</a>
+                <a class="button button-secondary" href="/pizzas">Voltar ao cardápio</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

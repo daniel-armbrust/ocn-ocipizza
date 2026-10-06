@@ -94,13 +94,13 @@ def update_password(
     except UserInvalidPasswordError:
         return fail_response(
             status.HTTP_400_BAD_REQUEST,
-            'INVALID_PASSWORD',
+            'USER_INVALID_PASSWORD',
             'Current password is invalid.'
         )
     except UserPasswordMismatchError:
         return fail_response(
             status.HTTP_400_BAD_REQUEST,
-            'PASSWORD_MISMATCH',
+            'USER_PASSWORD_MISMATCH',
             'New password confirmation does not match.'
         )
     except UserUpdateError:
@@ -158,7 +158,7 @@ def request_password_reset(
     except UserPasswordResetError:
         return fail_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            'PASSWORD_RESET_REQUEST_ERROR',
+            'USER_PASSWORD_RESET_REQUEST_ERROR',
             'Error requesting password reset.'
         )
 
@@ -206,25 +206,25 @@ def confirm_password_reset(
     except UserPasswordMismatchError:
         return fail_response(
             status.HTTP_400_BAD_REQUEST,
-            'PASSWORD_MISMATCH',
+            'USER_PASSWORD_MISMATCH',
             'New password confirmation does not match.'
         )
     except UserInvalidPasswordResetTokenError:
         return fail_response(
             status.HTTP_400_BAD_REQUEST,
-            'INVALID_PASSWORD_RESET_TOKEN',
+            'USER_INVALID_PASSWORD_RESET_TOKEN',
             'Password reset token is invalid or expired.'
         )
     except UserNotFoundError:
         return fail_response(
             status.HTTP_400_BAD_REQUEST,
-            'PASSWORD_RESET_ERROR',
+            'USER_PASSWORD_RESET_ERROR',
             'Unable to reset user password.'
         )
     except UserPasswordResetError:
         return fail_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            'PASSWORD_RESET_ERROR',
+            'USER_PASSWORD_RESET_ERROR',
             'Error resetting password.'
         )
     return success_response(

@@ -207,11 +207,13 @@ O cliente MinIO utiliza `OBJECTSTORAGE_ACCESS_KEY` e
 `OBJECTSTORAGE_SECRET_KEY` para autenticação. O `.env` criado pelo bootstrap e
 o `docker-compose.yaml` usam `minioadmin` para ambas as variáveis, de acordo com
 as credenciais do MinIO local. Essas credenciais são exclusivas do ambiente de
-desenvolvimento.
+desenvolvimento. O bucket e sua política de acesso devem ser preparados na
+infraestrutura local antes do uso; o serviço não cria nem altera o bucket.
 
-Fora do ambiente de desenvolvimento, o serviço utiliza Instance Principal para
-obter a região OCI e constrói a URL a partir de `OBJECTSTORAGE_NAMESPACE`,
-`OBJECTSTORAGE_BUCKET` e `image_name`.
+Fora do ambiente de desenvolvimento, `OBJECTSTORAGE_ENDPOINT` não é utilizado.
+O serviço utiliza Instance Principal para obter automaticamente a região OCI e
+constrói a URL a partir de `OBJECTSTORAGE_NAMESPACE`, `OBJECTSTORAGE_BUCKET` e
+`image_name`.
 
 ## Logging
 
@@ -469,7 +471,7 @@ expõem detalhes internos e retornam `INTERNAL_SERVER_ERROR`.
 | `JWT_ISSUER` | `user-service` | Emissor esperado no JWT. |
 | `JWT_AUDIENCE` | `oci-pizza` | Audiência esperada no JWT. |
 | `JWT_JWKS_URL` | `http://user-service:8000/.well-known/jwks.json` | URL das chaves públicas JWT. |
-| `OBJECTSTORAGE_ENDPOINT` | — | URL-base pública dos objetos em desenvolvimento. |
+| `OBJECTSTORAGE_ENDPOINT` | `http://object-storage:9000` | Endpoint opcional do MinIO, utilizado somente em desenvolvimento. |
 | `OBJECTSTORAGE_NAMESPACE` | — | Namespace do OCI Object Storage fora de desenvolvimento. |
 | `OBJECTSTORAGE_BUCKET` | — | Nome do bucket de imagens. |
 | `OBJECTSTORAGE_ACCESS_KEY` | — | Chave de acesso do MinIO, obrigatória em desenvolvimento. |

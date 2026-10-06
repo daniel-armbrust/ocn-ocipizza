@@ -69,10 +69,10 @@ class PizzaService:
         self.objectstorage_service = objectstorage_service
 
     def get_all(self,
-                    category: PizzaCategory | None = None,
-                    available: bool | None = None,
-                    limit: int = 10,
-                    offset: int = 0) -> list[tuple[Pizza, str]]:
+                category: PizzaCategory | None = None,
+                available: bool | None = None,
+                limit: int = 10,
+                offset: int = 0) -> list[tuple[Pizza, str]]:
         """
         Retorna as pizzas cadastradas de acordo com os filtros informados.
 

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Erro interno | OCI Pizza{% endblock %}
+
+{% block content %}
+<section class="http-error-page" aria-labelledby="error-title">
+    <div class="container http-error-layout">
+        <div class="http-error-art" aria-hidden="true">
+            <span class="http-error-code">500</span>
+            <img
+                src="{{ url_for('static', path='img/pizza-logo.png') }}"
+                alt=""
+                width="800"
+                height="570"
+            >
+        </div>
+
+        <div class="http-error-copy">
+            <span class="eyebrow">O forno parou por um instante</span>
+            <h1 id="error-title">Não conseguimos concluir esta operação.</h1>
+            <p>
+                Ocorreu um erro inesperado. Tente novamente ou retorne ao
+                cardápio para continuar escolhendo suas pizzas.
+            </p>
+            <div class="http-error-actions">
+                <a class="button" href="{{ request.url.path }}">Tentar novamente</a>
+                <a class="button button-secondary" href="/pizzas">Voltar ao cardápio</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

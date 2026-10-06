@@ -2,6 +2,7 @@
 # services/objectstorage_service.py
 #
 
+from functools import lru_cache
 from io import BytesIO
 from urllib.parse import urlparse
 
@@ -101,7 +102,7 @@ class ObjectStorageService:
             signer=signer
         )
 
-    def get_object_url(self, object_name: str) -> None:
+    def get_object_url(self, object_name: str) -> str:
         """
         Retorna a URL completa de um objeto.
 
@@ -189,6 +190,7 @@ class ObjectStorageService:
         )
 
 
+@lru_cache
 def get_objectstorage_service() -> ObjectStorageService:
     """
     Fornece o serviço responsável pela integração com Object Storage.

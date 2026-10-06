@@ -28,7 +28,6 @@ app = FastAPI(
     openapi_url='/openapi.json' if is_development else None
 )
 
-
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(
     request: Request, 
