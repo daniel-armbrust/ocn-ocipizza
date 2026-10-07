@@ -25,7 +25,7 @@ def success_response(data: dict) -> JSendSuccessResponse:
     """
 
     return JSendSuccessResponse(
-        data=data,
+        data=data
     )
 
 
@@ -33,7 +33,7 @@ def fail_response(
     status_code: int,
     code: str,
     message: str,
-    field: str | None = None,
+    field: str | None = None
 ) -> JSONResponse:
     """
     Cria uma resposta HTTP no formato JSend para falhas de validação ou regras de negócio.

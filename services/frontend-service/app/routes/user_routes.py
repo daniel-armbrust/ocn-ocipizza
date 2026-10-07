@@ -4,8 +4,10 @@
 
 import httpx
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request, status, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
+
+from starlette_wtf import csrf_protect
 
 from app.config.settings import settings
 
@@ -51,6 +53,7 @@ def show_register_page(request: Request) -> HTMLResponse:
     '/users/register',
     response_class=HTMLResponse
 )
+@csrf_protect
 async def register_user(
     request: Request,
     user_client: UserClient = Depends(
@@ -137,46 +140,58 @@ async def register_user(
 #
 @router.get(
     '/users/login',
-    response_class=HTMLResponse
-)
-def show_login_page(
+    response_class=HTMLResponse)
+async def show_login_page(
     request: Request,
-    registration: str | None = None
+    code: str | None = None
 ) -> HTMLResponse:
     """
-    Renderiza a página utilizada para autenticação de usuários.
+    Exibe a página de autenticação.
+
+    Quando um código é informado na URL, traduz o código funcional
+    para a mensagem correspondente antes de renderizar o template.
 
     Args:
         request: Requisição HTTP recebida pelo frontend-service.
-        registration: Resultado do cadastro usado para apresentar a
-            orientação de confirmação da conta.
+        code: Código funcional opcional utilizado para identificar
+            uma mensagem a ser exibida ao usuário.
 
     Returns:
         Página HTML contendo o formulário de autenticação.
     """
 
+    # Cria o formulário vazio que será utilizado pelo template.
+    form = UserLoginForm()
+
+    # Recupera a mensagem correspondente ao código informado na URL.
+    # Caso o código não exista no mapeamento, utiliza uma mensagem
+    # genérica de autenticação.
+    message = None
+
+    if code:
+        message = USER_MESSAGES.get(
+            code,
+            {
+                'message': 'Não foi possível realizar a autenticação.',
+                'type': 'error'
+            }
+        )
+
     return templates.TemplateResponse(
         request=request,
         name='users/login.html',
         context={
-            'message': (
-                'Enviamos um e-mail para você. Acesse o link recebido '
-                'para confirmar seu cadastro antes de entrar.'
-                if registration == 'success' else None
-                
-            ),
-            'type': 'info',
-            'form': UserLoginForm()
+            'form': form,
+            'message': message['message'] if message else None,
+            'type': message['type'] if message else None
         }
     )
 
 #
 # POST: /users/login
 #
-@router.post(
-    '/users/login',
-    response_class=HTMLResponse
-)
+@router.post('/users/login')
+@csrf_protect
 async def login_user(
     request: Request,
     user_client: UserClient = Depends(
@@ -185,13 +200,116 @@ async def login_user(
     session_service: SessionService = Depends(
         get_session_service
     )
-) -> HTMLResponse:
+) -> Response:
     """
-    Processa a autenticação de um usuário.
+    Processa a autenticação do usuário.
 
-    Após a autenticação no user-service, cria uma sessão no BFF
-    contendo os tokens retornados e envia ao navegador somente
-    o identificador da sessão através de um cookie HttpOnly.
+    Os dados recebidos pelo formulário são validados localmente
+    através do WTForms antes que o user-service seja chamado.
+    """
+
+    form = UserLoginForm(
+        await request.form()
+    )
+
+    # Interrompe o fluxo antes da chamada ao user-service caso
+    # os dados informados não atendam às regras do formulário.
+    if not form.validate():
+        return templates.TemplateResponse(
+            request=request,
+            name='users/login.html',
+            context={
+                'form': form
+            },
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        # Encaminha ao user-service somente dados já validados
+        # pelo frontend-service.
+        payload = await user_client.login(
+            email=form.email.data,
+            password=form.password.data
+        )
+
+        # O contrato do user-service retorna os tokens dentro
+        # do campo `data`.
+        authentication = payload['data']
+
+        # Cria uma sessão no BFF (Backend For Frontend). Os tokens
+        # permanecem armazenados no backend através do repositório de
+        # sessões configurado, que pode utilizar Redis, Oracle NoSQL
+        # ou SQLAlchemy, sem expor esses dados diretamente ao navegador.
+        session_id = await session_service.create(
+            access_token=authentication['access_token'],
+            refresh_token=authentication['refresh_token'],
+            expires_in=authentication['expires_in']
+        )
+    except httpx.HTTPStatusError as ex:
+        payload = ex.response.json()
+
+        # Utiliza USER_AUTHENTICATION_ERROR como fallback caso o código
+        # retornado pelo user-service não esteja cadastrado em USER_MESSAGES.
+        code = payload.get('data', {}).get(
+            'code',
+            'USER_AUTHENTICATION_ERROR'
+        )
+
+        # Insere o código na URL e redireciona para a página de login,
+        # onde a mensagem correspondente será exibida ao usuário.
+        return RedirectResponse(
+            url=f'/users/login?code={code}',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+    except httpx.RequestError:
+        return RedirectResponse(
+            url='/users/login?code=USER_AUTHENTICATION_ERROR',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    response = RedirectResponse(
+        url='/pizzas?code=USER_AUTHENTICATION_SUCCESS',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+
+    # Cria o cookie contendo apenas o identificador opaco da sessão,
+    # mantendo os tokens armazenados exclusivamente no backend.
+    response.set_cookie(
+        key=settings.session_cookie_name,
+        value=session_id,
+        httponly=True,
+        secure=settings.app_env != 'development',
+        samesite=(
+            'lax'
+            if settings.app_env == 'development'
+            else 'strict'
+        ),
+        path='/'
+    )
+
+    return response
+
+#
+# POST: /users/logout
+#
+@router.post('/users/logout')
+@csrf_protect
+async def logout_user(
+    request: Request,
+    user_client: UserClient = Depends(
+        get_user_client
+    ),
+    session_service: SessionService = Depends(
+        get_session_service
+    )
+) -> RedirectResponse:
+    """
+    Encerra a sessão do usuário no frontend-service.
+
+    Caso exista uma sessão válida no BFF, recupera o refresh token
+    armazenado no backend e solicita ao user-service a revogação da
+    sessão correspondente. Em seguida, remove a sessão local e o
+    cookie utilizado pelo navegador.
 
     Args:
         request: Requisição HTTP recebida pelo frontend-service.
@@ -201,91 +319,55 @@ async def login_user(
             das sessões do frontend-service.
 
     Returns:
-        Redirecionamento após autenticação bem-sucedida ou página
-        de login contendo a mensagem de erro.
+        Redirecionamento para a página de login.
     """
 
-    form_data = await request.form()
-    form = UserLoginForm(form_data)
+    # Recupera o identificador opaco da sessão enviado pelo navegador.
+    session_id = request.cookies.get(
+        settings.session_cookie_name
+    )
 
-    if not form.validate():
-        return templates.TemplateResponse(
-            request=request,
-            name='users/login.html',
-            context={'form': form},
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT
+    if session_id:
+        # Recupera os dados da sessão armazenados no repositório
+        # configurado, que pode utilizar Redis, Oracle NoSQL ou
+        # SQLAlchemy.
+        session = await session_service.get(
+            session_id=session_id
         )
 
-    try:
-        payload = await user_client.login(
-            email=form.email.data,
-            password=form.password.data
-        )
+        if session:
+            try:
+                # Solicita ao user-service a revogação do refresh token
+                # associado à sessão antes de remover os dados locais.
+                await user_client.logout(
+                    refresh_token=session['refresh_token']
+                )
 
-        # Obtém os tokens retornados pelo user-service.
-        authentication = payload['data']
+            except (
+                httpx.HTTPStatusError,
+                httpx.RequestError
+            ):
+                # O logout local continua mesmo que o user-service
+                # esteja indisponível ou não consiga revogar o token.
+                # Dessa forma, o navegador perde imediatamente o acesso
+                # à sessão mantida pelo frontend-service.
+                pass
 
-        # Cria uma sessão no BFF associando um identificador opaco
-        # aos tokens utilizados para comunicação com os microserviços.
-        session_id = await session_service.create(
-            access_token=authentication['access_token'],
-            refresh_token=authentication['refresh_token'],
-            expires_in=authentication['expires_in']
-        )
-    except httpx.HTTPStatusError as ex:
-        # Trata credenciais inválidas ou outras respostas de erro
-        # retornadas pelo user-service.
-        payload = ex.response.json()
+            # Remove a sessão do repositório local independentemente
+            # do resultado da revogação no user-service.
+            await session_service.delete(
+                session_id=session_id
+            )
 
-        message = USER_MESSAGES.get(
-            payload.get('data', {}).get('code'),
-            {
-                'message': 'Não foi possível realizar a autenticação.',
-                'type': 'error'
-            }
-        )
-
-        return templates.TemplateResponse(
-            request=request,
-            name='users/login.html',
-            context={
-                'message': message['message'],
-                'type': message['type'],
-                'form': form
-            },
-            status_code=ex.response.status_code
-        )   
-    except httpx.RequestError:
-        # Trata falhas de comunicação, timeout ou indisponibilidade
-        # temporária do user-service.
-        return templates.TemplateResponse(
-            request=request,
-            name='users/login.html',
-            context={
-                'message': (
-                    'O serviço de usuários está temporariamente indisponível.'
-                ),
-                'type': 'error',
-                'form': form
-            },
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE
-        )
-
-    # Redireciona o usuário após a autenticação bem-sucedida.
-    # TODO: exibir mensagem de autenticação bem sucedida.
     response = RedirectResponse(
         url='/pizzas',
         status_code=status.HTTP_303_SEE_OTHER
     )
 
-    # O navegador recebe somente o identificador opaco da sessão.
-    # Access token e refresh token permanecem armazenados no BFF.
-    response.set_cookie(
+    # Remove o cookie mesmo quando ele não corresponde mais a uma
+    # sessão existente no backend.
+    response.delete_cookie(
         key=settings.session_cookie_name,
-        value=session_id,
-        httponly=True,
-        secure=settings.app_env != 'development',
-        samesite='lax' if settings.app_env == 'development' else 'strict',
         path='/'
     )
 

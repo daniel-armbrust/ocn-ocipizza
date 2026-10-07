@@ -6,6 +6,9 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from starlette.middleware.sessions import SessionMiddleware
+from starlette_wtf import CSRFProtectMiddleware
+
 from app.config.logging import configure_logging
 from app.config.settings import settings
 
@@ -21,6 +24,19 @@ app = FastAPI(
     docs_url='/docs' if is_development else None,
     redoc_url='/redoc' if is_development else None,
     openapi_url='/openapi.json' if is_development else None
+)
+
+# Adiciona o suporte a sessões internas utilizadas pelo middleware
+# de proteção CSRF.
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.session_secret_key
+)
+
+# Adiciona proteção contra ataques CSRF.
+app.add_middleware(
+    CSRFProtectMiddleware,
+    csrf_secret=settings.csrf_secret_key
 )
 
 # Disponibiliza os arquivos estáticos utilizados pelo frontend,

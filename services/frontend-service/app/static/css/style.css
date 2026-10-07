@@ -164,6 +164,19 @@ a {
     transform: scaleX(1);
 }
 
+.nav-logout-form {
+    display: flex;
+    margin: 0;
+}
+
+.nav-logout-button {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    appearance: none;
+}
+
 .order-indicator {
     position: relative;
     display: grid;
@@ -554,6 +567,15 @@ h1 {
     align-content: start;
     padding-top: 28px;
     gap: 32px;
+}
+
+.menu-hero.has-message {
+    padding-top: 28px;
+}
+
+.menu-hero > .message-area {
+    position: relative;
+    z-index: 1;
 }
 
 .form-error.login-notice {
@@ -1034,6 +1056,10 @@ h1 {
     .login-section.has-message {
         padding-top: 20px;
         gap: 24px;
+    }
+
+    .menu-hero.has-message {
+        padding-top: 20px;
     }
 
     .container {

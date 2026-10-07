@@ -28,7 +28,7 @@
         </div>
 
         <form class="login-card" method="post" action="/users/register" data-register-form>
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
 
                 <div class="form-field">
                     {{ form.full_name.label }}

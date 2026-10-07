@@ -1,10 +1,22 @@
 {% extends "base.html" %}
+{% from "components/message.html" import render_message %}
 
 {% block title %}Cardápio | OCI Pizza{% endblock %}
 
 {% block content %}
 {% set pizza_items = pizzas.get('data', {}).get('pizzas', []) if pizzas is mapping else [] %}
-<section class="menu-hero" aria-labelledby="menu-title">
+<section class="menu-hero{% if message and type in ['info', 'success'] %} has-message{% endif %}" aria-labelledby="menu-title">
+    {% if message and type in ['info', 'success'] %}
+    <div
+        class="message-area"
+        {% if code == 'USER_AUTHENTICATION_SUCCESS' %}data-authentication-success{% endif %}
+    >
+        {{ render_message(message, type, 'login-notice') }}
+        <br aria-hidden="true">
+        <br aria-hidden="true">
+    </div>
+    {% endif %}
+
     <div class="container hero-grid">
         <div class="hero-copy">
             <span class="eyebrow">Sabor que reúne</span>
@@ -67,7 +79,7 @@
             <button class="button filter-button" type="submit">Aplicar filtros</button>
         </form>
 
-        {% if message %}
+        {% if message and type in ['error', 'warning'] %}
         <div class="catalog-status error-state" role="alert">
             <span class="error-icon" aria-hidden="true">!</span>
             <h3>Não foi possível carregar o cardápio</h3>

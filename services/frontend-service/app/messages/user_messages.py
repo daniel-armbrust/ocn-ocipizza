@@ -3,6 +3,10 @@
 #
 
 USER_MESSAGES = {
+    'USER_AUTHENTICATION_SUCCESS': {
+        'message': 'Obbaaa!!! É hora de pedir PIZZA',
+        'type': 'success'
+    },
     'USER_NOT_FOUND': {
         'message': 'Usuário não encontrado.',
         'type': 'warning'

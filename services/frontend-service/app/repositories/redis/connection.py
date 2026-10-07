@@ -33,9 +33,7 @@ def get_redis_client() -> Redis:
         return _redis_client
 
     if not settings.redis_endpoint:
-        raise RuntimeError(
-            'Redis endpoint is not configured.'
-        )
+        raise RuntimeError('Redis endpoint is not configured.')
 
     # decode_responses=True faz com que valores retornados pelo Redis
     # sejam convertidos para str, evitando o tratamento manual de bytes

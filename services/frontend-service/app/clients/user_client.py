@@ -114,6 +114,38 @@ class UserClient:
         # Retorna integralmente o JSON produzido pelo user-service.
         return response.json()
 
+    async def logout(self,
+                     refresh_token: str) -> None:
+        """
+        Revoga a sessão do usuário através do user-service.
+
+        Args:
+            refresh_token: Token utilizado pelo user-service para
+                identificar e revogar a sessão correspondente.
+
+        Raises:
+            httpx.HTTPStatusError: Caso o user-service retorne uma
+                resposta HTTP de erro.
+            httpx.RequestError: Caso ocorra uma falha de comunicação
+                com o user-service.
+        """
+
+        # Encaminha o refresh token ao endpoint responsável pela
+        # revogação da sessão no user-service.
+        async with httpx.AsyncClient(
+            timeout=settings.http_client_timeout
+        ) as client:
+            response = await client.post(
+                f'{self.base_url}/auth/logout',
+                json={
+                    'refresh_token': refresh_token
+                }
+            )
+
+        # Converte respostas HTTP de erro em exceções para que a
+        # camada de rota possa decidir como tratar a falha.
+        response.raise_for_status()
+
 
 def get_user_client() -> UserClient:
     """

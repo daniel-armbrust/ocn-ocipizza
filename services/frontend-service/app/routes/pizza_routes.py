@@ -12,6 +12,7 @@ from app.clients.pizza_client import PizzaClient, get_pizza_client
 from app.dependencies.templates import templates
 
 from app.messages.pizza_messages import PIZZA_MESSAGES
+from app.messages.user_messages import USER_MESSAGES
 
 router = APIRouter()
 
@@ -24,6 +25,7 @@ router = APIRouter()
 )
 async def list_all_pizzas(
     request: Request,
+    code: str | None = None,
     category: str | None = None,
     available: bool | None = None,
     limit: int = Query(default=10, ge=1, le=50),
@@ -38,6 +40,8 @@ async def list_all_pizzas(
 
     Args:
         request: Requisição HTTP recebida pelo frontend-service.
+        code: Código funcional opcional utilizado para identificar uma
+            mensagem relacionada ao usuário.
         category: Categoria utilizada para filtrar as pizzas.
         available: Indica se devem ser retornadas pizzas disponíveis
             ou indisponíveis.
@@ -49,6 +53,8 @@ async def list_all_pizzas(
     Returns:
         Página HTML contendo as pizzas retornadas pelo pizza-service.
     """
+
+    user_message = USER_MESSAGES.get(code) if code else None
 
     try:
         pizzas = await pizza_client.get_all(
@@ -99,6 +105,9 @@ async def list_all_pizzas(
         name='pizzas/list.html',
         context={
             'pizzas': pizzas,
+            'code': code,
+            'message': user_message['message'] if user_message else None,
+            'type': user_message['type'] if user_message else None,
             'category': category,
             'available': available,
             'limit': limit,

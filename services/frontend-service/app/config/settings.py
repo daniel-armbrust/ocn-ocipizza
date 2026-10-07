@@ -32,6 +32,15 @@ class Settings(BaseSettings):
     # sessão.
     session_cookie_name: str = 'ocpssid'
 
+    # Tempo máximo de vida da sessão do frontend-service, 
+    # em segundos.
+    session_ttl: int = 86400
+
+    # Chaves utilizadas pelas sessões internas e pela proteção CSRF
+    # mantidas pelo frontend-service.
+    session_secret_key: str
+    csrf_secret_key: str
+
     # URL dos serviços acessados pelo frontend-service.
     pizza_service_url: str
     user_service_url: str

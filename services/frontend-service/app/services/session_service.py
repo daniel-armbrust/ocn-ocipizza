@@ -7,6 +7,8 @@ from typing import Any
 
 from fastapi import Depends
 
+from app.config.settings import settings
+
 from app.repositories.session_repository import SessionRepository
 from app.dependencies.database import get_session_repository
 
@@ -54,13 +56,14 @@ class SessionService:
 
         session_data: dict[str, Any] = {
             'access_token': access_token,
-            'refresh_token': refresh_token
+            'refresh_token': refresh_token,
+            'access_token_expires_in': expires_in
         }
 
         await self.session_repository.create(
             session_id=session_id,
             data=session_data,
-            ttl=expires_in
+            ttl=settings.session_ttl
         )
 
         return session_id
@@ -84,21 +87,25 @@ class SessionService:
     async def update(self,
                      session_id: str,
                      data: dict[str, Any],
-                     ttl: int | None = None) -> None:
+                     renew_ttl: bool = False) -> None:
         """
         Atualiza os dados armazenados em uma sessão.
 
         Args:
             session_id: Identificador da sessão.
             data: Dados que substituirão os valores atuais.
-            ttl: Novo tempo de validade da sessão, em segundos.
-                Quando não informado, mantém a expiração atual.
+            renew_ttl: Indica se o tempo de vida da sessão deve ser
+                renovado utilizando o valor definido em `settings.session_ttl`.
         """
 
         await self.session_repository.update(
             session_id=session_id,
             data=data,
-            ttl=ttl
+            ttl=(
+                settings.session_ttl
+                if renew_ttl
+                else None
+            )
         )
 
     async def delete(self, session_id: str) -> None:

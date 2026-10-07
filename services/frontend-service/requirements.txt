@@ -1,7 +1,11 @@
 fastapi[standard]==0.141.1
 httpx==0.28.1
-pydantic-settings==2.10.1
-WTForms==3.2.1
+Jinja2==3.1.6
+pydantic-settings==2.15.0
+WTForms==3.2.2
+starlette-wtf==0.5.0
+itsdangerous==2.2.0
+python-multipart==0.0.32
 
 SQLAlchemy==2.0.43
 alembic==1.16.5
@@ -11,4 +15,4 @@ oci==2.160.3
 
 borneo==5.4.3
 
-redis==5.2.1
+redis==7.0.1

@@ -104,6 +104,9 @@ services:
 
         REDIS_ENDPOINT: redis://redis:6379/0
 
+        SESSION_SECRET_KEY: "!!!Sup3rS3cr3t0!!!"
+        CSRF_SECRET_KEY: "!!!Sup3rS3cr3t0!!!"
+
         PIZZA_SERVICE_URL: http://pizza-service:8000
         USER_SERVICE_URL: http://user-service:8000
     depends_on:

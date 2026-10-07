@@ -151,7 +151,7 @@ class UserAuthenticationService:
             access_token, expires_in = (
                 self.jwt_service.create_access_token(
                     user_id=user.id,
-                    is_admin=user.is_admin,
+                    is_admin=user.is_admin
                 )
             )
 
