@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # Persistência
     persistence_provider: str = 'redis'
 
+    # SQLAlchemy
+    database_url: str | None = None
+
     # Redis
     redis_endpoint: str | None = None
 

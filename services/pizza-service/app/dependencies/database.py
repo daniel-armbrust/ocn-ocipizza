@@ -2,8 +2,6 @@
 # dependencies/database.py
 #
 
-from collections.abc import Generator
-
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
@@ -13,7 +11,6 @@ from app.repositories.sqlalchemy.connection import get_session
 
 from app.repositories.unit_of_work import UnitOfWork
 
-from app.repositories.sqlalchemy.connection import SessionLocal
 from app.repositories.sqlalchemy.sqlalchemy_unit_of_work import SqlAlchemyUnitOfWork
 
 from app.repositories.nosql.nosql_unit_of_work import NosqlNoOpUnitOfWork
@@ -26,67 +23,89 @@ from app.repositories.nosql.nosql_pizza_repository import NosqlPizzaRepository
 from app.repositories.nosql.connection import get_nosql_handle
 
 
-def get_unit_of_work() -> UnitOfWork:
+def get_unit_of_work(
+        session: Session | None = Depends(get_session)
+) -> UnitOfWork:
     """
-    Monta a unidade de trabalho de acordo com o provider 
+    Monta a unidade de trabalho de acordo com o provider
     de persistência.
 
     Args:
-        session: Sessão SQLAlchemy utilizada quando o 
+        session: Sessão SQLAlchemy utilizada quando o
             provider configurado for relacional.
 
     Returns:
-        Implementação de `UnitOfWork` correspondente ao provider 
+        Implementação de `UnitOfWork` correspondente ao provider
             configurado.
+
+    Raises:
+        RuntimeError: Caso o provider não seja suportado ou a sessão
+            SQLAlchemy não esteja disponível.
     """
 
     if settings.persistence_provider == 'sqlalchemy':
-        session = next(get_session())
-
-        return SqlAlchemyUnitOfWork(session)
+        return SqlAlchemyUnitOfWork(_require_sqlalchemy_session(session))
 
     if settings.persistence_provider == 'nosql':
         return NosqlNoOpUnitOfWork()
 
-    raise ValueError(
-        f'Unsupported persistence provider: '
+    raise RuntimeError(
+        'Unsupported persistence provider: '
         f'{settings.persistence_provider}'
     )
 
 
-def get_pizza_repository() -> Generator[PizzaRepository, None, None]:
+def get_pizza_repository(
+        session: Session | None = Depends(get_session)
+) -> PizzaRepository:
     """
     Fornece a implementação do repositório de pizzas de acordo
     com o provider de persistência configurado.
 
-    Quando SQLAlchemy é utilizado, a sessão é criada para a
-    requisição e fechada automaticamente ao final do processamento.
+    Args:
+        session: Sessão SQLAlchemy compartilhada pela requisição.
 
-    Yields:
+    Returns:
         Implementação de `PizzaRepository` correspondente ao provider
-        de persistência configurado.
+            de persistência configurado.
 
     Raises:
-        ValueError: Caso o provider de persistência configurado
-            não seja suportado.
+        RuntimeError: Caso o provider não seja suportado ou a sessão
+            SQLAlchemy não esteja disponível.
     """
 
     if settings.persistence_provider == 'sqlalchemy':
-        # Cria uma sessão exclusiva para a requisição atual.
-        session = SessionLocal()
-
-        try:
-            yield SqlAlchemyPizzaRepository(session)
-        finally:
-            # Garante o fechamento da sessão mesmo em caso de erro.
-            session.close()
-        return
+        return SqlAlchemyPizzaRepository(
+            _require_sqlalchemy_session(session)
+        )
 
     if settings.persistence_provider == 'nosql':
-        yield NosqlPizzaRepository(handle=get_nosql_handle())
-        return
+        return NosqlPizzaRepository(handle=get_nosql_handle())
 
-    raise ValueError(
-        f'Unsupported persistence provider: '
+    raise RuntimeError(
+        'Unsupported persistence provider: '
         f'{settings.persistence_provider}'
     )
+
+
+def _require_sqlalchemy_session(session: Session | None) -> Session:
+    """
+    Valida a sessão compartilhada usada pelas implementações SQLAlchemy.
+
+    Args:
+        session: Sessão resolvida para a requisição atual.
+
+    Returns:
+        Sessão SQLAlchemy validada.
+
+    Raises:
+        RuntimeError: Caso SQLAlchemy esteja configurado, mas nenhuma sessão
+            tenha sido disponibilizada.
+    """
+
+    if session is None:
+        raise RuntimeError(
+            'SQLAlchemy session is unavailable for the configured provider.'
+        )
+
+    return session

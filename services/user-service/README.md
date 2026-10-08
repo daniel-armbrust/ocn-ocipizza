@@ -471,6 +471,59 @@ inválido ou expirado; com `403 Forbidden` quando o usuário autenticado não
 possuir privilégios administrativos; e com `500 Internal Server Error` quando
 não for possível consultar os usuários.
 
+### Endereços do usuário
+
+As operações de endereços permitem consultar os endereços de entrega
+associados ao usuário autenticado. Atualmente, o serviço disponibiliza somente
+a listagem dos endereços do próprio usuário.
+
+#### READ — Listar os endereços do usuário autenticado
+
+Para listar os endereços, execute:
+
+```bash
+curl --request GET \
+  --url http://localhost:8002/users/me/addresses \
+  --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.xxxxx.yyyyy' \
+  --header 'Accept: application/json'
+```
+
+Substitua o token apresentado no exemplo por um access token JWT válido. O
+UUID do usuário não deve ser informado na URL, pois é obtido a partir da
+identidade autenticada.
+
+Quando a consulta for concluída, a API responderá com o status HTTP `200 OK` e
+os endereços no campo `data.addresses` do padrão JSend:
+
+```json
+{
+  "status": "success",
+  "data": {
+    "addresses": [
+      {
+        "id": "5cd4cc45-7ef7-4478-a048-e297b3570c86",
+        "label": "Casa",
+        "zip_code": "01310-100",
+        "street": "Avenida Paulista",
+        "number": "1000",
+        "complement": "Apartamento 101",
+        "neighborhood": "Bela Vista",
+        "city": "São Paulo",
+        "state": "SP",
+        "is_default": true,
+        "created_at": "2026-10-08T18:00:00",
+        "updated_at": "2026-10-08T18:00:00"
+      }
+    ]
+  }
+}
+```
+
+Quando o usuário não possuir endereços cadastrados, `data.addresses` será uma
+lista vazia. A API responderá com `401 Unauthorized` quando o access token
+estiver ausente, inválido ou expirado, e com `500 Internal Server Error` quando
+não for possível consultar os endereços.
+
 ### Autenticação do usuário
 
 A autenticação valida o e-mail e a senha de um usuário com o cadastro

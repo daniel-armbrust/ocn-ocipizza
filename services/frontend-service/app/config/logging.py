@@ -112,10 +112,9 @@ def configure_logging() -> None:
     """
     Configura o logging global da aplicação.
 
-    Em ambiente de desenvolvimento, envia os logs para stdout.
-
-    Nos demais ambientes, envia os logs diretamente para o
-    OCI Logging utilizando Instance Principal.
+    Os logs são sempre enviados para stdout. Fora do ambiente de
+    desenvolvimento, também são enviados para o OCI Logging utilizando
+    Instance Principal.
 
     Raises:
         ValueError: Caso o OCID do OCI Logging não esteja configurado
@@ -133,21 +132,22 @@ def configure_logging() -> None:
         '%(asctime)s %(levelname)s %(name)s %(message)s'
     )
 
-    if settings.app_env == 'development':
-        # O stdout permite que Docker e ferramentas locais coletem os logs sem
-        # depender de credenciais ou recursos da OCI.
-        handler = logging.StreamHandler(sys.stdout)
-    else:
+    # O stdout permite que Docker, Kubernetes e ferramentas locais coletem os
+    # logs independentemente do destino adicional configurado na OCI.
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setFormatter(formatter)
+    root_logger.addHandler(stdout_handler)
+
+    if settings.app_env != 'development':
         if not settings.oci_log_id:
             raise ValueError(
                 'OCI_LOG_ID is required outside development environment.'
             )
 
-        handler = OciLoggingHandler(
+        oci_handler = OciLoggingHandler(
             log_id=settings.oci_log_id,
             source='frontend-service'
         )
-
-    handler.setFormatter(formatter)
-
-    root_logger.addHandler(handler)
+        
+        oci_handler.setFormatter(formatter)
+        root_logger.addHandler(oci_handler)

@@ -66,9 +66,9 @@
                         Cadastrar
                     </a>
                 {% endif %}
-                <button
+                <a
                     class="order-indicator"
-                    type="button"
+                    href="/cart"
                     aria-label="Pedido com 0 pizzas"
                     title="Pizzas no pedido"
                     data-order-indicator
@@ -80,7 +80,7 @@
                         height="42"
                     >
                     <span class="order-count" data-order-count>0</span>
-                </button>
+                </a>
             </nav>
         </div>
     </header>
@@ -105,6 +105,7 @@
     <div class="toast-region" aria-live="polite" aria-atomic="true" data-toast-region></div>
 
     <script src="{{ url_for('static', path='js/app.js') }}" defer></script>
+    <script src="{{ url_for('static', path='js/form_submission.js') }}" defer></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

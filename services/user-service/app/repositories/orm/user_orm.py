@@ -101,3 +101,10 @@ class UserORM(Base):
         back_populates='user',
         cascade='all, delete-orphan'
     )
+
+    # Endereços cadastrados pelo usuário.
+    addresses = relationship(
+        'UserAddressORM',
+        back_populates='user',
+        cascade='all, delete-orphan'
+    )

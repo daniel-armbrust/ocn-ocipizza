@@ -118,7 +118,10 @@
                             class="button button-card"
                             type="button"
                             data-add-pizza
+                            data-pizza-id="{{ pizza.id }}"
                             data-pizza-name="{{ pizza.name }}"
+                            data-pizza-price="{{ pizza.price }}"
+                            data-pizza-image-url="{{ pizza.image_url }}"
                             {% if not pizza.available %}disabled{% endif %}
                         >
                             {{ 'Escolher' if pizza.available else 'Indisponível' }}

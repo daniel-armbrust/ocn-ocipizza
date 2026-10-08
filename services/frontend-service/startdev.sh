@@ -3,9 +3,9 @@
 set -e
 
 # Variáveis utilizadas pelo frontend-service em desenvolvimento.
-export APP_ENV=development
-export LOG_LEVEL=INFO
-export HTTP_CLIENT_TIMEOUT=10
+export APP_ENV="development"
+export LOG_LEVEL="INFO"
+export HTTP_CLIENT_TIMEOUT="10"
 
 # Chaves utilizadas pelas sessões internas e pela proteção CSRF
 # mantidas pelo frontend-service.
@@ -13,11 +13,11 @@ export SESSION_SECRET_KEY="!!!Sup3rS3cr3t0!!!"
 export CSRF_SECRET_KEY="!!!Sup3rS3cr3t0!!!"
 
 # URLs dos microserviços acessíveis a partir da máquina local.
-export PIZZA_SERVICE_URL=http://pizza-service:8001
-export USER_SERVICE_URL=http://user-service:8002
+export PIZZA_SERVICE_URL="http://pizza-service:8001"
+export USER_SERVICE_URL="http://user-service:8002"
 
 # Serviço REDIS
-export REDIS_ENDPOINT=redis://redis:16379/0
+export REDIS_ENDPOINT="redis://redis:16379/0"
 
 # ----------------------------------
 # Ambiente virtual

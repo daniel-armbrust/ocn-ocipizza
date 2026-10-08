@@ -32,22 +32,18 @@ if settings.persistence_provider == 'sqlalchemy':
     )
 
 
-def get_session() -> Generator[Session, None, None]:
+def get_session() -> Generator[Session | None, None, None]:
     """
     Fornece uma sessão SQLAlchemy para acesso ao banco de dados.
 
     Yields:
-        Sessão SQLAlchemy configurada.
-
-    Raises:
-        RuntimeError: Caso SQLAlchemy não seja o provider
-            de persistência configurado.
+        Sessão SQLAlchemy configurada quando o provider for relacional.
+        Para providers não relacionais, retorna None.
     """
 
     if SessionLocal is None:
-        raise RuntimeError(
-            'SQLAlchemy is not the configured persistence provider.'
-        )
+        yield None
+        return
 
     session = SessionLocal()
 

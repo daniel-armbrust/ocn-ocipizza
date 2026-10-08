@@ -55,7 +55,13 @@ class UserAdminUpdateRequest(BaseModel):
 
 
 class UserAdminPasswordUpdateRequest(BaseModel):
-    """Representa a definição administrativa da senha de um usuário."""
+    """
+    Representa a definição administrativa da senha de um usuário.
+
+    Attributes:
+        new_password: Nova senha do usuário.
+        confirm_new_password: Confirmação da nova senha.
+    """
 
     new_password: str = Field(min_length=8, max_length=20)
     confirm_new_password: str = Field(min_length=8, max_length=20)

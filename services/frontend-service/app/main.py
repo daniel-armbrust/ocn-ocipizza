@@ -2,6 +2,8 @@
 # main.py
 #
 
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -13,17 +15,17 @@ from app.config.logging import configure_logging
 from app.config.settings import settings
 
 from app.dependencies.templates import templates
-from app.routes import pizza_routes, user_routes
+from app.routes import pizza_routes, user_routes, cart_routes
 
 configure_logging()
-is_development = settings.app_env == 'development'
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title='OCI Pizza - Frontend Service',
     version='1.0.0',
-    docs_url='/docs' if is_development else None,
-    redoc_url='/redoc' if is_development else None,
-    openapi_url='/openapi.json' if is_development else None
+    docs_url='/docs' if settings.app_env == 'development' else None,
+    redoc_url='/redoc' if settings.app_env == 'development' else None,
+    openapi_url='/openapi.json' if settings.app_env == 'development' else None
 )
 
 # Adiciona o suporte a sessões internas utilizadas pelo middleware
@@ -63,6 +65,13 @@ async def not_found_handler(
         Resposta HTML com a página de erro e status HTTP 404.
     """
 
+    logger.error(
+        'Unexpected error while processing %s %s',
+        request.method,
+        request.url.path,
+        exc_info=ex
+    )
+
     return templates.TemplateResponse(
         request=request,
         name='errors/404.html',
@@ -84,6 +93,13 @@ async def internal_error_handler(
     Returns:
         Resposta HTML sem detalhes internos e com status HTTP 500.
     """
+
+    logger.error(
+        'Unexpected error while processing %s %s',
+        request.method,
+        request.url.path,
+        exc_info=ex
+    )
 
     # Não inclui informações da exceção na página para evitar o vazamento
     # de detalhes internos da aplicação.
@@ -112,3 +128,4 @@ def root(request: Request) -> RedirectResponse:
 
 app.include_router(pizza_routes.router)
 app.include_router(user_routes.router)
+app.include_router(cart_routes.router)

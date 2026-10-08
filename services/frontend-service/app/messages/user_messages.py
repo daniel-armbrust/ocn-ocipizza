@@ -7,6 +7,13 @@ USER_MESSAGES = {
         'message': 'Obbaaa!!! É hora de pedir PIZZA',
         'type': 'success'
     },
+    'USER_CONFIRMATION_SENT': {
+        'message': (
+            'Enviamos um e-mail para você. Acesse o link recebido '
+            'para confirmar seu cadastro antes de entrar.'
+        ),
+        'type': 'info'
+    },
     'USER_NOT_FOUND': {
         'message': 'Usuário não encontrado.',
         'type': 'warning'

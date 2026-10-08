@@ -14,6 +14,7 @@ from app.repositories.orm.user_email_confirmation_token_orm import UserEmailConf
 from app.repositories.orm.user_password_reset_token_orm import UserPasswordResetTokenORM
 from app.repositories.orm.user_password_history_orm import UserPasswordHistoryORM
 from app.repositories.orm.user_refresh_token_orm import UserRefreshTokenORM
+from app.repositories.orm.user_address_orm import UserAddressORM
 
 
 __all__ = [
@@ -22,5 +23,6 @@ __all__ = [
     'UserEmailConfirmationTokenORM',
     'UserPasswordResetTokenORM',
     'UserPasswordHistoryORM',
-    'UserRefreshTokenORM'
+    'UserRefreshTokenORM',
+    'UserAddressORM'
 ]

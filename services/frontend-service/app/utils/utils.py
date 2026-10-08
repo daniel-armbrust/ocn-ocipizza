@@ -19,3 +19,23 @@ def normalize_whatsapp(value: Any) -> str:
     """
 
     return re.sub(r'\D', '', str(value or ''))
+
+
+def normalize_optional_string(value: str | None) -> str | None:
+    """
+    Converte strings vazias em `None`.
+    """
+
+    return value or None
+
+
+def normalize_optional_bool(value: str | None) -> bool | None:
+    """
+    Converte os valores textuais `true` e `false`
+    para booleanos.
+    """
+
+    return {
+        'true': True,
+        'false': False,
+    }.get(value or '')

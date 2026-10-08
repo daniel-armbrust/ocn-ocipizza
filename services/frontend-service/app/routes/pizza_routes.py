@@ -14,6 +14,8 @@ from app.dependencies.templates import templates
 from app.messages.pizza_messages import PIZZA_MESSAGES
 from app.messages.user_messages import USER_MESSAGES
 
+from app.utils.utils import normalize_optional_bool, normalize_optional_string
+
 router = APIRouter()
 
 #
@@ -27,7 +29,7 @@ async def list_all_pizzas(
     request: Request,
     code: str | None = None,
     category: str | None = None,
-    available: bool | None = None,
+    available: str | None = None,
     limit: int = Query(default=10, ge=1, le=50),
     offset: int = Query(default=0, ge=0),
     pizza_client: PizzaClient = Depends(get_pizza_client)
@@ -43,8 +45,8 @@ async def list_all_pizzas(
         code: Código funcional opcional utilizado para identificar uma
             mensagem relacionada ao usuário.
         category: Categoria utilizada para filtrar as pizzas.
-        available: Indica se devem ser retornadas pizzas disponíveis
-            ou indisponíveis.
+        available: Valor textual do filtro de disponibilidade. Valores
+            vazios representam ausência do filtro.
         limit: Quantidade máxima de pizzas retornadas.
         offset: Quantidade de registros ignorados antes da consulta.
         pizza_client: Cliente utilizado para comunicação com o
@@ -56,10 +58,22 @@ async def list_all_pizzas(
 
     user_message = USER_MESSAGES.get(code) if code else None
 
+    # Normaliza os parâmetros opcionais recebidos pela URL, convertendo
+    # valores vazios para `None` e o filtro de disponibilidade para booleano
+    # antes de encaminhá-los ao pizza-service.
+
+    normalized_category = normalize_optional_string(
+        category
+    )
+
+    normalized_available = normalize_optional_bool(
+        available
+    )
+
     try:
         pizzas = await pizza_client.get_all(
-            category=category,
-            available=available,
+            category=normalized_category,
+            available=normalized_available,
             limit=limit,
             offset=offset
         )
@@ -81,8 +95,8 @@ async def list_all_pizzas(
                 'message': message['message'],
                 'type': message['type'],
                 'pizzas': {},
-                'category': category,
-                'available': available,
+                'category': normalized_category,
+                'available': normalized_available,
                 'limit': limit,
                 'offset': offset
             },
@@ -108,8 +122,8 @@ async def list_all_pizzas(
             'code': code,
             'message': user_message['message'] if user_message else None,
             'type': user_message['type'] if user_message else None,
-            'category': category,
-            'available': available,
+            'category': normalized_category,
+            'available': normalized_available,
             'limit': limit,
             'offset': offset
         }

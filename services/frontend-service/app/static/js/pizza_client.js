@@ -51,7 +51,12 @@
     catalog.querySelectorAll('[data-add-pizza]').forEach((button) => {
         button.addEventListener('click', () => {
             const pizzaName = button.dataset.pizzaName || 'Pizza';
-            window.OciPizza?.addPizzaToOrder();
+            window.OciPizza?.addPizzaToOrder({
+                id: button.dataset.pizzaId,
+                name: pizzaName,
+                price: Number(button.dataset.pizzaPrice),
+                imageUrl: button.dataset.pizzaImageUrl
+            });
             window.OciPizza?.showToast(
                 `${pizzaName} adicionada à sua escolha.`,
                 'success'
@@ -62,5 +67,12 @@
     clearFiltersButton?.addEventListener('click', () => {
         window.location.assign('/pizzas');
     });
+
+    if (
+        !authenticationSucceeded
+        && currentUrl.search.length > 0
+    ) {
+        catalog.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 
 })();

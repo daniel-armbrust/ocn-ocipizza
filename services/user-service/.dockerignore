@@ -51,4 +51,5 @@ AGENTS.md
 PLANS.md
 docs/
 bootstrap.sh
+startdev.sh
 seeds/

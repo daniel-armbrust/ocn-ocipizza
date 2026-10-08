@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Carrinho | OCI Pizza{% endblock %}
+
+{% block content %}
+<section
+    class="cart-section"
+    aria-labelledby="cart-title"
+    data-cart
+    data-fallback-image="{{ url_for('static', path='img/pizza-logo.png') }}"
+>
+    <div class="container">
+        <header class="cart-heading">
+            <div>
+                <span class="eyebrow">Seu pedido</span>
+                <h1 id="cart-title">Carrinho de Pizzas</h1>
+            </div>
+            <a class="button button-secondary" href="/pizzas">Adicionar mais Pizzas</a>
+        </header>
+
+        <div class="cart-empty" data-cart-empty hidden>
+            <img
+                src="{{ url_for('static', path='img/pizza-logo.png') }}"
+                alt=""
+                width="170"
+                height="122"
+            >
+            <h2>Seu carrinho está vazio</h2>
+            <p>Escolha suas pizzas favoritas para começar o pedido.</p>
+            <a class="button" href="/pizzas">Ver cardápio</a>
+        </div>
+
+        <div class="cart-layout" data-cart-content hidden>
+            <div class="cart-items" data-cart-items aria-live="polite"></div>
+
+            <aside class="cart-summary" aria-labelledby="cart-summary-title">
+                <h2 id="cart-summary-title">Resumo do Pedido</h2>
+                <div class="cart-summary-row">
+                    <span>Quantidade</span>
+                    <strong data-cart-total-quantity>0</strong>
+                </div>
+                <div class="cart-summary-row cart-summary-total">
+                    <span>Total</span>
+                    <strong data-cart-total>R$ 0,00</strong>
+                </div>
+                <button class="button cart-checkout-button" type="button" disabled>
+                    Finalizar Pedido
+                </button>
+                <button class="cart-clear-button" type="button" data-clear-cart>
+                    Limpar Carrinho
+                </button>
+            </aside>
+        </div>
+    </div>
+
+    <template data-cart-item-template>
+        <article class="cart-item">
+            <img class="cart-item-image" src="" alt="" data-cart-item-image>
+            <div class="cart-item-details">
+                <h2 data-cart-item-name></h2>
+                <span data-cart-item-unit-price></span>
+                <button class="cart-remove-button" type="button" data-remove-cart-item>
+                    Remover
+                </button>
+            </div>
+            <div class="cart-quantity" aria-label="Quantidade da pizza">
+                <button type="button" data-decrease-quantity aria-label="Diminuir quantidade">−</button>
+                <strong data-cart-item-quantity>1</strong>
+                <button type="button" data-increase-quantity aria-label="Aumentar quantidade">+</button>
+            </div>
+            <strong class="cart-item-subtotal" data-cart-item-subtotal></strong>
+        </article>
+    </template>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/cart_client.js') }}" defer></script>
+{% endblock %}

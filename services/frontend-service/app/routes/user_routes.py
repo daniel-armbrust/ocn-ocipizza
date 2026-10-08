@@ -131,7 +131,7 @@ async def register_user(
     # para a página de autenticação com o indicador que apresenta
     # as orientações de confirmação do cadastro.
     return RedirectResponse(
-        url='/users/login?registration=success',
+        url='/users/login?code=USER_CONFIRMATION_SENT',
         status_code=status.HTTP_303_SEE_OTHER
     )
 

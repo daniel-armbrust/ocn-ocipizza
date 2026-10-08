@@ -9,7 +9,15 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserCreateRequest(BaseModel):
-    """Contrato para cadastro de novo usuário via API."""
+    """
+    Representa os dados necessários para cadastrar um novo usuário.
+
+    Attributes:
+        full_name: Nome completo do usuário.
+        email: Endereço de e-mail utilizado para identificação e comunicação.
+        whatsapp: Número de WhatsApp do usuário.
+        password: Senha informada pelo usuário para criação da conta.
+    """
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -20,7 +28,18 @@ class UserCreateRequest(BaseModel):
 
 
 class UserResponse(BaseModel):
-    """Contrato de saída com dados públicos do usuário."""
+    """
+    Representa os dados de um usuário retornados pela API.
+
+    Attributes:
+        id: Identificador único do usuário.
+        full_name: Nome completo do usuário.
+        email: Endereço de e-mail cadastrado.
+        whatsapp: Número de WhatsApp cadastrado.
+        confirmed: Indica se o endereço de e-mail do usuário foi confirmado.
+        created_at: Data e hora de criação do usuário em UTC.
+        updated_at: Data e hora da última atualização do usuário em UTC.
+    """
 
     id: UUID
     full_name: str = Field(min_length=3, max_length=255)
