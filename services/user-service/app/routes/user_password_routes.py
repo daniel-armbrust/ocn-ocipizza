@@ -196,6 +196,7 @@ def confirm_password_reset(
         Resposta de sucesso no padrão JSend indicando que a senha foi 
         redefinida com sucesso.
     """
+    
     try:
         # Valida o token recebido e redefine a senha do usuário.
         service.reset_password(

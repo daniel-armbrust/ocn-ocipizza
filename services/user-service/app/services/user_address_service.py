@@ -8,6 +8,9 @@ from fastapi import Depends
 
 from app.utils.utils import now_utc
 
+from app.repositories.unit_of_work import UnitOfWork
+from app.dependencies.database import get_unit_of_work
+
 from app.repositories.user_address_repository import UserAddressRepository
 from app.dependencies.database import get_user_address_repository
 
@@ -23,7 +26,7 @@ from app.exceptions.user_address_exceptions import (
     UserAddressNotFoundError
 )
 
-# Quantidade máxima de endereços que um usuário 
+# Quantidade máxima de endereços que um usuário
 # pode cadastrar.
 MAX_ADDRESSES_PER_USER = 3
 
@@ -33,15 +36,23 @@ class UserAddressService:
     Serviço responsável pelas regras de negócio dos endereços dos usuários.
     """
 
-    def __init__(self, user_address_repository: UserAddressRepository):
+    def __init__(self,
+                 unit_of_work: UnitOfWork,
+                 user_address_repository: UserAddressRepository) -> None:
         """
         Inicializa o serviço de endereços de usuário.
 
         Args:
+            unit_of_work: Unidade de trabalho responsável pelo controle da
+                transação.
             user_address_repository: Repositório responsável pela persistência
                 dos endereços dos usuários.
+
+        Returns:
+            None.
         """
 
+        self.unit_of_work = unit_of_work
         self.user_address_repository = user_address_repository
 
     def get_by_user_id(self, user_id: UUID) -> list[UserAddress]:
@@ -59,7 +70,7 @@ class UserAddressService:
 
     def get_by_id(self,
                   address_id: UUID,
-                  user_id: UUID) -> UserAddress | None:
+                  user_id: UUID) -> UserAddress:
         """
         Retorna um endereço pertencente ao usuário.
 
@@ -68,14 +79,22 @@ class UserAddressService:
             user_id: Identificador único do usuário proprietário do endereço.
 
         Returns:
-            O endereço encontrado ou None caso não exista ou não pertença
-            ao usuário.
+            O endereço encontrado.
+
+        Raises:
+            UserAddressNotFoundError: Quando o endereço não existir ou não
+                pertencer ao usuário.
         """
 
-        return self.user_address_repository.get_by_id_and_user_id(
+        address = self.user_address_repository.get_by_id_and_user_id(
             address_id,
             user_id
         )
+
+        if address is None:
+            raise UserAddressNotFoundError('User address not found.')
+
+        return address
 
     def create(self,
                user_id: UUID,
@@ -95,42 +114,55 @@ class UserAddressService:
                 máximo de endereços permitidos.
         """
 
-        addresses = self.user_address_repository.get_by_user_id(user_id)
+        try:
+            addresses = self.user_address_repository.get_by_user_id(user_id)
 
-        if len(addresses) >= MAX_ADDRESSES_PER_USER:
-            raise UserAddressLimitExceededError()
+            if len(addresses) >= MAX_ADDRESSES_PER_USER:
+                raise UserAddressLimitExceededError()
 
-        now = now_utc()
+            now = now_utc()
 
-        # Define o primeiro endereço cadastrado como padrão automaticamente.
-        # Nos demais casos, respeita a escolha informada pelo usuário.
-        is_default = payload.is_default or len(addresses) == 0
+            # Define o primeiro endereço cadastrado como padrão
+            # automaticamente. Nos demais casos, respeita a escolha
+            # informada pelo usuário.
+            is_default = payload.is_default or len(addresses) == 0
 
-        # Remove a marcação de padrão de qualquer outro endereço do usuário
-        # antes de definir o novo endereço como padrão.
-        if is_default:
-            self.user_address_repository.unset_default_by_user_id(
-                user_id,
-                now
+            # Remove a marcação de padrão de qualquer outro endereço do
+            # usuário antes de definir o novo endereço como padrão.
+            if is_default:
+                self.user_address_repository.unset_default_by_user_id(
+                    user_id,
+                    now
+                )
+
+            address = UserAddress(
+                id=uuid4(),
+                user_id=user_id,
+                label=payload.label,
+                zip_code=payload.zip_code,
+                street=payload.street,
+                number=payload.number,
+                complement=payload.complement,
+                neighborhood=payload.neighborhood,
+                city=payload.city,
+                state=payload.state.upper(),
+                is_default=is_default,
+                created_at=now,
+                updated_at=now
             )
 
-        address = UserAddress(
-            id=uuid4(),
-            user_id=user_id,
-            label=payload.label,
-            zip_code=payload.zip_code,
-            street=payload.street,
-            number=payload.number,
-            complement=payload.complement,
-            neighborhood=payload.neighborhood,
-            city=payload.city,
-            state=payload.state.upper(),
-            is_default=is_default,
-            created_at=now,
-            updated_at=now
-        )
+            # Cria o endereço.
+            address = self.user_address_repository.create(address)
 
-        return self.user_address_repository.create(address)
+            self.unit_of_work.commit()
+
+            return address
+        except UserAddressLimitExceededError:
+            self.unit_of_work.rollback()
+            raise
+        except Exception:
+            self.unit_of_work.rollback()
+            raise
 
     def update(self,
                address_id: UUID,
@@ -152,36 +184,47 @@ class UserAddressService:
                 pertencer ao usuário.
         """
 
-        address = self.user_address_repository.get_by_id_and_user_id(
-            address_id,
-            user_id
-        )
-
-        if address is None:
-            raise UserAddressNotFoundError()
-
-        changes = payload.model_dump(exclude_unset=True)
-
-        for field, value in changes.items():
-            setattr(address, field, value)
-
-        if address.state:
-            address.state = address.state.upper()
-
-        address.updated_at = now_utc()
-
-        if changes.get('is_default') is True:
-            self.user_address_repository.unset_default_by_user_id(
-                user_id,
-                address.updated_at
+        try:
+            address = self.user_address_repository.get_by_id_and_user_id(
+                address_id,
+                user_id
             )
 
-            address.is_default = True
+            if address is None:
+                raise UserAddressNotFoundError()
 
-        return self.user_address_repository.update(
-            address_id,
-            address
-        )
+            changes = payload.model_dump(exclude_unset=True)
+
+            for field, value in changes.items():
+                setattr(address, field, value)
+
+            if address.state:
+                address.state = address.state.upper()
+
+            address.updated_at = now_utc()
+
+            if changes.get('is_default') is True:
+                self.user_address_repository.unset_default_by_user_id(
+                    user_id,
+                    address.updated_at
+                )
+
+                address.is_default = True
+
+            address = self.user_address_repository.update(
+                address_id,
+                address
+            )
+
+            self.unit_of_work.commit()
+
+            return address
+        except UserAddressNotFoundError:
+            self.unit_of_work.rollback()
+            raise
+        except Exception:
+            self.unit_of_work.rollback()
+            raise
 
     def set_default(self,
                     address_id: UUID,
@@ -201,28 +244,39 @@ class UserAddressService:
                 pertencer ao usuário.
         """
 
-        address = self.user_address_repository.get_by_id_and_user_id(
-            address_id,
-            user_id
-        )
+        try:
+            address = self.user_address_repository.get_by_id_and_user_id(
+                address_id,
+                user_id
+            )
 
-        if address is None:
-            raise UserAddressNotFoundError()
+            if address is None:
+                raise UserAddressNotFoundError()
 
-        now = now_utc()
+            now = now_utc()
 
-        self.user_address_repository.unset_default_by_user_id(
-            user_id,
-            now
-        )
+            self.user_address_repository.unset_default_by_user_id(
+                user_id,
+                now
+            )
 
-        address.is_default = True
-        address.updated_at = now
+            address.is_default = True
+            address.updated_at = now
 
-        return self.user_address_repository.update(
-            address_id,
-            address
-        )
+            address = self.user_address_repository.update(
+                address_id,
+                address
+            )
+
+            self.unit_of_work.commit()
+
+            return address
+        except UserAddressNotFoundError:
+            self.unit_of_work.rollback()
+            raise
+        except Exception:
+            self.unit_of_work.rollback()
+            raise
 
     def delete(self,
                address_id: UUID,
@@ -242,21 +296,31 @@ class UserAddressService:
                 pertencer ao usuário.
         """
 
-        address = self.user_address_repository.get_by_id_and_user_id(
-            address_id,
-            user_id
-        )
+        try:
+            address = self.user_address_repository.get_by_id_and_user_id(
+                address_id,
+                user_id
+            )
 
-        if address is None:
-            raise UserAddressNotFoundError()
+            if address is None:
+                raise UserAddressNotFoundError()
 
-        self.user_address_repository.delete(
-            address_id,
-            user_id
-        )
+            self.user_address_repository.delete(
+                address_id,
+                user_id
+            )
+
+            self.unit_of_work.commit()
+        except UserAddressNotFoundError:
+            self.unit_of_work.rollback()
+            raise
+        except Exception:
+            self.unit_of_work.rollback()
+            raise
 
 
 def get_user_address_service(
+        unit_of_work: UnitOfWork = Depends(get_unit_of_work),
         user_address_repository: UserAddressRepository = Depends(
             get_user_address_repository
         )
@@ -265,6 +329,8 @@ def get_user_address_service(
     Cria e retorna o serviço responsável pelos endereços dos usuários.
 
     Args:
+        unit_of_work: Unidade de trabalho responsável pelo
+            controle da transação.
         user_address_repository: Repositório responsável pela persistência
             dos endereços dos usuários.
 
@@ -274,5 +340,6 @@ def get_user_address_service(
     """
 
     return UserAddressService(
+        unit_of_work=unit_of_work,
         user_address_repository=user_address_repository
     )

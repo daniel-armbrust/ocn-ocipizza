@@ -1,8 +1,8 @@
 """create initial user service tables
 
-Revision ID: 2d7c646df221
+Revision ID: 4f6c51ab2391
 Revises: 
-Create Date: 2026-10-08 18:34:27.407042
+Create Date: 2026-10-09 09:57:21.346707
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '2d7c646df221'
+revision: str = '4f6c51ab2391'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -85,7 +85,7 @@ def upgrade() -> None:
     op.create_index(op.f('ix_refresh_tokens_token_hash'), 'refresh_tokens', ['token_hash'], unique=True)
     op.create_index(op.f('ix_refresh_tokens_user_id'), 'refresh_tokens', ['user_id'], unique=False)
     op.create_table('user_addresses',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False, comment='Identificador único do endereço.'),
+    sa.Column('id', sa.BINARY(length=16), nullable=False, comment='Identificador único do endereço.'),
     sa.Column('user_id', sa.BINARY(length=16), nullable=False, comment='Identificador do usuário proprietário do endereço.'),
     sa.Column('label', sa.String(length=50), nullable=True, comment='Nome utilizado pelo usuário para identificar o endereço.'),
     sa.Column('zip_code', sa.String(length=9), nullable=False, comment='CEP do endereço.'),

@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% from "components/message.html" import render_message %}
+
+{% block title %}Meus Dados | OCI Pizza{% endblock %}
+
+{% macro profile_field(label, value='', modifier='', readonly=false) %}
+<div class="profile-field {{ modifier }}">
+    <label>
+        <span>{{ label }}</span>
+        <input
+            type="text"
+            value="{{ value | default('', true) }}"
+            {% if readonly %}readonly{% endif %}
+        >
+    </label>
+</div>
+{% endmacro %}
+
+{% macro render_address(address=none, position=1) %}
+<article class="profile-address-card">
+    <header class="profile-address-header">
+        <h3>{{ address.label if address and address.label else 'Endereço de entrega' }}</h3>
+        <span
+            class="profile-default-badge{% if not address or not address.is_default %} is-placeholder{% endif %}"
+            {% if not address or not address.is_default %}aria-hidden="true"{% endif %}
+        >
+            Principal
+        </span>
+    </header>
+
+    <div class="profile-fields profile-address-fields">
+        {{ profile_field('CEP', address.zip_code if address else '', 'profile-field-cep') }}
+        {{ profile_field('Logradouro', address.street if address else '', 'profile-field-street') }}
+        {{ profile_field('Número', address.number if address else '', 'profile-field-number') }}
+        {{ profile_field('Complemento', address.complement if address else '', 'profile-field-full') }}
+        {{ profile_field('Bairro', address.neighborhood if address else '', 'profile-field-full') }}
+        {{ profile_field('Cidade', address.city if address else '', 'profile-field-city') }}
+        {{ profile_field('Estado', address.state if address else '', 'profile-field-state') }}
+    </div>
+
+    <footer class="profile-address-form-actions">
+        <a
+            class="button button-small"
+            href="/users/profile/addresses/new"
+            data-create-address
+            data-lock-navigation
+        >
+            Novo endereço
+        </a>
+        <button
+            class="button button-small profile-delete-address"
+            type="button"
+            data-delete-address
+            data-address-id="{{ address.id if address else '' }}"
+            data-delete-address-url="/users/profile/addresses/{{ address.id if address else '' }}"
+            {% if not address %}disabled{% endif %}
+        >
+            Excluir endereço
+        </button>
+    </footer>
+</article>
+{% endmacro %}
+
+{% block content %}
+{% set registered_addresses = addresses | default([], true) %}
+<section
+    class="profile-section"
+    aria-labelledby="profile-title"
+    data-user-profile
+    data-update-whatsapp-url="/users/profile/whatsapp"
+    data-csrf-token="{{ csrf_token(request) }}"
+>
+    <header class="menu-hero profile-hero{% if message %} has-message{% endif %}">
+        {% if message %}
+        <div class="message-area">
+            {{ render_message(
+                message | default(none, true),
+                type | default('info', true),
+                'login-notice'
+            ) }}
+            <br aria-hidden="true">
+            <br aria-hidden="true">
+        </div>
+        {% endif %}
+
+        <div class="container hero-grid">
+            <div class="hero-copy">
+                <span class="eyebrow">Sua conta OCI Pizza</span>
+                <h1 id="profile-title">Meus Dados</h1>
+                <p>Confira suas informações pessoais e seus endereços de entrega.</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="container profile-content">
+        <section class="profile-card" aria-labelledby="personal-data-title">
+            <header class="profile-card-heading">
+                <span class="profile-card-icon" aria-hidden="true">01</span>
+                <div>
+                    <span class="eyebrow">Dados pessoais</span>
+                    <h2 id="personal-data-title">Informações da conta</h2>
+                </div>
+            </header>
+
+            <div class="profile-fields">
+                {{ profile_field('Nome completo', user.full_name if user else '', '', true) }}
+                {{ profile_field('E-mail', user.email if user else '', '', true) }}
+                <div class="profile-field">
+                    <label>
+                        <span>{{ form.whatsapp.label.text }}</span>
+                        {{ form.whatsapp }}
+                    </label>
+                    {% if form.whatsapp.errors %}
+                    <small class="field-error">{{ form.whatsapp.errors | first }}</small>
+                    {% endif %}
+                </div>
+                <div class="profile-personal-actions">
+                    <button class="button button-small" type="button" data-update-profile>
+                        Atualizar cadastro
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="profile-card" aria-labelledby="addresses-title">
+            <header class="profile-card-heading profile-addresses-heading">
+                <span class="profile-card-icon" aria-hidden="true">02</span>
+                <div>
+                    <span class="eyebrow">Entrega</span>
+                    <h2 id="addresses-title">Endereços cadastrados</h2>
+                </div>
+                <span class="profile-address-count">
+                    {{ registered_addresses | length }}
+                    {{ 'endereço' if registered_addresses | length == 1 else 'endereços' }}
+                </span>
+            </header>
+
+            <div class="profile-address-selector">
+                <label for="profile-address-select">Selecione o endereço</label>
+                <select
+                    id="profile-address-select"
+                    data-profile-address-select
+                    {% if not registered_addresses %}disabled{% endif %}
+                >
+                    {% if registered_addresses %}
+                        {% for address in registered_addresses %}
+                        <option value="{{ loop.index0 }}">
+                            {{ address.label or ('Endereço ' ~ loop.index) }}{% if address.is_default %} — Principal{% endif %}
+                        </option>
+                        {% endfor %}
+                    {% else %}
+                    <option value="">Nenhum endereço cadastrado</option>
+                    {% endif %}
+                </select>
+            </div>
+
+            <div class="profile-address-list" data-profile-address-list>
+                {% if registered_addresses %}
+                    {% for address in registered_addresses %}
+                    <div data-profile-address-panel="{{ loop.index0 }}"{% if not loop.first %} hidden{% endif %}>
+                        {{ render_address(address, loop.index) }}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    {{ render_address() }}
+                    <p class="profile-empty-note">
+                        Nenhum endereço cadastrado.
+                    </p>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/user_profile.js') }}" defer></script>
+<script src="{{ url_for('static', path='js/user_address.js') }}" defer></script>
+{% endblock %}

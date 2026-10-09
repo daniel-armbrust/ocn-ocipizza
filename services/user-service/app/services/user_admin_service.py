@@ -1,5 +1,5 @@
 #
-# services/user_service_admin.py
+# services/user_admin_service.py
 #
 
 from uuid import UUID, uuid4

@@ -22,6 +22,14 @@ USER_MESSAGES = {
         'message': 'Já existe um usuário cadastrado com este e-mail.',
         'type': 'warning'
     },
+    'USER_WHATSAPP_UPDATED': {
+        'message': 'Número de WhatsApp atualizado com sucesso.',
+        'type': 'success'
+    },
+    'USER_ADDRESS_SUCCESSFULLY_ADDED': {
+        'message': 'Endereço adicionado com sucesso.',
+        'type': 'success'
+    },
     'USER_UPDATE_ERROR': {
         'message': 'Não foi possível atualizar os dados do usuário.',
         'type': 'error'
@@ -54,6 +62,10 @@ USER_MESSAGES = {
         'message': 'Não foi possível realizar a autenticação.',
         'type': 'error'
     },
+    'USER_LOGIN_REQUIRED': {
+        'message': 'É necessário realizar login para continuar.',
+        'type': 'warning'
+    },
     'USER_PASSWORD_RESET_REQUEST_ERROR': {
         'message': 'Não foi possível solicitar a redefinição da senha.',
         'type': 'error'
@@ -68,6 +80,18 @@ USER_MESSAGES = {
     },
     'USER_QUERY_ERROR': {
         'message': 'Não foi possível consultar os dados do usuário.',
+        'type': 'error'
+    },
+    'USER_ADDRESS_LIMIT_EXCEEDED': {
+        'message': 'Você atingiu o limite de endereços cadastrados.',
+        'type': 'warning'
+    },
+    'USER_ADDRESS_SUCCESSFULLY_DELETED': {
+        'message': 'Endereço removido com sucesso.',
+        'type': 'success'
+    },
+    'USER_ADDRESS_DELETE_ERROR': {
+        'message': 'Não foi possível remover o endereço.',
         'type': 'error'
     }
 }

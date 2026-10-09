@@ -12,7 +12,13 @@ from app.schemas.user_schema import UserResponse
 from app.schemas.user_admin_schema import (
     UserAdminCreateRequest,
     UserAdminUpdateRequest,
-    UserAdminPasswordUpdateRequest,
+    UserAdminPasswordUpdateRequest
+)
+
+from app.schemas.user_address_schema import (
+    UserAddressResponse,
+    UserAddressCreateRequest,
+    UserAddressUpdateRequest
 )
 
 from app.exceptions.user_exceptions import (
@@ -24,10 +30,15 @@ from app.exceptions.user_exceptions import (
     UserDeletionError
 )
 
+from app.exceptions.user_address_exceptions import (
+    UserAddressLimitExceededError,
+    UserAddressNotFoundError
+)
+
 from app.exceptions.user_authentication_exceptions import UserAuthenticationError
 from app.exceptions.user_password_exceptions import UserPasswordMismatchError
 
-from app.services.user_service_admin import (
+from app.services.user_admin_service import (
     UserServiceAdmin,
     get_user_service_admin
 )
@@ -40,6 +51,11 @@ from app.services.user_authentication_service import (
 from app.services.user_password_service import (
     UserPasswordService,
     get_user_password_service
+)
+
+from app.services.user_address_service import (
+    UserAddressService,
+    get_user_address_service
 )
 
 from app.dependencies.authentication import get_current_admin_id
@@ -466,5 +482,253 @@ def delete_user(
     return success_response(
         {
             'message': 'User deleted successfully.',
+        }
+    )
+
+#
+# GET: /admin/users/{user_id}/addresses
+#
+@router.get(
+    '/admin/users/{user_id}/addresses',
+    status_code=status.HTTP_200_OK,
+    response_model=JSendSuccessResponse
+)
+def get_admin_user_addresses(
+    user_id: UUID,
+    _: UUID = Depends(get_current_admin_id),
+    service: UserAddressService = Depends(get_user_address_service)
+) -> JSendSuccessResponse | JSONResponse:
+    """
+    Retorna os endereços cadastrados para um usuário.
+
+    Args:
+        user_id: Identificador único do usuário.
+        service: Serviço responsável pelas operações relacionadas aos
+            endereços dos usuários.
+
+    Returns:
+        Resposta JSend contendo os endereços cadastrados para o usuário.
+    """
+
+    try:
+        addresses = service.get_by_user_id(user_id)
+    except UserNotFoundError:
+        return fail_response(
+            status.HTTP_404_NOT_FOUND,
+            'USER_NOT_FOUND',
+            'User not found.'
+        )
+
+    return success_response(
+        {
+            'addresses': [
+                UserAddressResponse.from_model(
+                    address
+                ).model_dump(mode='json')
+                for address in addresses
+            ]
+        }
+    )
+
+#
+# POST: /admin/users/{user_id}/addresses
+#
+@router.post(
+    '/admin/users/{user_id}/addresses',
+    status_code=status.HTTP_201_CREATED,
+    response_model=JSendSuccessResponse
+)
+def create_admin_user_address(
+    user_id: UUID,
+    payload: UserAddressCreateRequest,
+    _: UUID = Depends(get_current_admin_id),
+    service: UserAddressService = Depends(get_user_address_service)
+) -> JSendSuccessResponse | JSONResponse:
+    """
+    Cadastra um novo endereço para um usuário.
+
+    Args:
+        user_id: Identificador único do usuário.
+        payload: Dados necessários para cadastrar o endereço.
+        _: Identificador do administrador autenticado, utilizado apenas
+            para validar a autorização de acesso à rota.
+        service: Serviço responsável pelas operações relacionadas aos
+            endereços dos usuários.
+
+    Returns:
+        Resposta JSend contendo o endereço cadastrado.
+    """
+
+    try:
+        address = service.create(
+            user_id,
+            payload
+        )
+    except UserNotFoundError:
+        return fail_response(
+            status.HTTP_404_NOT_FOUND,
+            'USER_NOT_FOUND',
+            'User not found.'
+        )
+    except UserAddressLimitExceededError:
+        return fail_response(
+            status.HTTP_409_CONFLICT,
+            'USER_ADDRESS_LIMIT_EXCEEDED',
+            'Maximum number of addresses reached.'
+        )
+
+    return success_response(
+        {
+            'address': UserAddressResponse.from_model(
+                address
+            ).model_dump(mode='json')
+        }
+    )
+
+#
+# PUT: /admin/users/{user_id}/addresses/{address_id}
+#
+@router.put(
+    '/admin/users/{user_id}/addresses/{address_id}',
+    status_code=status.HTTP_200_OK,
+    response_model=JSendSuccessResponse
+)
+def update_admin_user_address(
+    user_id: UUID,
+    address_id: UUID,
+    payload: UserAddressUpdateRequest,
+    _: UUID = Depends(get_current_admin_id),
+    service: UserAddressService = Depends(get_user_address_service)
+) -> JSendSuccessResponse | JSONResponse:
+    """
+    Atualiza um endereço pertencente a um usuário.
+
+    Args:
+        user_id: Identificador único do usuário proprietário do endereço.
+        address_id: Identificador único do endereço.
+        payload: Dados do endereço que serão atualizados.
+        _: Identificador do administrador autenticado, utilizado apenas
+            para validar a autorização de acesso à rota.
+        service: Serviço responsável pelas operações relacionadas aos
+            endereços dos usuários.
+
+    Returns:
+        Resposta JSend contendo o endereço atualizado.
+    """
+
+    try:
+        address = service.update(
+            address_id,
+            user_id,
+            payload
+        )
+    except UserAddressNotFoundError:
+        return fail_response(
+            status.HTTP_404_NOT_FOUND,
+            'USER_ADDRESS_NOT_FOUND',
+            'User address not found.'
+        )
+
+    return success_response(
+        {
+            'address': UserAddressResponse.from_model(
+                address
+            ).model_dump(mode='json')
+        }
+    )
+
+#
+# DELETE: /admin/users/{user_id}/addresses/{address_id}
+#
+@router.delete(
+    '/admin/users/{user_id}/addresses/{address_id}',
+    status_code=status.HTTP_200_OK,
+    response_model=JSendSuccessResponse
+)
+def delete_admin_user_address(
+    user_id: UUID,
+    address_id: UUID,
+    _: UUID = Depends(get_current_admin_id),
+    service: UserAddressService = Depends(get_user_address_service)
+) -> JSendSuccessResponse | JSONResponse:
+    """
+    Remove um endereço pertencente a um usuário.
+
+    Args:
+        user_id: Identificador único do usuário proprietário do endereço.
+        address_id: Identificador único do endereço.
+        _: Identificador do administrador autenticado, utilizado apenas
+            para validar a autorização de acesso à rota.
+        service: Serviço responsável pelas operações relacionadas aos
+            endereços dos usuários.
+
+    Returns:
+        Resposta JSend indicando que o endereço foi removido.
+    """
+
+    try:
+        service.delete(
+            address_id,
+            user_id
+        )
+    except UserAddressNotFoundError:
+        return fail_response(
+            status.HTTP_404_NOT_FOUND,
+            'USER_ADDRESS_NOT_FOUND',
+            'User address not found.'
+        )
+
+    return success_response(
+        {
+            'message': 'User address deleted successfully.'
+        }
+    )
+
+#
+# PATCH: /admin/users/{user_id}/addresses/{address_id}/default
+#
+@router.patch(
+    '/admin/users/{user_id}/addresses/{address_id}/default',
+    status_code=status.HTTP_200_OK,
+    response_model=JSendSuccessResponse
+)
+def set_admin_default_user_address(
+    user_id: UUID,
+    address_id: UUID,
+    _: UUID = Depends(get_current_admin_id),
+    service: UserAddressService = Depends(get_user_address_service)
+) -> JSendSuccessResponse | JSONResponse:
+    """
+    Define um endereço como padrão para um usuário.
+
+    Args:
+        user_id: Identificador único do usuário proprietário do endereço.
+        address_id: Identificador único do endereço.
+        _: Identificador do administrador autenticado, utilizado apenas
+            para validar a autorização de acesso à rota.
+        service: Serviço responsável pelas operações relacionadas aos
+            endereços dos usuários.
+
+    Returns:
+        Resposta JSend contendo o endereço definido como padrão.
+    """
+    
+    try:
+        address = service.set_default(
+            address_id,
+            user_id
+        )
+    except UserAddressNotFoundError:
+        return fail_response(
+            status.HTTP_404_NOT_FOUND,
+            'USER_ADDRESS_NOT_FOUND',
+            'User address not found.'
+        )
+
+    return success_response(
+        {
+            'address': UserAddressResponse.from_model(
+                address
+            ).model_dump(mode='json')
         }
     )

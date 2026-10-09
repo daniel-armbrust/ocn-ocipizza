@@ -21,6 +21,21 @@ def normalize_whatsapp(value: Any) -> str:
     return re.sub(r'\D', '', str(value or ''))
 
 
+def normalize_state(value: str | None) -> str | None:
+    """
+    Normaliza a sigla do estado para letras maiúsculas.
+
+    Args:
+        value: Estado informado pelo formulário HTML.
+
+    Returns:
+        Estado sem espaços e em letras maiúsculas, ou `None` quando não
+        houver valor.
+    """
+
+    return value.strip().upper() if value else None
+
+
 def normalize_optional_string(value: str | None) -> str | None:
     """
     Converte strings vazias em `None`.

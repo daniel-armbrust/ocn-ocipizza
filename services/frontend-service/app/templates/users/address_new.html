@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% from "components/message.html" import render_message %}
+
+{% block title %}Novo Endereço | OCI Pizza{% endblock %}
+
+{% block content %}
+<section class="profile-section" aria-labelledby="address-new-title">
+    <header class="menu-hero profile-hero">
+        <div class="container hero-grid">
+            <div class="hero-copy">
+                <span class="eyebrow">Endereço de entrega</span>
+                <h1 id="address-new-title">Novo Endereço</h1>
+                <p>Informe onde você deseja receber os seus pedidos.</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="container profile-content address-new-content">
+        {% if message %}
+        <div class="address-message-area">
+            {{ render_message(
+                message | default(none, true),
+                type | default('error', true),
+                'address-notice'
+            ) }}
+        </div>
+        {% endif %}
+
+        <section class="profile-card" aria-labelledby="address-form-title">
+            <header class="profile-card-heading">
+                <span class="profile-card-icon" aria-hidden="true">01</span>
+                <div>
+                    <span class="eyebrow">Dados do endereço</span>
+                    <h2 id="address-form-title">Local de entrega</h2>
+                </div>
+            </header>
+
+            <form method="post" action="/users/profile/addresses/new" data-address-form>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+
+                <div class="profile-fields profile-address-fields">
+                    <div class="profile-field profile-field-full">
+                        <label>
+                            <span>{{ form.label.label.text }}</span>
+                            {{ form.label }}
+                        </label>
+                        {% if form.label.errors %}
+                        <small class="field-error">{{ form.label.errors | first }}</small>
+                        {% endif %}
+                    </div>
+
+                    <div class="profile-field profile-field-cep">
+                        <label>
+                            <span>{{ form.zip_code.label.text }}</span>
+                            {{ form.zip_code }}
+                        </label>
+                        {% if form.zip_code.errors %}
+                        <small class="field-error">{{ form.zip_code.errors | first }}</small>
+                        {% endif %}
+                    </div>
+
+                    <div class="profile-field profile-field-street">
+                        <label>
+                            <span>{{ form.street.label.text }}</span>
+                            {{ form.street }}
+                        </label>
+                        {% if form.street.errors %}
+                        <small class="field-error">{{ form.street.errors | first }}</small>
+                        {% endif %}
+                    </div>
+
+                    <div class="profile-field profile-field-number">
+                        <label>
+                            <span>{{ form.number.label.text }}</span>
+                            {{ form.number }}
+                        </label>
+                        {% if form.number.errors %}
+                        <small class="field-error">{{ form.number.errors | first }}</small>
+                        {% endif %}
+                    </div>
+
+                    <div class="profile-field profile-field-full">
+                        <label>
+                            <span>{{ form.complement.label.text }}</span>
+                            {{ form.complement }}
+                        </label>
+                        {% if form.complement.errors %}
+                        <small class="field-error">{{ form.complement.errors | first }}</small>
+                        {% endif %}
+                    </div>
+
+                    <div class="profile-field profile-field-full">
+                        <label>
+                            <span>{{ form.neighborhood.label.text }}</span>
+                            {{ form.neighborhood }}
+                        </label>
+                        {% if form.neighborhood.errors %}
+                        <small class="field-error">{{ form.neighborhood.errors | first }}</small>
+                        {% endif %}
+                    </div>
+
+                    <div class="profile-field profile-field-city">
+                        <label>
+                            <span>{{ form.city.label.text }}</span>
+                            {{ form.city }}
+                        </label>
+                        {% if form.city.errors %}
+                        <small class="field-error">{{ form.city.errors | first }}</small>
+                        {% endif %}
+                    </div>
+
+                    <div class="profile-field profile-field-state">
+                        <label>
+                            <span>{{ form.state.label.text }}</span>
+                            {{ form.state }}
+                        </label>
+                        {% if form.state.errors %}
+                        <small class="field-error">{{ form.state.errors | first }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <label class="address-principal-option">
+                    {{ form.is_default }}
+                    <span>{{ form.is_default.label.text }}</span>
+                </label>
+
+                <footer class="address-new-actions">
+                    <button class="button" type="submit">Cadastrar endereço</button>
+                    <a
+                        class="button button-secondary"
+                        href="/users/profile"
+                        data-lock-navigation
+                    >
+                        Cancelar
+                    </a>
+                </footer>
+            </form>
+        </section>
+    </div>
+</section>
+{% endblock %}

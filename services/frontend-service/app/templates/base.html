@@ -16,7 +16,10 @@
     {% block head %}{% endblock %}
 </head>
 <body>
-    {% set is_authenticated = request.cookies.get(session_cookie_name) %}
+    {% set is_authentication_page = request.url.path in ['/users/login', '/users/register'] %}
+    {% set has_authenticated_session = is_authenticated | default(
+        request.state.is_authenticated | default(false)
+    ) and not is_authentication_page %}
     <a class="skip-link" href="#main-content">Ir para o conteúdo</a>
 
     <header class="site-header" data-header>
@@ -45,11 +48,19 @@
             </button>
 
             <nav id="primary-navigation" class="primary-nav" aria-label="Navegação principal" data-nav>
-                <a class="nav-link{% if request.url.path == '/pizzas' %} is-active{% endif %}" href="/pizzas">
+                <a
+                    class="nav-link{% if request.url.path == '/pizzas' %} is-active{% endif %}"
+                    href="/pizzas"
+                    data-lock-navigation
+                >
                     Cardápio
                 </a>
-                {% if is_authenticated %}
-                    <a class="nav-link{% if request.url.path == '/users/profile' %} is-active{% endif %}" href="/users/profile">
+                {% if has_authenticated_session %}
+                    <a
+                        class="nav-link{% if request.url.path == '/users/profile' %} is-active{% endif %}"
+                        href="/users/profile"
+                        data-lock-navigation
+                    >
                         Meus Dados
                     </a>
                     <form class="nav-logout-form" method="post" action="/users/logout">
@@ -59,11 +70,11 @@
                         </button>
                     </form>
                 {% else %}
+                    <a class="nav-link{% if request.url.path == '/users/register' %} is-active{% endif %}" href="/users/register">
+                        Novo Usuário
+                    </a>
                     <a class="nav-link{% if request.url.path == '/users/login' %} is-active{% endif %}" href="/users/login">
                         Entrar
-                    </a>
-                    <a class="nav-link{% if request.url.path == '/users/register' %} is-active{% endif %}" href="/users/register">
-                        Cadastrar
                     </a>
                 {% endif %}
                 <a
@@ -105,7 +116,8 @@
     <div class="toast-region" aria-live="polite" aria-atomic="true" data-toast-region></div>
 
     <script src="{{ url_for('static', path='js/app.js') }}" defer></script>
-    <script src="{{ url_for('static', path='js/form_submission.js') }}" defer></script>
+    <script src="{{ url_for('static', path='js/interaction_lock.js') }}" defer></script>
+    <script src="{{ url_for('static', path='js/user_auth.js') }}" defer></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

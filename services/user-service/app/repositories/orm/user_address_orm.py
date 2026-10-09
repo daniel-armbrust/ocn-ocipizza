@@ -12,9 +12,9 @@ class UserAddressORM(Base):
     __tablename__ = 'user_addresses'
 
     id = Column(
-        Integer,
+        BINARY(16),
         primary_key=True,
-        autoincrement=True,
+        nullable=False,
         comment='Identificador único do endereço.'
     )
 

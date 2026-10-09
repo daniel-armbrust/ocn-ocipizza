@@ -54,6 +54,47 @@ O ambiente de execução do serviço utiliza Python 3.11. Não instale essas
 bibliotecas manualmente uma a uma: o bootstrap realiza a instalação das versões
 definidas em `requirements.txt`.
 
+## Configurações
+
+| Variável | Padrão | Descrição |
+| --- | --- | --- |
+| `APP_NAME` | `user-service` | Nome da aplicação. |
+| `APP_ENV` | `development` | Ambiente de execução. |
+| `DEBUG` | `false` | Ativa o modo de depuração. |
+| `PERSISTENCE_PROVIDER` | `sqlalchemy` | Provider de persistência: `sqlalchemy` ou `nosql`. |
+| `DATABASE_URL` | — | URL de conexão utilizada pelo SQLAlchemy. |
+| `MESSAGING_PROVIDER` | — | Provider de mensageria: `rabbitmq` ou `oci_queue`. |
+| `RABBITMQ_HOST` | — | Host do RabbitMQ. |
+| `RABBITMQ_PORT` | — | Porta do RabbitMQ. |
+| `RABBITMQ_USERNAME` | — | Usuário utilizado na conexão com o RabbitMQ. |
+| `RABBITMQ_PASSWORD` | — | Senha utilizada na conexão com o RabbitMQ. |
+| `RABBITMQ_QUEUE_NAME` | — | Nome da fila de notificações no RabbitMQ. |
+| `OCI_QUEUE_ID` | — | OCID da fila utilizada pelo provider OCI Queue. |
+| `OCI_QUEUE_MESSAGES_ENDPOINT` | — | Endpoint de mensagens da OCI Queue. |
+| `OCI_REGION` | — | Região dos serviços OCI utilizados pela instância. |
+| `JWT_KEY_PROVIDER` | `local` | Provider das chaves JWT: `local` ou `oci`. |
+| `JWT_ISSUER` | `user-service` | Emissor incluído e esperado nos access tokens. |
+| `JWT_AUDIENCE` | `oci-pizza` | Audiência incluída e esperada nos access tokens. |
+| `JWT_ACCESS_TOKEN_EXPIRATION_MINUTES` | `15` | Validade do access token em minutos. |
+| `JWT_PRIVATE_KEY_PATH` | `/run/secrets/jwt_private_key.pem` | Caminho da chave privada RSA local. |
+| `JWT_PUBLIC_KEY_PATH` | `/run/secrets/jwt_public_key.pem` | Caminho da chave pública RSA local. |
+| `JWT_PRIVATE_KEY_SECRET_ID` | — | OCID do secret que contém a chave privada no provider OCI. |
+| `REFRESH_TOKEN_EXPIRATION_DAYS` | `30` | Validade do refresh token em dias. |
+| `LOG_LEVEL` | `INFO` | Nível global de logging da aplicação. |
+| `OCI_LOG_ID` | — | OCID do Custom Log, obrigatório fora de desenvolvimento. |
+
+## Documentação interativa
+
+Em `development`, o serviço disponibiliza:
+
+- Swagger UI: `http://localhost:8002/docs`
+- ReDoc: `http://localhost:8002/redoc`
+- OpenAPI JSON: `http://localhost:8002/openapi.json`
+
+Fora de `development`, esses três endpoints são desabilitados. O health check
+permanece disponível em `http://localhost:8002/health` para monitoramento da
+instância e deve ter sua exposição controlada pela infraestrutura.
+
 ## `bootstrap.sh` — Bootstrap do ambiente local
 
 O script `bootstrap.sh` automatiza a criação do ambiente Python, a configuração do banco de
@@ -329,26 +370,6 @@ própria conta.
 | UPDATE | `PUT` | `/users/me` | Usuário autenticado. |
 | DELETE | — | — | Não disponível para o próprio usuário. |
 
-Administradores possuem um conjunto completo de operações CRUD sob o prefixo
-`/admin/users`:
-
-| Operação | Método HTTP | Endpoint |
-| --- | --- | --- |
-| CREATE | `POST` | `/admin/users` |
-| READ | `GET` | `/admin/users` |
-| READ | `GET` | `/admin/users/{user_id}` |
-| UPDATE | `PUT` | `/admin/users/{user_id}` |
-| DELETE | `DELETE` | `/admin/users/{user_id}` |
-
-As rotas administrativas também permitem definir a senha com
-`PUT /admin/users/{user_id}/password`, confirmar o cadastro com
-`POST /admin/users/{user_id}/confirm` e revogar as sessões com
-`POST /admin/users/{user_id}/revoke-sessions`. Os exemplos e os detalhes dessas
-operações estão na seção [Operações administrativas](#operações-administrativas).
-
-Existe ainda a rota administrativa `GET /users`, que lista usuários e exige um
-access token com a claim `is_admin` igual a `true`.
-
 #### CREATE — Criar um usuário
 
 Para cadastrar um novo usuário, execute:
@@ -433,49 +454,25 @@ for encontrado, a resposta terá o status HTTP `404 Not Found`. Um WhatsApp já
 cadastrado resulta em `409 Conflict`. Outras falhas de atualização resultam em
 `500 Internal Server Error`.
 
-#### READ — Listar usuários pela rota `/users`
-
-A listagem de usuários é uma operação administrativa. O access token enviado
-na requisição deve possuir a claim `is_admin` com o valor `true`.
-
-Para listar os usuários utilizando todos os filtros disponíveis, execute:
-
-```bash
-curl --request GET \
-  --url 'http://localhost:8002/users?email=example.com&confirmed=true&is_admin=false&limit=50&offset=0' \
-  --header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.xxxxx.yyyyy' \
-  --header 'Accept: application/json'
-```
-
-Substitua o token apresentado no exemplo pelo access token de um usuário
-administrador. Todos os parâmetros de consulta são opcionais:
-
-| Campo | Descrição |
-| --- | --- |
-| `email` | String opcional que filtra por parte do endereço de e-mail, sem diferenciar letras maiúsculas e minúsculas. |
-| `confirmed` | Booleano opcional que filtra pelo estado de confirmação do e-mail. |
-| `is_admin` | Booleano opcional que filtra pela presença de privilégios administrativos. |
-| `limit` | Inteiro opcional que define a quantidade máxima de usuários retornados; o padrão é `50`. |
-| `offset` | Inteiro opcional que define a quantidade de registros ignorados; o padrão é `0`. |
-
-Os filtros podem ser omitidos. Para listar a primeira página com os valores
-padrão de paginação, utilize somente `GET /users`. Os usuários são ordenados
-do cadastro mais recente para o mais antigo.
-
-Quando a consulta for concluída, a API responderá com o status HTTP `200 OK` e
-uma lista no campo `data.users` do padrão JSend. Quando nenhum usuário atender
-aos filtros, esse campo será uma lista vazia.
-
-A API responderá com `401 Unauthorized` quando o access token estiver ausente,
-inválido ou expirado; com `403 Forbidden` quando o usuário autenticado não
-possuir privilégios administrativos; e com `500 Internal Server Error` quando
-não for possível consultar os usuários.
-
 ### Endereços do usuário
 
-As operações de endereços permitem consultar os endereços de entrega
-associados ao usuário autenticado. Atualmente, o serviço disponibiliza somente
-a listagem dos endereços do próprio usuário.
+As operações abaixo permitem ao usuário autenticado gerenciar seus próprios
+endereços de entrega. Todas exigem um access token JWT válido no cabeçalho
+`Authorization`. O UUID do usuário é obtido a partir do token e não deve ser
+informado na URL nem no corpo da requisição.
+
+| Operação | Método HTTP | Endpoint |
+| --- | --- | --- |
+| Listar endereços | `GET` | `/users/me/addresses` |
+| Consultar um endereço | `GET` | `/users/me/addresses/{address_id}` |
+| Cadastrar um endereço | `POST` | `/users/me/addresses` |
+| Atualizar um endereço | `PUT` | `/users/me/addresses/{address_id}` |
+| Excluir um endereço | `DELETE` | `/users/me/addresses/{address_id}` |
+| Definir o endereço padrão | `PATCH` | `/users/me/addresses/{address_id}/default` |
+
+Cada usuário pode possuir no máximo três endereços. O primeiro endereço
+cadastrado é definido automaticamente como padrão. Quando outro endereço é
+definido como padrão, a marcação é removida dos demais.
 
 #### READ — Listar os endereços do usuário autenticado
 
@@ -489,8 +486,8 @@ curl --request GET \
 ```
 
 Substitua o token apresentado no exemplo por um access token JWT válido. O
-UUID do usuário não deve ser informado na URL, pois é obtido a partir da
-identidade autenticada.
+campo `data.addresses` será uma lista vazia quando não houver endereços
+cadastrados.
 
 Quando a consulta for concluída, a API responderá com o status HTTP `200 OK` e
 os endereços no campo `data.addresses` do padrão JSend:
@@ -519,10 +516,123 @@ os endereços no campo `data.addresses` do padrão JSend:
 }
 ```
 
-Quando o usuário não possuir endereços cadastrados, `data.addresses` será uma
-lista vazia. A API responderá com `401 Unauthorized` quando o access token
-estiver ausente, inválido ou expirado, e com `500 Internal Server Error` quando
-não for possível consultar os endereços.
+#### READ — Consultar um endereço
+
+Para consultar um endereço pertencente ao usuário autenticado, execute:
+
+```bash
+curl --request GET \
+  --url http://localhost:8002/users/me/addresses/5cd4cc45-7ef7-4478-a048-e297b3570c86 \
+  --header 'Authorization: Bearer ACCESS_TOKEN' \
+  --header 'Accept: application/json'
+```
+
+A API responderá com `200 OK` e o endereço no campo `data.address`. Quando o
+UUID não identificar um endereço pertencente ao usuário autenticado, a resposta
+será `404 Not Found`, com o código `USER_ADDRESS_NOT_FOUND`.
+
+#### CREATE — Cadastrar um endereço
+
+Para cadastrar um endereço, execute:
+
+```bash
+curl --request POST \
+  --url http://localhost:8002/users/me/addresses \
+  --header 'Authorization: Bearer ACCESS_TOKEN' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "label": "Casa",
+    "zip_code": "01310-100",
+    "street": "Avenida Paulista",
+    "number": "1000",
+    "complement": "Apartamento 101",
+    "neighborhood": "Bela Vista",
+    "city": "São Paulo",
+    "state": "SP",
+    "is_default": true
+  }'
+```
+
+Os campos aceitos são:
+
+| Campo | Obrigatório | Descrição |
+| --- | --- | --- |
+| `label` | Não | Identificação do endereço, com até 50 caracteres. |
+| `zip_code` | Sim | CEP contendo entre 8 e 9 caracteres. |
+| `street` | Sim | Logradouro contendo até 255 caracteres. |
+| `number` | Sim | Número do endereço, com até 20 caracteres. |
+| `complement` | Não | Complemento contendo até 100 caracteres. |
+| `neighborhood` | Sim | Bairro contendo até 100 caracteres. |
+| `city` | Sim | Cidade contendo até 100 caracteres. |
+| `state` | Sim | Estado aceito pelo schema com 2 a 30 caracteres e armazenado em letras maiúsculas. |
+| `is_default` | Não | Define o endereço como padrão; o valor padrão é `false`. |
+
+Quando o cadastro for concluído, a API responderá com `201 Created` e o
+endereço no campo `data.address`. Ao atingir o limite de três endereços, a
+resposta será `409 Conflict`, com o código `USER_ADDRESS_LIMIT_EXCEEDED`.
+
+#### UPDATE — Atualizar um endereço
+
+Todos os campos do payload de atualização são opcionais. Somente os campos
+enviados serão alterados:
+
+```bash
+curl --request PUT \
+  --url http://localhost:8002/users/me/addresses/5cd4cc45-7ef7-4478-a048-e297b3570c86 \
+  --header 'Authorization: Bearer ACCESS_TOKEN' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "label": "Trabalho",
+    "number": "1200",
+    "is_default": true
+  }'
+```
+
+Os limites dos campos são os mesmos utilizados no cadastro, exceto `state`,
+que na atualização deve conter exatamente dois caracteres. A API responderá
+com `200 OK` e o endereço atualizado em `data.address`. Um endereço inexistente
+ou pertencente a outro usuário resulta em `404 Not Found`, com o código
+`USER_ADDRESS_NOT_FOUND`.
+
+#### DELETE — Excluir um endereço
+
+Para remover um endereço pertencente ao usuário autenticado, execute:
+
+```bash
+curl --request DELETE \
+  --url http://localhost:8002/users/me/addresses/5cd4cc45-7ef7-4478-a048-e297b3570c86 \
+  --header 'Authorization: Bearer ACCESS_TOKEN' \
+  --header 'Accept: application/json'
+```
+
+Quando a exclusão for concluída, a API responderá com `200 OK` e a mensagem
+`User address deleted successfully.`. Um endereço inexistente ou pertencente a
+outro usuário resulta em `404 Not Found`, com o código
+`USER_ADDRESS_NOT_FOUND`.
+
+#### Definir um endereço como padrão
+
+Para definir um endereço como padrão, execute:
+
+```bash
+curl --request PATCH \
+  --url http://localhost:8002/users/me/addresses/5cd4cc45-7ef7-4478-a048-e297b3570c86/default \
+  --header 'Authorization: Bearer ACCESS_TOKEN' \
+  --header 'Accept: application/json'
+```
+
+A operação não recebe corpo. A API responderá com `200 OK`, retornando o
+endereço em `data.address` com `is_default` igual a `true`. A marcação de
+padrão será removida dos demais endereços. Um endereço inexistente ou
+pertencente a outro usuário resulta em `404 Not Found`, com o código
+`USER_ADDRESS_NOT_FOUND`.
+
+Em todas as operações, a API responderá com `401 Unauthorized` quando o access
+token estiver ausente, inválido ou expirado. Payloads ou UUIDs inválidos
+resultam em `400 Bad Request` com o código `USER_VALIDATION_ERROR`. Falhas
+inesperadas resultam em `500 Internal Server Error`.
 
 ### Autenticação do usuário
 
@@ -788,13 +898,19 @@ serviços para validar a assinatura dos access tokens emitidos pelo
 
 ### Operações administrativas
 
-As operações administrativas permitem gerenciar os usuários da aplicação.
-Todas exigem um access token JWT cuja claim `is_admin` possua o valor `true`.
+As operações administrativas permitem gerenciar qualquer usuário da
+aplicação, tanto contas administrativas quanto contas sem privilégios
+administrativos. Todas exigem um access token JWT cuja claim `is_admin` possua
+o valor `true`. O campo ou filtro `is_admin` determina o tipo da conta que será
+criada, atualizada ou consultada.
+
+#### Administração de usuários
 
 | Operação | Método HTTP | Endpoint |
 | --- | --- | --- |
 | Criar usuário | `POST` | `/admin/users` |
 | Listar usuários | `GET` | `/admin/users` |
+| Listar usuários pela rota administrativa legada | `GET` | `/users` |
 | Consultar usuário | `GET` | `/admin/users/{user_id}` |
 | Atualizar usuário | `PUT` | `/admin/users/{user_id}` |
 | Definir senha | `PUT` | `/admin/users/{user_id}/password` |
@@ -805,7 +921,7 @@ Todas exigem um access token JWT cuja claim `is_admin` possua o valor `true`.
 Substitua `ADMIN_ACCESS_TOKEN` pelo access token de um administrador e
 `USER_ID` pelo UUID do usuário correspondente nos exemplos abaixo.
 
-#### Criar um usuário
+##### Criar um usuário
 
 ```bash
 curl --request POST \
@@ -836,7 +952,7 @@ Quando `confirmed` for `false`, o serviço inicia o fluxo de envio do e-mail de
 confirmação. A criação retorna `201 Created`; e-mail ou WhatsApp duplicado
 resulta em `409 Conflict`.
 
-#### Listar usuários
+##### Listar usuários
 
 ```bash
 curl --request GET \
@@ -858,7 +974,25 @@ antigo.
 | `limit` | Define a quantidade máxima de usuários retornados; o padrão é `50`. |
 | `offset` | Define a quantidade de registros ignorados antes do retorno; o padrão é `0`. |
 
-#### Consultar um usuário
+##### Listar usuários pela rota administrativa `/users`
+
+A rota `GET /users` também é administrativa e oferece os mesmos filtros de
+listagem. Ela exige a claim `is_admin` igual a `true`, apesar de não utilizar o
+prefixo `/admin`:
+
+```bash
+curl --request GET \
+  --url 'http://localhost:8002/users?email=example.com&confirmed=true&is_admin=false&limit=50&offset=0' \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Accept: application/json'
+```
+
+Os parâmetros `email`, `confirmed`, `is_admin`, `limit` e `offset` possuem o
+mesmo comportamento descrito para `GET /admin/users`. A resposta `200 OK`
+retorna os registros em `data.users`; quando nenhum registro atender aos
+filtros, esse campo será uma lista vazia.
+
+##### Consultar um usuário
 
 ```bash
 curl --request GET \
@@ -874,7 +1008,7 @@ correspondente resulta em `404 Not Found`.
 | --- | --- |
 | `user_id` | UUID do usuário que será consultado, informado no caminho da requisição. |
 
-#### Atualizar um usuário
+##### Atualizar um usuário
 
 ```bash
 curl --request PUT \
@@ -905,7 +1039,7 @@ ou WhatsApp duplicado resulta em `409 Conflict`.
 | `confirmed` | Indica se o endereço de e-mail do usuário está confirmado. |
 | `is_admin` | Indica se o usuário possui privilégios administrativos. |
 
-#### Definir a senha de um usuário
+##### Definir a senha de um usuário
 
 ```bash
 curl --request PUT \
@@ -924,7 +1058,7 @@ devem ser iguais e possuir entre 8 e 20 caracteres. O sucesso retorna `200 OK`
 e a mensagem `User password updated successfully.`. Confirmação divergente
 resulta em `400 Bad Request` e usuário inexistente, em `404 Not Found`.
 
-#### Confirmar o cadastro de um usuário
+##### Confirmar o cadastro de um usuário
 
 ```bash
 curl --request POST \
@@ -941,7 +1075,7 @@ retorna os dados atualizados em `data.user`. Usuário inexistente resulta em
 | --- | --- |
 | `user_id` | UUID do usuário cujo cadastro será confirmado, informado no caminho da requisição. |
 
-#### Revogar as sessões de um usuário
+##### Revogar as sessões de um usuário
 
 ```bash
 curl --request POST \
@@ -958,7 +1092,7 @@ essas sessões renovem seus access tokens. O sucesso retorna `200 OK` e a mensag
 | --- | --- |
 | `user_id` | UUID do usuário cujas sessões serão revogadas, informado no caminho da requisição. |
 
-#### Excluir um usuário
+##### Excluir um usuário
 
 ```bash
 curl --request DELETE \
@@ -974,6 +1108,121 @@ A exclusão remove o usuário e seus registros relacionados configurados com
 | Campo | Descrição |
 | --- | --- |
 | `user_id` | UUID do usuário que será excluído, informado no caminho da requisição. |
+
+#### Administração dos endereços de um usuário
+
+As rotas administrativas de endereços podem atuar sobre contas
+administrativas ou não administrativas. `USER_ID` identifica o proprietário do
+endereço e `ADDRESS_ID`, o endereço que será alterado.
+
+| Operação | Método HTTP | Endpoint |
+| --- | --- | --- |
+| Listar endereços | `GET` | `/admin/users/{user_id}/addresses` |
+| Cadastrar endereço | `POST` | `/admin/users/{user_id}/addresses` |
+| Atualizar endereço | `PUT` | `/admin/users/{user_id}/addresses/{address_id}` |
+| Excluir endereço | `DELETE` | `/admin/users/{user_id}/addresses/{address_id}` |
+| Definir endereço padrão | `PATCH` | `/admin/users/{user_id}/addresses/{address_id}/default` |
+
+Cada usuário pode possuir no máximo três endereços. O primeiro endereço
+é definido automaticamente como padrão. Quando outro endereço é marcado
+como padrão, essa marcação é removida dos demais.
+
+##### Listar os endereços de um usuário
+
+```bash
+curl --request GET \
+  --url http://localhost:8002/admin/users/USER_ID/addresses \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Accept: application/json'
+```
+
+A resposta `200 OK` retorna a lista em `data.addresses`. Quando o usuário não
+possuir endereços, o campo será uma lista vazia.
+
+##### Cadastrar um endereço para um usuário
+
+```bash
+curl --request POST \
+  --url http://localhost:8002/admin/users/USER_ID/addresses \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "label": "Casa",
+    "zip_code": "01310-100",
+    "street": "Avenida Paulista",
+    "number": "1000",
+    "complement": "Apartamento 101",
+    "neighborhood": "Bela Vista",
+    "city": "São Paulo",
+    "state": "SP",
+    "is_default": true
+  }'
+```
+
+| Campo | Obrigatório | Descrição |
+| --- | --- | --- |
+| `label` | Não | Identificação do endereço, com até 50 caracteres. |
+| `zip_code` | Sim | CEP contendo entre 8 e 9 caracteres. |
+| `street` | Sim | Logradouro contendo até 255 caracteres. |
+| `number` | Sim | Número contendo até 20 caracteres. |
+| `complement` | Não | Complemento contendo até 100 caracteres. |
+| `neighborhood` | Sim | Bairro contendo até 100 caracteres. |
+| `city` | Sim | Cidade contendo até 100 caracteres. |
+| `state` | Sim | Estado contendo entre 2 e 30 caracteres; o valor é armazenado em letras maiúsculas. |
+| `is_default` | Não | Define o endereço como padrão; o valor padrão é `false`. |
+
+O sucesso retorna `201 Created` e o endereço em `data.address`. Se o usuário
+já possuir três endereços, a API retorna `409 Conflict` com o código
+`USER_ADDRESS_LIMIT_EXCEEDED`.
+
+##### Atualizar um endereço de um usuário
+
+```bash
+curl --request PUT \
+  --url http://localhost:8002/admin/users/USER_ID/addresses/ADDRESS_ID \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "label": "Trabalho",
+    "number": "1200",
+    "is_default": true
+  }'
+```
+
+Todos os campos do payload são opcionais e somente os campos enviados são
+alterados. Os limites são os mesmos do cadastro, exceto `state`, que deve conter
+exatamente dois caracteres na atualização. O sucesso retorna `200 OK` e o
+endereço atualizado em `data.address`.
+
+##### Excluir um endereço de um usuário
+
+```bash
+curl --request DELETE \
+  --url http://localhost:8002/admin/users/USER_ID/addresses/ADDRESS_ID \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Accept: application/json'
+```
+
+O sucesso retorna `200 OK` e a mensagem
+`User address deleted successfully.`. Um endereço inexistente ou que não
+pertença ao usuário informado retorna `404 Not Found` com o código
+`USER_ADDRESS_NOT_FOUND`.
+
+##### Definir o endereço padrão de um usuário
+
+```bash
+curl --request PATCH \
+  --url http://localhost:8002/admin/users/USER_ID/addresses/ADDRESS_ID/default \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Accept: application/json'
+```
+
+A operação não recebe corpo. O sucesso retorna `200 OK` e o endereço em
+`data.address`, com `is_default` igual a `true`. Um endereço inexistente ou que
+não pertença ao usuário informado retorna `404 Not Found` com o código
+`USER_ADDRESS_NOT_FOUND`.
 
 Para todas as operações administrativas, um access token ausente, inválido ou
 expirado resulta em `401 Unauthorized`, enquanto um usuário sem privilégios
@@ -992,44 +1241,3 @@ consulta resultam em `500 Internal Server Error`.
 | `404 Not Found` | Usuário ou recurso solicitado não encontrado. |
 | `409 Conflict` | E-mail ou WhatsApp já utilizado por outro usuário. |
 | `500 Internal Server Error` | Falha interna de persistência, mensageria, consulta ou processamento. |
-
-## Configurações
-
-| Variável | Padrão | Descrição |
-| --- | --- | --- |
-| `APP_NAME` | `user-service` | Nome da aplicação. |
-| `APP_ENV` | `development` | Ambiente de execução. |
-| `DEBUG` | `false` | Ativa o modo de depuração. |
-| `PERSISTENCE_PROVIDER` | `sqlalchemy` | Provider de persistência: `sqlalchemy` ou `nosql`. |
-| `DATABASE_URL` | — | URL de conexão utilizada pelo SQLAlchemy. |
-| `MESSAGING_PROVIDER` | — | Provider de mensageria: `rabbitmq` ou `oci_queue`. |
-| `RABBITMQ_HOST` | — | Host do RabbitMQ. |
-| `RABBITMQ_PORT` | — | Porta do RabbitMQ. |
-| `RABBITMQ_USERNAME` | — | Usuário utilizado na conexão com o RabbitMQ. |
-| `RABBITMQ_PASSWORD` | — | Senha utilizada na conexão com o RabbitMQ. |
-| `RABBITMQ_QUEUE_NAME` | — | Nome da fila de notificações no RabbitMQ. |
-| `OCI_QUEUE_ID` | — | OCID da fila utilizada pelo provider OCI Queue. |
-| `OCI_QUEUE_MESSAGES_ENDPOINT` | — | Endpoint de mensagens da OCI Queue. |
-| `OCI_REGION` | — | Região dos serviços OCI utilizados pela instância. |
-| `JWT_KEY_PROVIDER` | `local` | Provider das chaves JWT: `local` ou `oci`. |
-| `JWT_ISSUER` | `user-service` | Emissor incluído e esperado nos access tokens. |
-| `JWT_AUDIENCE` | `oci-pizza` | Audiência incluída e esperada nos access tokens. |
-| `JWT_ACCESS_TOKEN_EXPIRATION_MINUTES` | `15` | Validade do access token em minutos. |
-| `JWT_PRIVATE_KEY_PATH` | `/run/secrets/jwt_private_key.pem` | Caminho da chave privada RSA local. |
-| `JWT_PUBLIC_KEY_PATH` | `/run/secrets/jwt_public_key.pem` | Caminho da chave pública RSA local. |
-| `JWT_PRIVATE_KEY_SECRET_ID` | — | OCID do secret que contém a chave privada no provider OCI. |
-| `REFRESH_TOKEN_EXPIRATION_DAYS` | `30` | Validade do refresh token em dias. |
-| `LOG_LEVEL` | `INFO` | Nível global de logging da aplicação. |
-| `OCI_LOG_ID` | — | OCID do Custom Log, obrigatório fora de desenvolvimento. |
-
-## Documentação interativa
-
-Em `development`, o serviço disponibiliza:
-
-- Swagger UI: `http://localhost:8002/docs`
-- ReDoc: `http://localhost:8002/redoc`
-- OpenAPI JSON: `http://localhost:8002/openapi.json`
-
-Fora de `development`, esses três endpoints são desabilitados. O health check
-permanece disponível em `http://localhost:8002/health` para monitoramento da
-instância e deve ter sua exposição controlada pela infraestrutura.

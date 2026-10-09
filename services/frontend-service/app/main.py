@@ -4,18 +4,25 @@
 
 import logging
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from starlette.middleware.sessions import SessionMiddleware
-from starlette_wtf import CSRFProtectMiddleware
+from starlette_wtf import CSRFError, CSRFProtectMiddleware
 
 from app.config.logging import configure_logging
 from app.config.settings import settings
 
 from app.dependencies.templates import templates
-from app.routes import pizza_routes, user_routes, cart_routes
+from app.dependencies.authentication import load_authentication_context
+
+from app.routes import (
+    pizza_routes,
+    user_routes,
+    user_auth_routes,
+    cart_routes
+)
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -23,6 +30,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title='OCI Pizza - Frontend Service',
     version='1.0.0',
+    dependencies=[Depends(load_authentication_context)],
     docs_url='/docs' if settings.app_env == 'development' else None,
     redoc_url='/redoc' if settings.app_env == 'development' else None,
     openapi_url='/openapi.json' if settings.app_env == 'development' else None
@@ -49,6 +57,27 @@ app.mount(
     name='static'
 )
 
+@app.exception_handler(CSRFError)
+async def csrf_error_handler(
+    request: Request,
+    ex: CSRFError
+) -> RedirectResponse:
+    """
+    Redireciona requisições cujo token CSRF seja inválido ou tenha expirado.
+
+    Args:
+        request: Requisição HTTP que falhou na validação CSRF.
+        ex: Exceção produzida pela proteção CSRF.
+
+    Returns:
+        Redirecionamento para a página inicial da aplicação.
+    """
+
+    return RedirectResponse(
+        url='/',
+        status_code=303
+    )
+
 @app.exception_handler(404)
 async def not_found_handler(
     request: Request,
@@ -64,13 +93,6 @@ async def not_found_handler(
     Returns:
         Resposta HTML com a página de erro e status HTTP 404.
     """
-
-    logger.error(
-        'Unexpected error while processing %s %s',
-        request.method,
-        request.url.path,
-        exc_info=ex
-    )
 
     return templates.TemplateResponse(
         request=request,
@@ -94,11 +116,10 @@ async def internal_error_handler(
         Resposta HTML sem detalhes internos e com status HTTP 500.
     """
 
-    logger.error(
+    logger.exception(
         'Unexpected error while processing %s %s',
         request.method,
-        request.url.path,
-        exc_info=ex
+        request.url.path
     )
 
     # Não inclui informações da exceção na página para evitar o vazamento
@@ -126,6 +147,14 @@ def root(request: Request) -> RedirectResponse:
         status_code=307
     )
 
-app.include_router(pizza_routes.router)
+# Rotas responsáveis pelo cadastro e gerenciamento dos usuários.
 app.include_router(user_routes.router)
+
+# Rotas responsáveis pelos fluxos de autenticação dos usuários.
+app.include_router(user_auth_routes.router)
+
+# Rotas responsáveis pela consulta e interação com as pizzas.
+app.include_router(pizza_routes.router)
+
+# Rotas responsáveis pelo gerenciamento do carrinho de compras.
 app.include_router(cart_routes.router)

@@ -3,6 +3,7 @@
 #
 
 from secrets import token_urlsafe
+from time import time
 from typing import Any
 
 from fastapi import Depends
@@ -44,7 +45,7 @@ class SessionService:
                 aos microserviços.
             refresh_token: Token utilizado para renovação do
                 access token.
-            expires_in: Tempo de validade da sessão, em segundos.
+            expires_in: Tempo de validade do access token, em segundos.
 
         Returns:
             Identificador opaco da sessão criada.
@@ -57,13 +58,14 @@ class SessionService:
         session_data: dict[str, Any] = {
             'access_token': access_token,
             'refresh_token': refresh_token,
-            'access_token_expires_in': expires_in
+            'access_token_expires_in': expires_in,
+            'access_token_expires_at': int(time()) + expires_in
         }
 
         await self.session_repository.create(
             session_id=session_id,
             data=session_data,
-            ttl=settings.session_ttl
+            ttl=max(1, min(settings.session_ttl, expires_in))
         )
 
         return session_id
@@ -80,9 +82,22 @@ class SessionService:
             ou tenha expirado.
         """
 
-        return await self.session_repository.get(
+        session = await self.session_repository.get(
             session_id
         )
+
+        if not session:
+            return None
+
+        expires_at = session.get('access_token_expires_at')
+
+        # Sessões criadas antes do controle absoluto de expiração não
+        # permitem determinar se o access token continua válido.
+        if expires_at is None or expires_at <= int(time()):
+            await self.session_repository.delete(session_id)
+            return None
+
+        return session
 
     async def update(self,
                      session_id: str,

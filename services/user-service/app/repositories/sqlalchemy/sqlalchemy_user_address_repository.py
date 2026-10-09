@@ -56,6 +56,7 @@ class SQLAlchemyUserAddressRepository(UserAddressRepository):
             updated_at=address.updated_at
         )
 
+    
         self.session.add(orm_address)
 
         # Envia as alterações pendentes ao banco sem finalizar a transação.

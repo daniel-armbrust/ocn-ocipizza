@@ -46,11 +46,10 @@ async def validation_exception_handler(
         Resposta JSON JSend `fail` com o primeiro erro de validação.
     """
 
-    logger.error(
+    logger.exception(
         'Unexpected error while processing %s %s',
         request.method,
-        request.url.path,
-        exc_info=ex
+        request.url.path
     )
 
     error = ex.errors()[0]
@@ -80,11 +79,11 @@ async def http_exception_handler(
         Resposta JSON JSend `fail` preservando o status HTTP da exceção.
     """
 
-    logger.error(
-        'Unexpected error while processing %s %s',
+    logger.warning(
+        'HTTP error while processing %s %s: %s',
         request.method,
         request.url.path,
-        exc_info=ex
+        ex.detail
     )
 
     return fail_response(
@@ -109,11 +108,10 @@ async def unexpected_exception_handler(
         Resposta JSON JSend `fail` genérica com HTTP 500.
     """
 
-    logger.error(
+    logger.exception(
         'Unexpected error while processing %s %s',
         request.method,
-        request.url.path,
-        exc_info=ex
+        request.url.path
     )
 
     return fail_response(

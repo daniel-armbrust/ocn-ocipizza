@@ -49,11 +49,11 @@ body::before {
     pointer-events: none;
 }
 
-body.is-submitting {
+body.is-interaction-locked {
     cursor: wait;
 }
 
-body.is-submitting::after {
+body.is-interaction-locked::after {
     position: fixed;
     z-index: 1000;
     inset: 0;
@@ -396,6 +396,291 @@ a {
 .cart-empty p {
     margin-bottom: 24px;
     color: var(--ink-700);
+}
+
+.profile-section {
+    min-height: calc(100vh - 196px);
+    padding-bottom: 90px;
+    background: var(--cream-100);
+}
+
+.menu-hero.profile-hero {
+    padding: 42px 0 46px;
+}
+
+.profile-hero .hero-grid {
+    grid-template-columns: 1fr;
+}
+
+.profile-hero .hero-copy h1 {
+    max-width: none;
+    margin-bottom: 10px;
+    font-size: clamp(2.5rem, 5vw, 3.8rem);
+}
+
+.profile-hero .hero-copy p {
+    margin-bottom: 0;
+}
+
+.profile-content {
+    display: grid;
+    padding-top: 38px;
+    gap: 28px;
+}
+
+.profile-card {
+    padding: 30px;
+    border: 1px solid rgb(89 65 58 / 10%);
+    background: var(--white);
+    border-radius: var(--radius-large);
+    box-shadow: var(--shadow-card);
+}
+
+.profile-card-heading {
+    display: flex;
+    align-items: center;
+    margin-bottom: 26px;
+    gap: 16px;
+}
+
+.profile-card-heading .eyebrow {
+    margin-bottom: 4px;
+}
+
+.profile-card-heading h2 {
+    margin: 0;
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+}
+
+.profile-card-icon {
+    display: grid;
+    flex: 0 0 auto;
+    width: 52px;
+    height: 52px;
+    color: var(--white);
+    background: var(--red-600);
+    border: 5px solid var(--yellow-300);
+    border-radius: 50%;
+    font-family: "Baloo 2", sans-serif;
+    font-weight: 800;
+    place-items: center;
+}
+
+.profile-addresses-heading .profile-address-count {
+    margin-left: auto;
+}
+
+.profile-address-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-top: 22px;
+    margin-top: 24px;
+    border-top: 1px solid rgb(89 65 58 / 12%);
+    gap: 12px;
+}
+
+.profile-address-form-actions .button {
+    flex: 1 1 0;
+    max-width: 250px;
+}
+
+.profile-address-count,
+.profile-default-badge {
+    display: inline-flex;
+    padding: 6px 12px;
+    color: var(--red-700);
+    background: var(--yellow-300);
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.profile-default-badge.is-placeholder {
+    visibility: hidden;
+}
+
+.profile-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.profile-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.profile-field-full {
+    grid-column: 1 / -1;
+}
+
+.profile-field label {
+    display: flex;
+    flex-direction: column;
+    color: var(--ink-700);
+    font-size: 0.88rem;
+    font-weight: 800;
+    gap: 7px;
+}
+
+.profile-field input,
+.profile-address-selector select {
+    width: 100%;
+    min-height: 50px;
+    padding: 12px 14px;
+    border: 1px solid #dbcac0;
+    color: var(--ink-900);
+    background: var(--cream-100);
+    border-radius: var(--radius-small);
+    font: inherit;
+    font-weight: 700;
+}
+
+.profile-field input:read-only {
+    color: var(--ink-500);
+    background: var(--cream-200);
+    cursor: default;
+}
+
+.profile-personal-actions {
+    display: flex;
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+}
+
+.profile-personal-actions .button {
+    width: auto;
+    min-height: 42px;
+    padding: 8px 20px;
+    font-size: 1rem;
+}
+
+.profile-address-selector {
+    display: grid;
+    max-width: 520px;
+    margin-bottom: 24px;
+    gap: 7px;
+}
+
+.profile-address-selector label {
+    color: var(--ink-700);
+    font-size: 0.88rem;
+    font-weight: 800;
+}
+
+.profile-address-selector select {
+    border: 2px solid var(--yellow-500);
+    background: var(--white);
+    cursor: pointer;
+}
+
+.profile-address-selector select:disabled {
+    color: var(--ink-500);
+    background: var(--cream-200);
+    cursor: default;
+}
+
+.profile-address-list {
+    display: grid;
+    gap: 20px;
+}
+
+.profile-address-card {
+    padding: 24px;
+    border: 2px solid var(--cream-200);
+    background: linear-gradient(145deg, var(--cream-100), var(--white));
+    border-radius: var(--radius-medium);
+}
+
+.profile-address-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgb(89 65 58 / 12%);
+    gap: 16px;
+}
+
+.profile-address-header h3 {
+    margin: 0;
+    font-size: 1.35rem;
+}
+
+.profile-address-fields {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.profile-field-cep,
+.profile-field-full {
+    grid-column: 1 / -1;
+}
+
+.profile-field-cep input {
+    max-width: 240px;
+}
+
+.profile-field-street,
+.profile-field-city {
+    grid-column: span 3;
+}
+
+.profile-field-number,
+.profile-field-state {
+    grid-column: span 1;
+}
+
+.profile-empty-note {
+    padding: 13px 16px;
+    margin: 0;
+    color: var(--ink-700);
+    background: var(--yellow-300);
+    border-radius: var(--radius-small);
+    font-weight: 700;
+}
+
+.address-new-content {
+    max-width: 1040px;
+}
+
+.address-message-area {
+    width: 100%;
+    min-width: 0;
+}
+
+.address-message-area .address-notice {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.address-principal-option {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 24px;
+    color: var(--ink-700);
+    font-weight: 800;
+    cursor: pointer;
+    gap: 10px;
+}
+
+.address-principal-option input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--red-600);
+}
+
+.address-new-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 24px;
+    margin-top: 26px;
+    border-top: 1px solid rgb(89 65 58 / 12%);
+    gap: 12px;
 }
 
 .order-indicator::before {
@@ -1283,6 +1568,65 @@ h1 {
 }
 
 @media (max-width: 680px) {
+    .profile-section {
+        padding-bottom: 68px;
+    }
+
+    .profile-card {
+        padding: 22px;
+    }
+
+    .profile-card-heading,
+    .profile-address-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .profile-addresses-heading .profile-address-count {
+        margin-left: 0;
+    }
+
+    .profile-address-form-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .profile-address-form-actions .button {
+        width: 100%;
+        max-width: none;
+    }
+
+    .profile-fields,
+    .profile-address-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-field-full,
+    .profile-field-cep,
+    .profile-field-street,
+    .profile-field-number,
+    .profile-field-city,
+    .profile-field-state {
+        grid-column: auto;
+    }
+
+    .profile-personal-actions {
+        grid-column: auto;
+    }
+
+    .address-new-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .address-new-actions .button {
+        width: 100%;
+    }
+
+    .profile-field-cep input {
+        max-width: none;
+    }
+
     .cart-section {
         padding: 48px 0 68px;
     }
