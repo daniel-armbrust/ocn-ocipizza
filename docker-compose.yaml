@@ -86,6 +86,33 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  # Microserviço responsável por validar a elegibilidade da entrega
+  # e calcular a cotação com base no CEP informado.
+  delivery-service:
+    container_name: oci-pizza-delivery-service
+    build:
+      context: ./services/delivery-service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8000"
+    networks:
+      - oci-pizza-network
+    environment:
+      APP_ENV: development
+      LOG_LEVEL: INFO
+
+      PERSISTENCE_PROVIDER: nosql
+
+      NOSQL_ENDPOINT: http://nosql:8080
+      NOSQL_TABLE_NAME: delivery_areas
+
+      JWT_ISSUER: user-service
+      JWT_AUDIENCE: oci-pizza
+      JWT_JWKS_URL: http://user-service:8000/.well-known/jwks.json
+    depends_on:
+      nosql:
+        condition: service_started
+
   # Microserviço responsável pela interface web da aplicação.
   frontend-service:
     container_name: oci-pizza-frontend-service

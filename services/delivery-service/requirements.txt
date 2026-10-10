@@ -1,0 +1,10 @@
+fastapi[standard]==0.141.1
+pydantic-settings==2.10.1
+
+SQLAlchemy==2.0.43
+alembic==1.16.5
+PyMySQL==1.1.2
+
+PyJWT[crypto]>=2.10,<3
+
+borneo==5.4.3

@@ -11,10 +11,6 @@ from app.models.pizza import Pizza, PizzaCategory
 class PizzaRepository(ABC):
     """
     Define o contrato de persistência para as pizzas.
-
-    Esta abstração permite que a camada de serviço trabalhe com pizzas
-    sem conhecer detalhes da tecnologia utilizada para persistência,
-    como OCI NoSQL, banco relacional ou armazenamento em memória.
     """
 
     @abstractmethod

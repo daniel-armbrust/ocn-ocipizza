@@ -7,15 +7,13 @@ from sqlalchemy.orm import Session
 
 from app.config.settings import settings
 
-from app.repositories.unit_of_work import UnitOfWork
-
-from app.repositories.nosql.nosql_unit_of_work import NosqlNoOpUnitOfWork
-from app.repositories.nosql.connection import get_nosql_handle
-
-from app.repositories.sqlalchemy.sqlalchemy_unit_of_work import SqlAlchemyUnitOfWork
 from app.repositories.sqlalchemy.connection import get_session
-
+from app.repositories.nosql.connection import get_nosql_handle
 from app.repositories.redis.connection import get_redis_client
+
+from app.repositories.unit_of_work import UnitOfWork
+from app.repositories.nosql.nosql_unit_of_work import NosqlNoOpUnitOfWork
+from app.repositories.sqlalchemy.sqlalchemy_unit_of_work import SqlAlchemyUnitOfWork
 from app.repositories.redis.redis_unit_of_work import RedisNoOpUnitOfWork
 
 from app.repositories.session_repository import SessionRepository

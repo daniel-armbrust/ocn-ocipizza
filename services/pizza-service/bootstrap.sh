@@ -16,7 +16,9 @@
 #  7. Identifica o provider de persistência configurado.
 #  8. Inicializa a persistência necessária para o provider selecionado.
 #  9. Cria a tabela de pizzas no Oracle NoSQL, quando necessário.
-# 10. Finaliza o bootstrap deixando o serviço pronto para execução.
+# 10. Cadastra as pizzas de demonstração no ambiente de desenvolvimento.
+# 11. Cria o bucket e envia as imagens de demonstração para o MinIO.
+# 12. Finaliza o bootstrap deixando o serviço pronto para execução.
 #
 # Uso:
 #
@@ -319,12 +321,167 @@ if [ "${APP_ENV}" = "development" ]; then
     display_step 'Criando pizzas de demonstração...'
 
     python <<'PYTHON'
+from decimal import Decimal
+from uuid import UUID
+
 from app.dependencies.database import get_pizza_repository
-from seeds.pizza_seed import get_demo_pizzas
+from app.models.pizza import Pizza, PizzaCategory
+from app.utils.utils import now_utc
+
+
+now = now_utc()
+
+# Os identificadores fixos tornam o seed reproduzível e permitem executar o
+# bootstrap novamente sem duplicar as pizzas já cadastradas.
+demo_pizzas = [
+    Pizza(
+        id=UUID('11111111-1111-4111-8111-111111111111'),
+        name='Abobrinha',
+        description='Molho de tomate, mussarela, abobrinha e temperos.',
+        category=PizzaCategory.VEGETARIANA,
+        price=Decimal('49.90'),
+        image_name='pizza-abobrinha.jpg',
+        available=True,
+        created_at=now,
+        updated_at=now
+    ),
+    Pizza(
+        id=UUID('22222222-2222-4222-8222-222222222222'),
+        name='Bauru',
+        description='Molho de tomate, mussarela, presunto e tomate.',
+        category=PizzaCategory.SALGADA,
+        price=Decimal('52.90'),
+        image_name='pizza-bauru.jpg',
+        available=True,
+        created_at=now,
+        updated_at=now
+    ),
+    Pizza(
+        id=UUID('33333333-3333-4333-8333-333333333333'),
+        name='Calabresa',
+        description='Molho de tomate, mussarela, calabresa e cebola.',
+        category=PizzaCategory.SALGADA,
+        price=Decimal('49.90'),
+        image_name='pizza-calabresa.jpg',
+        available=True,
+        created_at=now,
+        updated_at=now
+    ),
+    Pizza(
+        id=UUID('44444444-4444-4444-8444-444444444444'),
+        name='Frango com Bacon',
+        description=(
+            'Molho de tomate, mussarela, frango desfiado e bacon.'
+        ),
+        category=PizzaCategory.SALGADA,
+        price=Decimal('56.90'),
+        image_name='pizza-fran-bacon.jpg',
+        available=True,
+        created_at=now,
+        updated_at=now
+    ),
+    Pizza(
+        id=UUID('55555555-5555-4555-8555-555555555555'),
+        name='Frango com Mussarela',
+        description='Molho de tomate, mussarela e frango desfiado.',
+        category=PizzaCategory.SALGADA,
+        price=Decimal('54.90'),
+        image_name='pizza-frango-mussarela.jpg',
+        available=True,
+        created_at=now,
+        updated_at=now
+    ),
+    Pizza(
+        id=UUID('66666666-6666-4666-8666-666666666666'),
+        name='Hot Dog',
+        description=(
+            'Molho de tomate, mussarela, salsicha, milho e batata palha.'
+        ),
+        category=PizzaCategory.SALGADA,
+        price=Decimal('53.90'),
+        image_name='pizza-hot-dog.jpg',
+        available=True,
+        created_at=now,
+        updated_at=now
+    ),
+    Pizza(
+        id=UUID('77777777-7777-4777-8777-777777777777'),
+        name='Lombinho',
+        description='Molho de tomate, mussarela e lombinho.',
+        category=PizzaCategory.SALGADA,
+        price=Decimal('57.90'),
+        image_name='pizza-lombinho.jpg',
+        available=True,
+        created_at=now,
+        updated_at=now
+    ),
+    Pizza(
+        id=UUID('88888888-8888-4888-8888-888888888888'),
+        name='Marguerita',
+        description=(
+            'Molho de tomate, mussarela, tomate, manjericão e parmesão.'
+        ),
+        category=PizzaCategory.VEGETARIANA,
+        price=Decimal('51.90'),
+        image_name='pizza-marguerita.jpg',
+        available=True,
+        created_at=now,
+        updated_at=now
+    ),
+    Pizza(
+        id=UUID('99999999-9999-4999-8999-999999999999'),
+        name='Milho com Mussarela',
+        description='Molho de tomate, mussarela e milho.',
+        category=PizzaCategory.VEGETARIANA,
+        price=Decimal('48.90'),
+        image_name='pizza-milho-mussarela.jpg',
+        available=True,
+        created_at=now,
+        updated_at=now
+    ),
+    Pizza(
+        id=UUID('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+        name='Moda da Casa',
+        description=(
+            'Molho de tomate, mussarela, presunto, calabresa, milho e '
+            'cebola.'
+        ),
+        category=PizzaCategory.SALGADA,
+        price=Decimal('59.90'),
+        image_name='pizza-moda-da-casa.jpg',
+        available=True,
+        created_at=now,
+        updated_at=now
+    ),
+    Pizza(
+        id=UUID('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
+        name='Pepperoni',
+        description='Molho de tomate, mussarela e pepperoni.',
+        category=PizzaCategory.SALGADA,
+        price=Decimal('58.90'),
+        image_name='pizza-peperone.jpg',
+        available=True,
+        created_at=now,
+        updated_at=now
+    ),
+    Pizza(
+        id=UUID('cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
+        name='Portuguesa',
+        description=(
+            'Molho de tomate, mussarela, presunto, ovo, cebola e azeitonas.'
+        ),
+        category=PizzaCategory.SALGADA,
+        price=Decimal('57.90'),
+        image_name='pizza-portuguesa.jpg',
+        available=True,
+        created_at=now,
+        updated_at=now
+    )
+]
 
 repository = get_pizza_repository()
 
-for pizza in get_demo_pizzas():
+for pizza in demo_pizzas:
     existing_pizza = repository.get_by_id(pizza.id)
 
     if existing_pizza is not None:
@@ -334,6 +491,78 @@ for pizza in get_demo_pizzas():
     repository.create(pizza)
 
     print(f'Pizza de demonstração criada: {pizza.name}')
+PYTHON
+
+    display_step 'Enviando imagens de demonstração para o MinIO'
+
+    python <<'PYTHON'
+import json
+import mimetypes
+
+from pathlib import Path
+
+from minio.error import S3Error
+
+from app.services.objectstorage_service import get_objectstorage_service
+
+
+seeds_directory = Path('seeds')
+image_paths = sorted(seeds_directory.glob('*.jpg'))
+
+if not image_paths:
+    raise RuntimeError(
+        'Nenhuma imagem de demonstração foi encontrada em seeds/.'
+    )
+
+objectstorage_service = get_objectstorage_service()
+client = objectstorage_service.client
+bucket = objectstorage_service.bucket
+
+if not client.bucket_exists(bucket):
+    print(f'Criando bucket {bucket}...')
+    client.make_bucket(bucket)
+else:
+    print(f'Bucket {bucket} já existe.')
+
+# As imagens são acessadas diretamente pelo navegador durante o
+# desenvolvimento. A política permite somente a leitura pública dos objetos.
+public_read_policy = {
+    'Version': '2012-10-17',
+    'Statement': [
+        {
+            'Effect': 'Allow',
+            'Principal': {'AWS': ['*']},
+            'Action': ['s3:GetObject'],
+            'Resource': [f'arn:aws:s3:::{bucket}/*']
+        }
+    ]
+}
+
+client.set_bucket_policy(
+    bucket,
+    json.dumps(public_read_policy)
+)
+
+for image_path in image_paths:
+    object_name = image_path.name
+
+    try:
+        client.stat_object(bucket, object_name)
+        print(f'Imagem de demonstração já existe: {object_name}')
+        continue
+    except S3Error as ex:
+        if ex.code not in {'NoSuchKey', 'NoSuchObject', 'NoSuchResource'}:
+            raise
+
+    content_type, _ = mimetypes.guess_type(image_path.name)
+
+    objectstorage_service.upload_object(
+        object_name=object_name,
+        data=image_path.read_bytes(),
+        content_type=content_type or 'application/octet-stream'
+    )
+
+    print(f'Imagem de demonstração enviada: {object_name}')
 PYTHON
 fi
 
