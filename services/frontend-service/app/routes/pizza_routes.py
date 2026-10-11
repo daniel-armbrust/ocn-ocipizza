@@ -10,7 +10,6 @@ from fastapi.responses import HTMLResponse
 from app.clients.pizza_client import PizzaClient, get_pizza_client
 
 from app.dependencies.templates import templates
-from app.dependencies.authentication import load_authentication_context
 
 from app.messages.pizza_service_messages import PIZZA_MESSAGES
 from app.messages.user_service_messages import USER_MESSAGES
@@ -33,9 +32,6 @@ async def list_all_pizzas(
     available: str | None = None,
     limit: int = Query(default=10, ge=1, le=50),
     offset: int = Query(default=0, ge=0),
-    authentication_session: dict | None = Depends(
-        load_authentication_context
-    ),
     pizza_client: PizzaClient = Depends(get_pizza_client)
 ) -> HTMLResponse:
     """
@@ -53,8 +49,6 @@ async def list_all_pizzas(
             vazios representam ausência do filtro.
         limit: Quantidade máxima de pizzas retornadas.
         offset: Quantidade de registros ignorados antes da consulta.
-        authentication_session: Sessão autenticada opcional utilizada para
-            definir os itens apresentados no menu.
         pizza_client: Cliente utilizado para comunicação com o
             pizza-service.
 
@@ -104,8 +98,7 @@ async def list_all_pizzas(
                 'category': normalized_category,
                 'available': normalized_available,
                 'limit': limit,
-                'offset': offset,
-                'is_authenticated': authentication_session is not None
+                'offset': offset
             },
             status_code=ex.response.status_code
         )
@@ -116,8 +109,7 @@ async def list_all_pizzas(
             context={
                 'message': (
                     'O serviço de pizzas está temporariamente indisponível.'
-                ),
-                'is_authenticated': authentication_session is not None
+                )
             },
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE
         )
@@ -133,7 +125,6 @@ async def list_all_pizzas(
             'category': normalized_category,
             'available': normalized_available,
             'limit': limit,
-            'offset': offset,
-            'is_authenticated': authentication_session is not None
+            'offset': offset
         }
     )

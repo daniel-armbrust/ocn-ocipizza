@@ -31,8 +31,3 @@ async def show_cart(request: Request) -> HTMLResponse:
         name='cart/cart.html',
         context={}
     )
-
-
-#
-# POST: /cart/checkout
-#
