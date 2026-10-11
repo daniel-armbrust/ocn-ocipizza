@@ -136,10 +136,13 @@ services:
 
         PIZZA_SERVICE_URL: http://pizza-service:8000
         USER_SERVICE_URL: http://user-service:8000
+        DELIVERY_SERVICE_URL: http://delivery-service:8000
     depends_on:
       pizza-service:
         condition: service_started
       user-service:
+        condition: service_started
+      delivery-service:
         condition: service_started
       redis:
         condition: service_healthy

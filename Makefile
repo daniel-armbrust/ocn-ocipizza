@@ -1,76 +1,23 @@
-.PHONY: help
-.PHONY: development-up development-down development-restart
-.PHONY: development-infra development-services development-seed
-.PHONY: setup-dev test build logs
-
-help:
-	@echo ""
-	@echo "Comandos de desenvolvimento do OCI Pizza"
-	@echo ""
-	@echo "Desenvolvimento:"
-	@echo "  make development-up"
-	@echo "  make development-down"
-	@echo "  make development-restart"
-	@echo "  make development-logs"
-	@echo ""
-	@echo "Carga inicial de dados:"
-	@echo "  make development-seed"
-	@echo ""
-	@echo "Validação:"
-	@echo "  make test"
-	@echo "  make build"
-	@echo ""
-
-
-## Desenvolvimento
-development-up: development-infra development-seed development-services
+.PHONY: development-infra development development-rebuild build
 
 development-infra:
 	@echo "Iniciando os serviços de infraestrutura..."
-	docker compose up -d mysql nosql rabbitmq redis
+	docker compose up -d mysql nosql rabbitmq redis object-storage
 
-	@echo "Aguardando a infraestrutura ficar pronta..."
+	@echo "Aguardando os serviços de infraestrutura ficarem disponíveis..."
 	./scripts/wait-for-infrastructure.sh
 
-development-services:
-	@echo "Iniciando os serviços da aplicação..."
+development: development-infra
+	@echo "Iniciando todos os serviços da aplicação..."
 	docker compose up -d
 
-development-down:
-	docker compose down
+development-rebuild:
+	@echo "Reconstruindo todas as imagens sem utilizar cache..."
+	docker compose build --no-cache
 
-development-restart:
-	make development-down
-	make development-up
-
-development-logs:
-	docker compose logs -f
-
-## Carga inicial de dados
-development-seed:
-	@echo "Executando a carga inicial de dados..."
-	docker compose run --rm seed
-
-## Ambiente Python
-setup-dev:
-	@if [ ! -d "seed/.venv" ]; then \
-		echo "Criando o ambiente virtual da carga inicial de dados..."; \
-		python3 -m venv seed/.venv; \
-	fi
-
-	@echo "Instalando as dependências da carga inicial de dados..."
-	seed/.venv/bin/pip install \
-		--upgrade pip
-
-	seed/.venv/bin/pip install \
-		-r seed/requirements.txt
-
-## Validação
-test:
-	docker compose run --rm pizza-service pytest
+	@echo "Iniciando o ambiente completo..."
+	$(MAKE) development
 
 build:
-	docker compose build
-
-force-build:
+	@echo "Construindo todas as imagens sem utilizar cache..."
 	docker compose build --no-cache

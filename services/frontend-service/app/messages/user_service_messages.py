@@ -1,5 +1,5 @@
 #
-# messages/user_messages.py
+# messages/user_service_messages.py
 #
 
 USER_MESSAGES = {

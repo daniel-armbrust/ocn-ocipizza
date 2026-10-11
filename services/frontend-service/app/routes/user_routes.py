@@ -18,7 +18,7 @@ from app.forms.user_forms import UserAddressForm, UserWhatsappUpdateForm
 
 from app.dependencies.templates import templates
 
-from app.messages.user_messages import USER_MESSAGES
+from app.messages.user_service_messages import USER_MESSAGES
 
 router = APIRouter()
 

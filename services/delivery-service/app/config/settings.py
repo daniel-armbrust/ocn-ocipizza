@@ -33,6 +33,11 @@ class Settings(BaseSettings):
 
     # SQLAlchemy
     database_url: str | None = None
+
+
+    # Timeout padrão utilizado nas chamadas HTTP realizadas 
+    # aos microserviços.
+    http_client_timeout: float = 10.0
     
     # JWT
     jwt_issuer: str = 'user-service'

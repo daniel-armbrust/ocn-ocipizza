@@ -4,7 +4,7 @@
 
 import logging
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, Request, status
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
 
@@ -16,6 +16,7 @@ from app.config.settings import settings
 
 from app.dependencies.templates import templates
 from app.dependencies.authentication import load_authentication_context
+from app.exceptions.user_auth_exceptions import AuthenticationRequiredError
 
 from app.routes import (
     pizza_routes,
@@ -57,6 +58,27 @@ app.mount(
     name='static'
 )
 
+@app.exception_handler(AuthenticationRequiredError)
+async def authentication_required_handler(
+    request: Request,
+    ex: AuthenticationRequiredError
+) -> RedirectResponse:
+    """
+    Redireciona visitantes sem sessão válida para a página de autenticação.
+
+    Args:
+        request: Requisição feita a uma página protegida.
+        ex: Exceção que indica a ausência de uma sessão autenticada.
+
+    Returns:
+        Redirecionamento para o login com o código da mensagem correspondente.
+    """
+
+    return RedirectResponse(
+        url='/users/login?code=USER_LOGIN_REQUIRED',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+
 @app.exception_handler(CSRFError)
 async def csrf_error_handler(
     request: Request,
@@ -75,7 +97,7 @@ async def csrf_error_handler(
 
     return RedirectResponse(
         url='/',
-        status_code=303
+        status_code=status.HTTP_303_SEE_OTHER
     )
 
 @app.exception_handler(404)

@@ -13,6 +13,7 @@ from app.dependencies.security import get_jwt_service
 
 bearer_scheme = HTTPBearer()
 
+
 def get_current_user_id(
         credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
         jwt_service: JwtService = Depends(get_jwt_service)

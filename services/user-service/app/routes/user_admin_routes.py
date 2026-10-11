@@ -370,7 +370,7 @@ def confirm_user(
     except UserNotFoundError:
         return fail_response(
             status.HTTP_404_NOT_FOUND,
-            'USER_NOT_FOUND',
+            'USER_SERVICE_USER_NOT_FOUND',
             'User not found.'
         )
     except UserUpdateError:

@@ -29,7 +29,7 @@ class NosqlDeliveryAreaRepository(DeliveryAreaRepository):
 
     def __init__(self,
                  handle: NoSQLHandle,
-                 table_name: str = 'delivery_areas'):
+                 table_name: str = 'delivery_areas') -> None:
         """
         Inicializa o repositório de áreas de entrega.
 
@@ -93,6 +93,7 @@ class NosqlDeliveryAreaRepository(DeliveryAreaRepository):
         )
 
         result = self.handle.get(request)
+
         row = result.get_value()
 
         if not row:
@@ -118,7 +119,9 @@ class NosqlDeliveryAreaRepository(DeliveryAreaRepository):
         # Os CEPs são armazenados normalizados com oito caracteres
         # numéricos, permitindo a comparação direta entre as strings.
         statement = f"""
-            SELECT *
+            SELECT id, name, zip_code_start, zip_code_end,
+                   delivery_fee, estimated_minutes, active,
+                   created_at, updated_at
             FROM {self.table_name}
             WHERE zip_code_start <= '{zip_code}'
               AND zip_code_end >= '{zip_code}'
@@ -128,16 +131,19 @@ class NosqlDeliveryAreaRepository(DeliveryAreaRepository):
 
         request = QueryRequest().set_statement(statement)
 
-        # Uma QueryRequest pode retornar os resultados em mais de uma
-        # execução. Mesmo utilizando LIMIT 1, o loop mantém o mesmo padrão
-        # utilizado nas consultas ao OCI NoSQL.
-        while not request.is_done():
+        # QueryRequest considera uma requisição ainda não executada como
+        # concluída. Por isso, a primeira consulta deve acontecer antes da
+        # verificação de is_done().
+        while True:
             result = self.handle.query(request)
 
             rows = result.get_results()
 
             if rows:
                 return self._to_model(rows[0])
+
+            if request.is_done():
+                break
 
         return None
 
@@ -166,7 +172,9 @@ class NosqlDeliveryAreaRepository(DeliveryAreaRepository):
             filters.append(f'active = {active_value}')
 
         statement = f"""
-            SELECT *
+             SELECT id, name, zip_code_start, zip_code_end,
+                    delivery_fee, estimated_minutes, active,
+                    created_at, updated_at
             FROM {self.table_name}
         """
 
@@ -189,12 +197,15 @@ class NosqlDeliveryAreaRepository(DeliveryAreaRepository):
 
         rows = []
 
-        # O OCI NoSQL pode retornar uma consulta em múltiplos lotes.
-        # O QueryRequest mantém internamente a continuação da consulta
-        # até que is_done() indique que todos os resultados foram lidos.
-        while not request.is_done():
+        # Executa a consulta pelo menos uma vez. O QueryRequest informa
+        # is_done() como True antes da primeira chamada a query(), portanto a
+        # condição de término deve ser verificada somente depois da execução.
+        while True:
             result = self.handle.query(request)
             rows.extend(result.get_results())
+
+            if request.is_done():
+                break
 
         return [
             self._to_model(row)

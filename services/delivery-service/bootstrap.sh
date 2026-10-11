@@ -14,7 +14,7 @@
 #  5. Cria o arquivo .env local, caso ainda não exista.
 #  6. Carrega as variáveis definidas no arquivo .env.
 #  7. Identifica o provider de persistência configurado.
-#  8. Cria a tabela de áreas de entrega no Oracle NoSQL.
+#  8. Recria a tabela de áreas de entrega no Oracle NoSQL.
 #  9. Cadastra as áreas de entrega de Sorocaba no ambiente de desenvolvimento.
 # 10. Finaliza o bootstrap deixando o serviço pronto para execução.
 #
@@ -147,8 +147,20 @@ table_name = os.getenv(
 
 handle = get_nosql_handle()
 
+drop_statement = f'''
+    DROP TABLE IF EXISTS {table_name}
+'''
+
+print(f'Excluindo tabela {table_name}, caso exista...')
+
+drop_request = TableRequest().set_statement(drop_statement)
+drop_result = handle.table_request(drop_request)
+drop_result.wait_for_completion(handle, 60000, 1000)
+
+print(f'Tabela {table_name} removida.')
+
 statement = f'''
-    CREATE TABLE IF NOT EXISTS {table_name} (
+    CREATE TABLE {table_name} (
         id STRING,
         name STRING,
         zip_code_start STRING,
@@ -162,7 +174,7 @@ statement = f'''
     )
 '''
 
-print(f'Criando tabela {table_name}, caso ainda não exista...')
+print(f'Criando tabela {table_name}...')
 
 request = TableRequest().set_statement(statement)
 result = handle.table_request(request)
@@ -173,11 +185,11 @@ print(f'Tabela {table_name} pronta para utilização.')
 handle.close()
 PYTHON
 
-# Os dados de demonstração são criados somente no ambiente local.
-if [ "${APP_ENV}" = 'development' ]; then
-    display_step 'Criando áreas de entrega de demonstração'
+# Este bootstrap é exclusivo do ambiente local e sempre recria os dados de
+# demonstração depois de recriar a tabela.
+display_step 'Criando áreas de entrega de demonstração'
 
-    python <<'PYTHON'
+python <<'PYTHON'
 import csv
 
 from datetime import datetime, timezone
@@ -268,10 +280,23 @@ for position, row in enumerate(
         f'{zip_code_start} a {zip_code_end}'
     )
 
+persisted_areas = repository.get_all(limit=50)
+
 # O repositório NoSQL mantém o handle aberto durante todas as inclusões.
 repository.handle.close()
+
+expected_total = 30
+persisted_total = len(persisted_areas)
+
+if persisted_total != expected_total:
+    raise RuntimeError(
+        'Falha ao criar as áreas de entrega de demonstração: '
+        f'eram esperados {expected_total} registros, mas foram encontrados '
+        f'{persisted_total}.'
+    )
+
+print(f'{persisted_total} áreas de entrega persistidas com sucesso.')
 PYTHON
-fi
 
 display_step 'Bootstrap do delivery-service concluído com sucesso'
 

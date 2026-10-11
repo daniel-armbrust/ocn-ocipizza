@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     # URL dos serviços acessados pelo frontend-service.
     pizza_service_url: str
     user_service_url: str
+    delivery_service_url: str
 
     # Timeout padrão utilizado nas chamadas HTTP realizadas 
     # aos microserviços.

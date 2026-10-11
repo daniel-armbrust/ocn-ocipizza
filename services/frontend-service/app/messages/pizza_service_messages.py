@@ -1,5 +1,5 @@
 #
-# messages/pizza_messages.py
+# messages/pizza_service_messages.py
 #
 
 PIZZA_MESSAGES = {

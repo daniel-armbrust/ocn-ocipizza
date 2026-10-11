@@ -12,8 +12,8 @@ from app.clients.pizza_client import PizzaClient, get_pizza_client
 from app.dependencies.templates import templates
 from app.dependencies.authentication import load_authentication_context
 
-from app.messages.pizza_messages import PIZZA_MESSAGES
-from app.messages.user_messages import USER_MESSAGES
+from app.messages.pizza_service_messages import PIZZA_MESSAGES
+from app.messages.user_service_messages import USER_MESSAGES
 
 from app.utils.utils import normalize_optional_bool, normalize_optional_string
 

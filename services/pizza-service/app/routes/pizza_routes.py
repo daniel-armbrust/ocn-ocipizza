@@ -77,7 +77,7 @@ def list_pizzas(
     except PizzaQueryError:
         return fail_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            'PIZZA_QUERY_ERROR',
+            'PIZZA_SERVICE_PIZZA_QUERY_ERROR',
             'Error retrieving pizzas.'
         )
 
@@ -125,13 +125,13 @@ def get_pizza(
     except PizzaNotFoundError:
         return fail_response(
             status.HTTP_404_NOT_FOUND,
-            'PIZZA_NOT_FOUND',
+            'PIZZA_SERVICE_PIZZA_NOT_FOUND',
             'Pizza not found.'
         )
     except PizzaQueryError:
         return fail_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            'PIZZA_QUERY_ERROR',
+            'PIZZA_SERVICE_PIZZA_QUERY_ERROR',
             'Error retrieving pizza.'
         )
     
@@ -179,7 +179,7 @@ def create_pizza(
     if not image.content_type or not image.content_type.startswith('image/'):
         return fail_response(
             status.HTTP_400_BAD_REQUEST,
-            'PIZZA_INVALID_IMAGE_CONTENT_TYPE',
+            'PIZZA_SERVICE_PIZZA_INVALID_IMAGE_CONTENT_TYPE',
             'The uploaded file must be an image.',
             field='image'
         )
@@ -189,7 +189,7 @@ def create_pizza(
     if not image_data:
         return fail_response(
             status.HTTP_400_BAD_REQUEST,
-            'PIZZA_EMPTY_IMAGE',
+            'PIZZA_SERVICE_PIZZA_EMPTY_IMAGE',
             'The uploaded image must not be empty.',
             field='image'
         )
@@ -203,7 +203,7 @@ def create_pizza(
     except PizzaCreationError:
         return fail_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            'PIZZA_CREATION_ERROR',
+            'PIZZA_SERVICE_PIZZA_CREATION_ERROR',
             'Error creating pizza.'
         )
 
@@ -258,7 +258,7 @@ def update_pizza(
         if not image.content_type or not image.content_type.startswith('image/'):
             return fail_response(
                 status.HTTP_400_BAD_REQUEST,
-                'PIZZA_INVALID_IMAGE_CONTENT_TYPE',
+                'PIZZA_SERVICE_PIZZA_INVALID_IMAGE_CONTENT_TYPE',
                 'The uploaded file must be an image.',
                 field='image'
             )
@@ -268,7 +268,7 @@ def update_pizza(
         if not image_data:
             return fail_response(
                 status.HTTP_400_BAD_REQUEST,
-                'PIZZA_EMPTY_IMAGE',
+                'PIZZA_SERVICE_PIZZA_EMPTY_IMAGE',
                 'The uploaded image must not be empty.',
                 field='image'
             )
@@ -285,13 +285,13 @@ def update_pizza(
     except PizzaNotFoundError:
         return fail_response(
             status.HTTP_404_NOT_FOUND,
-            'PIZZA_NOT_FOUND',
+            'PIZZA_SERVICE_PIZZA_NOT_FOUND',
             'Pizza not found.'
         )
     except PizzaUpdateError:
         return fail_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            'PIZZA_UPDATE_ERROR',
+            'PIZZA_SERVICE_PIZZA_UPDATE_ERROR',
             'Error updating pizza.'
         )
 
@@ -340,13 +340,13 @@ def delete_pizza(
     except PizzaNotFoundError:
         return fail_response(
             status.HTTP_404_NOT_FOUND,
-            'PIZZA_NOT_FOUND',
+            'PIZZA_SERVICE_PIZZA_NOT_FOUND',
             'Pizza not found.'
         )
     except PizzaDeletionError:
         return fail_response(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            'PIZZA_DELETION_ERROR',
+            'PIZZA_SERVICE_PIZZA_DELETION_ERROR',
             'Error deleting pizza.'
         )
 

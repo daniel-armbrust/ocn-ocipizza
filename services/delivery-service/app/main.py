@@ -3,6 +3,7 @@
 #
 
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -11,14 +12,27 @@ from fastapi.responses import JSONResponse
 from app.config.logging import configure_logging
 from app.config.settings import settings
 
+from app.dependencies.jwks_client import jwks_client
+
+from app.routes.delivery_area_routes import router as delivery_area_router
+from app.routes.delivery_area_admin_routes import router as delivery_area_admin_router
+
 from app.responses.jsend import fail_response
 
 configure_logging()
 logger = logging.getLogger(__name__)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Tenta antecipar o carregamento das chaves públicas utilizadas
+    # para validação dos tokens JWT.
+    await jwks_client.warm_up()
+    yield
+
 app = FastAPI(
     title='OCI Pizza - User Service API',
     version='1.0.0',
+    lifespan=lifespan,
     docs_url='/docs' if settings.app_env == 'development' else None,
     redoc_url='/redoc' if settings.app_env == 'development' else None,
     openapi_url='/openapi.json' if settings.app_env == 'development' else None
@@ -51,7 +65,7 @@ async def validation_exception_handler(
 
     return fail_response(
         status_code=status.HTTP_400_BAD_REQUEST,
-        code='USER_VALIDATION_ERROR',
+        code='DELIVERY_SERVICE_VALIDATION_ERROR',
         message=error.get('msg', 'Invalid request'),
         field=field
     )
@@ -79,9 +93,16 @@ async def http_exception_handler(
         ex.detail
     )
 
+    if ex.status_code == status.HTTP_401_UNAUTHORIZED:
+        code = 'DELIVERY_SERVICE_AUTHENTICATION_ERROR'
+    elif ex.status_code == status.HTTP_403_FORBIDDEN:
+        code = 'DELIVERY_SERVICE_AUTHORIZATION_ERROR'
+    else:
+        code = 'DELIVERY_SERVICE_HTTP_ERROR'
+
     return fail_response(
         status_code=ex.status_code,
-        code='USER_HTTP_ERROR',
+        code=code,
         message=str(ex.detail)
     )
 
@@ -109,7 +130,7 @@ async def unexpected_exception_handler(
 
     return fail_response(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        code='USER_INTERNAL_SERVER_ERROR',
+        code='DELIVERY_SERVICE_INTERNAL_SERVER_ERROR',
         message='Internal server error.'
     )
 
@@ -124,3 +145,12 @@ def health_check() -> dict:
     """
 
     return {'status': 'success', 'data': {'service': 'user-service'}}
+
+
+# Rotas responsáveis pela consulta das áreas e cotações
+# de entrega.
+app.include_router(delivery_area_router)
+
+# Rotas administrativas responsáveis pelo gerenciamento
+# das áreas de entrega.
+app.include_router(delivery_area_admin_router)

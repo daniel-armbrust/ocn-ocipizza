@@ -198,6 +198,11 @@ A duração efetiva da sessão é limitada ao menor valor entre `SESSION_TTL` e 
 validade do access token. Sessões expiradas ou sem informação confiável de
 expiração são removidas e não habilitam os itens autenticados do menu.
 
+Quando uma página protegida é acessada sem uma sessão válida, o handler de
+autenticação redireciona o navegador para
+`/users/login?code=USER_LOGIN_REQUIRED`, onde a orientação para realizar o
+login é apresentada. Essa situação não é tratada como erro interno HTTP 500.
+
 ## Proteção CSRF
 
 As operações de escrita utilizam `@csrf_protect`. Formulários HTML enviam o

@@ -55,7 +55,7 @@ class JwtService:
         self.public_key = public_key
         self.issuer = issuer
         self.audience = audience
-        self.access_token_expiration_minutes =access_token_expiration_minutes
+        self.access_token_expiration_minutes = access_token_expiration_minutes
 
     def create_access_token(self, user_id: UUID, is_admin: bool) -> tuple[str, int]:
         """

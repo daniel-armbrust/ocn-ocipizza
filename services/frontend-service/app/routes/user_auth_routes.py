@@ -18,7 +18,7 @@ from app.dependencies.templates import templates
 
 from app.services.session_service import SessionService, get_session_service
 
-from app.messages.user_messages import USER_MESSAGES
+from app.messages.user_service_messages import USER_MESSAGES
 
 router = APIRouter()
 

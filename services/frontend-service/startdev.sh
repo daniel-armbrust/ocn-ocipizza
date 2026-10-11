@@ -13,8 +13,9 @@ export SESSION_SECRET_KEY="!!!Sup3rS3cr3t0!!!"
 export CSRF_SECRET_KEY="!!!Sup3rS3cr3t0!!!"
 
 # URLs dos microserviços acessíveis a partir da máquina local.
-export PIZZA_SERVICE_URL="http://pizza-service:8001"
-export USER_SERVICE_URL="http://user-service:8002"
+export PIZZA_SERVICE_URL="http://localhost:8001"
+export USER_SERVICE_URL="http://localhost:8002"
+export DELIVERY_SERVICE_URL="http://localhost:8003"
 
 # Serviço REDIS
 export REDIS_ENDPOINT="redis://redis:16379/0"

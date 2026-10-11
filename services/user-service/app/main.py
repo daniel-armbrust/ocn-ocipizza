@@ -58,7 +58,7 @@ async def validation_exception_handler(
 
     return fail_response(
         status_code=status.HTTP_400_BAD_REQUEST,
-        code='USER_VALIDATION_ERROR',
+        code='USER_SERVICE_VALIDATION_ERROR',
         message=error.get('msg', 'Invalid request'),
         field=field
     )
@@ -88,7 +88,7 @@ async def http_exception_handler(
 
     return fail_response(
         status_code=ex.status_code,
-        code='USER_HTTP_ERROR',
+        code='USER_SERVICE_HTTP_ERROR',
         message=str(ex.detail)
     )
 
@@ -116,7 +116,7 @@ async def unexpected_exception_handler(
 
     return fail_response(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        code='USER_INTERNAL_SERVER_ERROR',
+        code='USER_SERVICE_INTERNAL_SERVER_ERROR',
         message='Internal server error.'
     )
 
