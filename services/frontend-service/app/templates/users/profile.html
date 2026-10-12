@@ -135,24 +135,21 @@
                 </span>
             </header>
 
+            {% if registered_addresses %}
             <div class="profile-address-selector">
                 <label for="profile-address-select">Selecione o endereço</label>
                 <select
                     id="profile-address-select"
                     data-profile-address-select
-                    {% if not registered_addresses %}disabled{% endif %}
                 >
-                    {% if registered_addresses %}
-                        {% for address in registered_addresses %}
+                    {% for address in registered_addresses %}
                         <option value="{{ loop.index0 }}">
                             {{ address.label or ('Endereço ' ~ loop.index) }}{% if address.is_default %} — Principal{% endif %}
                         </option>
-                        {% endfor %}
-                    {% else %}
-                    <option value="">Nenhum endereço cadastrado</option>
-                    {% endif %}
+                    {% endfor %}
                 </select>
             </div>
+            {% endif %}
 
             <div class="profile-address-list" data-profile-address-list>
                 {% if registered_addresses %}
@@ -162,15 +159,58 @@
                     </div>
                     {% endfor %}
                 {% else %}
-                    {{ render_address() }}
                     <p class="profile-empty-note">
                         Nenhum endereço cadastrado.
                     </p>
+                    <footer class="profile-address-form-actions">
+                        <a
+                            class="button button-small"
+                            href="/users/profile/addresses/new"
+                            data-create-address
+                            data-lock-navigation
+                        >
+                            Novo endereço
+                        </a>
+                    </footer>
                 {% endif %}
             </div>
         </section>
     </div>
 </section>
+
+<dialog
+    class="address-delete-modal"
+    aria-labelledby="address-delete-modal-title"
+    aria-describedby="address-delete-modal-message"
+    data-address-delete-modal
+>
+    <div class="address-delete-modal-content">
+        <span class="address-delete-modal-icon" aria-hidden="true">!</span>
+        <div>
+            <span class="eyebrow">Confirmação</span>
+            <h2 id="address-delete-modal-title">Excluir endereço?</h2>
+            <p id="address-delete-modal-message">
+                Esta ação removerá permanentemente o endereço selecionado.
+            </p>
+        </div>
+    </div>
+    <footer class="address-delete-modal-actions">
+        <button
+            class="button button-secondary"
+            type="button"
+            data-cancel-address-deletion
+        >
+            Cancelar
+        </button>
+        <button
+            class="button address-delete-confirm-button"
+            type="button"
+            data-confirm-address-deletion
+        >
+            Excluir endereço
+        </button>
+    </footer>
+</dialog>
 {% endblock %}
 
 {% block scripts %}

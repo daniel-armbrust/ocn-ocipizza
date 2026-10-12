@@ -4,9 +4,11 @@
 
 import logging
 
+import httpx
+
 from fastapi import Depends, FastAPI, Request, status
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from starlette.middleware.sessions import SessionMiddleware
 from starlette_wtf import CSRFError, CSRFProtectMiddleware
@@ -98,6 +100,101 @@ async def csrf_error_handler(
     return RedirectResponse(
         url='/',
         status_code=status.HTTP_303_SEE_OTHER
+    )
+
+@app.exception_handler(status.HTTP_405_METHOD_NOT_ALLOWED)
+async def method_not_allowed_handler(
+    request: Request,
+    ex: Exception
+) -> RedirectResponse:
+    """
+    Redireciona para a página inicial quando o método HTTP não é aceito.
+
+    Args:
+        request: Requisição realizada com um método não permitido.
+        ex: Exceção associada ao erro HTTP 405.
+
+    Returns:
+        Redirecionamento para a página inicial da aplicação.
+    """
+
+    return RedirectResponse(
+        url='/',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+
+@app.exception_handler(httpx.HTTPStatusError)
+async def upstream_http_error_handler(
+    request: Request,
+    ex: httpx.HTTPStatusError
+) -> Response:
+    """
+    Trata respostas HTTP de erro devolvidas pelos microserviços.
+
+    Args:
+        request: Requisição processada pelo frontend-service.
+        ex: Erro contendo a resposta recebida do microserviço.
+
+    Returns:
+        Redirecionamento para o login quando a autenticação for rejeitada
+        ou página HTML de erro de gateway para as demais respostas.
+    """
+
+    if ex.response.status_code == status.HTTP_401_UNAUTHORIZED:
+        return RedirectResponse(
+            url='/users/login?code=USER_LOGIN_REQUIRED',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    logger.warning(
+        'Upstream HTTP error while processing %s %s: %s returned %s',
+        request.method,
+        request.url.path,
+        ex.request.url,
+        ex.response.status_code
+    )
+
+    # Repetir automaticamente uma requisição POST poderia duplicar uma
+    # operação. Por isso, somente requisições GET recebem a própria URL
+    # como destino para uma nova tentativa.
+    retry_url = request.url.path if request.method == 'GET' else '/'
+
+    return templates.TemplateResponse(
+        request=request,
+        name='errors/502.html',
+        context={'retry_url': retry_url},
+        status_code=status.HTTP_502_BAD_GATEWAY
+    )
+
+@app.exception_handler(httpx.RequestError)
+async def upstream_unavailable_handler(
+    request: Request,
+    ex: httpx.RequestError
+) -> HTMLResponse:
+    """
+    Trata falhas de rede durante a comunicação com os microserviços.
+
+    Args:
+        request: Requisição processada pelo frontend-service.
+        ex: Falha de comunicação produzida pelo cliente HTTP.
+
+    Returns:
+        Página HTML informando a indisponibilidade temporária do serviço.
+    """
+
+    logger.exception(
+        'Upstream service unavailable while processing %s %s',
+        request.method,
+        request.url.path
+    )
+
+    retry_url = request.url.path if request.method == 'GET' else '/'
+
+    return templates.TemplateResponse(
+        request=request,
+        name='errors/503.html',
+        context={'retry_url': retry_url},
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE
     )
 
 @app.exception_handler(404)

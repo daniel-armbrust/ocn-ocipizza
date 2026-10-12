@@ -124,7 +124,7 @@
                             data-pizza-image-url="{{ pizza.image_url }}"
                             {% if not pizza.available %}disabled{% endif %}
                         >
-                            {{ 'Escolher' if pizza.available else 'Indisponível' }}
+                            {{ 'Adicionar ao pedido' if pizza.available else 'Indisponível' }}
                         </button>
                     </div>
                 </div>
@@ -160,6 +160,27 @@
         {% endif %}
     </div>
 </section>
+
+<dialog
+    class="pizza-added-modal"
+    aria-labelledby="pizza-added-modal-title"
+    aria-describedby="pizza-added-modal-message"
+    data-pizza-added-modal
+>
+    <div class="pizza-added-modal-content">
+        <img
+            src="{{ url_for('static', path='img/favicon.png') }}"
+            alt=""
+            width="72"
+            height="72"
+        >
+        <div>
+            <span class="eyebrow">Pedido atualizado</span>
+            <h2 id="pizza-added-modal-title">Pizza adicionada!</h2>
+            <p id="pizza-added-modal-message" data-pizza-added-message></p>
+        </div>
+    </div>
+</dialog>
 {% endblock %}
 
 {% block scripts %}

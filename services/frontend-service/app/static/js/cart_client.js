@@ -14,11 +14,9 @@
     const totalQuantity = cart.querySelector('[data-cart-total-quantity]');
     const total = cart.querySelector('[data-cart-total]');
     const clearCartButton = cart.querySelector('[data-clear-cart]');
-    const checkoutButton = cart.querySelector('[data-cart-checkout]');
+    const checkoutForm = cart.querySelector('[data-cart-checkout-form]');
+    const checkoutFields = cart.querySelector('[data-cart-checkout-fields]');
     const fallbackImage = cart.dataset.fallbackImage;
-    const checkoutUrl = cart.dataset.checkoutUrl;
-    const csrfToken = cart.dataset.csrfToken;
-    let checkoutInProgress = false;
     const currencyFormatter = new Intl.NumberFormat('pt-BR', {
         style: 'currency',
         currency: 'BRL'
@@ -76,6 +74,48 @@
     }
 
     /**
+     * Cria um campo oculto utilizado na submissão tradicional do checkout.
+     *
+     * @param {string} name Nome enviado no formulário.
+     * @param {string|number} value Valor enviado no formulário.
+     * @returns {HTMLInputElement} Campo oculto configurado.
+     */
+    function createHiddenField(name, value) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = String(value);
+        return input;
+    }
+
+    /**
+     * Sincroniza o localStorage com os campos esperados pelo CartCheckoutForm.
+     *
+     * @param {Array<object>} items Itens recuperados do localStorage.
+     * @returns {void}
+     */
+    function synchronizeCheckoutFields(items) {
+        if (!checkoutFields) {
+            return;
+        }
+
+        const fields = document.createDocumentFragment();
+
+        items.forEach((item, index) => {
+            fields.appendChild(createHiddenField(
+                `items-${index}-pizza_id`,
+                item.id
+            ));
+            fields.appendChild(createHiddenField(
+                `items-${index}-quantity`,
+                item.quantity
+            ));
+        });
+
+        checkoutFields.replaceChildren(fields);
+    }
+
+    /**
      * Renderiza itens, quantidades e total do carrinho.
      *
      * @returns {void}
@@ -87,6 +127,7 @@
         emptyState.hidden = !isEmpty;
         cartContent.hidden = isEmpty;
         itemsContainer.replaceChildren();
+        synchronizeCheckoutFields(items);
 
         if (isEmpty) {
             return;
@@ -105,99 +146,15 @@
         total.textContent = formatCurrency(totalValue);
     }
 
-    /**
-     * Converte os itens internos do carrinho no contrato do checkout.
-     *
-     * @param {Array<object>} items Itens recuperados do localStorage.
-     * @returns {{items: Array<{pizza_id: string, quantity: number}>}} Payload
-     *     enviado ao backend.
-     */
-    function createCheckoutPayload(items) {
-        return {
-            items: items.map((item) => ({
-                pizza_id: item.id,
-                quantity: item.quantity
-            }))
-        };
-    }
-
-    /**
-     * Obtém uma mensagem legível de uma resposta de falha do checkout.
-     *
-     * @param {Response} response Resposta HTTP retornada pelo backend.
-     * @returns {Promise<string>} Mensagem que será apresentada ao usuário.
-     */
-    async function getCheckoutErrorMessage(response) {
-        try {
-            const payload = await response.json();
-            return payload?.data?.message
-                || payload?.detail
-                || 'Não foi possível finalizar o pedido.';
-        } catch (error) {
-            return 'Não foi possível finalizar o pedido.';
-        }
-    }
-
-    /**
-     * Envia as pizzas armazenadas no navegador para o checkout do BFF.
-     *
-     * @returns {Promise<void>}
-     */
-    async function submitCheckout() {
-        const items = window.OciPizza.readCart();
-
-        if (items.length === 0 || checkoutInProgress) {
-            return;
-        }
-
-        checkoutInProgress = true;
-        checkoutButton.setAttribute('aria-busy', 'true');
-        checkoutButton.textContent = 'Finalizando...';
-        window.OciPizzaInteractionLock.lock();
-
-        try {
-            const response = await window.fetch(checkoutUrl, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify(createCheckoutPayload(items))
-            });
-
-            if (!response.ok) {
-                throw new Error(await getCheckoutErrorMessage(response));
-            }
-
-            if (response.redirected) {
-                window.location.assign(response.url);
-                return;
-            }
-
-            window.OciPizza.showToast(
-                'Pedido enviado com sucesso.',
-                'success'
-            );
-        } catch (error) {
-            window.OciPizza.showToast(
-                error.message || 'Não foi possível finalizar o pedido.',
-                'error'
-            );
-        } finally {
-            window.OciPizzaInteractionLock.unlock();
-            checkoutInProgress = false;
-            checkoutButton.removeAttribute('aria-busy');
-            checkoutButton.textContent = 'Finalizar Pedido';
-            renderCart();
-        }
-    }
-
     clearCartButton.addEventListener('click', () => {
         window.OciPizza.clearCart();
     });
-    checkoutButton.addEventListener('click', submitCheckout);
+    if (checkoutForm) {
+        checkoutForm.addEventListener('submit', () => {
+            synchronizeCheckoutFields(window.OciPizza.readCart());
+        });
+    }
+
     window.addEventListener('ocipizza:cart-updated', renderCart);
     renderCart();
 })();

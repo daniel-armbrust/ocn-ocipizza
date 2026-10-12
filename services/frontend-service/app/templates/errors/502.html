@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Falha ao consultar o serviço | OCI Pizza{% endblock %}
+{% block title %}Falha de comunicação | OCI Pizza{% endblock %}
 
 {% block content %}
 <section class="http-error-page" aria-labelledby="error-title">
@@ -16,15 +16,15 @@
         </div>
 
         <div class="http-error-copy">
-            <span class="eyebrow">O pedido não chegou à cozinha</span>
-            <h1 id="error-title">Não foi possível consultar o cardápio.</h1>
+            <span class="eyebrow">Não conseguimos concluir a solicitação</span>
+            <h1 id="error-title">Um dos nossos serviços respondeu de forma inesperada.</h1>
             <p>
-                Recebemos uma resposta inesperada do serviço responsável pelas
-                pizzas. Tente novamente em alguns instantes.
+                Seus dados continuam seguros. Aguarde alguns instantes e tente
+                realizar a operação novamente.
             </p>
             <div class="http-error-actions">
-                <a class="button" href="{{ request.url.path }}">Tentar novamente</a>
-                <a class="button button-secondary" href="/pizzas">Voltar ao cardápio</a>
+                <a class="button" href="{{ retry_url | default('/', true) }}">Tentar novamente</a>
+                <a class="button button-secondary" href="/">Ir para o início</a>
             </div>
         </div>
     </div>

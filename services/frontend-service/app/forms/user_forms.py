@@ -3,7 +3,7 @@
 #
 
 from wtforms import BooleanField, Form, StringField
-from wtforms.validators import DataRequired, Length, Optional, Regexp
+from wtforms.validators import AnyOf, DataRequired, Length, Optional, Regexp
 
 from app.utils.utils import (
     normalize_optional_string,
@@ -75,8 +75,10 @@ class UserAddressForm(Form):
         render_kw={
             'minlength': 8,
             'maxlength': 9,
+            'pattern': r'[0-9]{5}-[0-9]{3}',
             'inputmode': 'numeric',
             'autocomplete': 'postal-code',
+            'data-zip-code-mask': True,
             'required': True
         }
     )
@@ -101,14 +103,21 @@ class UserAddressForm(Form):
         'Número',
         validators=[
             DataRequired(message='Informe o número.'),
+            Regexp(
+                r'^\d+$',
+                message='O número do endereço deve conter somente números.'
+            ),
             Length(
                 max=20,
-                message='O número deve conter no máximo 20 caracteres.'
+                message='O número deve conter no máximo 20 dígitos.'
             )
         ],
         render_kw={
             'maxlength': 20,
+            'pattern': r'[0-9]+',
+            'inputmode': 'numeric',
             'autocomplete': 'address-line2',
+            'data-numeric-only': True,
             'required': True
         }
     )
@@ -146,35 +155,35 @@ class UserAddressForm(Form):
 
     city = StringField(
         'Cidade',
+        default='Sorocaba',
         validators=[
             DataRequired(message='Informe a cidade.'),
-            Length(
-                max=100,
-                message='A cidade deve conter no máximo 100 caracteres.'
+            AnyOf(
+                ['Sorocaba'],
+                message='A cidade atendida deve ser Sorocaba.'
             )
         ],
         render_kw={
-            'maxlength': 100,
             'autocomplete': 'address-level2',
+            'readonly': True,
             'required': True
         }
     )
 
     state = StringField(
         'Estado',
+        default='SP',
         filters=[normalize_state],
         validators=[
             DataRequired(message='Informe o estado.'),
-            Regexp(
-                r'^[A-Z]{2}$',
-                message='Informe a sigla do estado com duas letras.'
+            AnyOf(
+                ['SP'],
+                message='O estado atendido deve ser SP.'
             )
         ],
         render_kw={
-            'minlength': 2,
-            'maxlength': 2,
             'autocomplete': 'address-level1',
-            'autocapitalize': 'characters',
+            'readonly': True,
             'required': True
         }
     )

@@ -37,8 +37,6 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
 # Copia o código e transfere sua propriedade ao usuário da aplicação.
 COPY --chown=app:app . .
 
-# Executa a aplicação sem privilégios de root. O UID/GID padrão 1000 também
-# permite ler as chaves JWT locais montadas pelo Docker Compose.
 USER app:app
 
 # Porta interna utilizada pelo FastAPI/Uvicorn.

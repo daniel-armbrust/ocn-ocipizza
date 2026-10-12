@@ -16,15 +16,15 @@
         </div>
 
         <div class="http-error-copy">
-            <span class="eyebrow">A cozinha está temporariamente fechada</span>
-            <h1 id="error-title">O serviço do cardápio está indisponível.</h1>
+            <span class="eyebrow">Serviço temporariamente indisponível</span>
+            <h1 id="error-title">Não foi possível completar a solicitação.</h1>
             <p>
-                Não conseguimos acessar as pizzas neste momento. Aguarde um
-                pouco e tente novamente.
+                Não conseguimos acessar um dos nossos serviços neste momento.
+                Aguarde um pouco e tente novamente.
             </p>
             <div class="http-error-actions">
-                <a class="button" href="{{ request.url.path }}">Tentar novamente</a>
-                <a class="button button-secondary" href="/pizzas">Voltar ao cardápio</a>
+                <a class="button" href="{{ retry_url | default('/', true) }}">Tentar novamente</a>
+                <a class="button button-secondary" href="/">Ir para o início</a>
             </div>
         </div>
     </div>

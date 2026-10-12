@@ -167,21 +167,13 @@ async def show_profile_page(
             user-service.
     """
 
-    try:
-        user = await user_client.get_profile(
-            access_token=session.get('access_token')
-        )
-        addresses = await user_client.get_addresses(
-            access_token=session.get('access_token')
-        )
-    except httpx.HTTPStatusError as ex:
-        if ex.response.status_code == status.HTTP_401_UNAUTHORIZED:
-            return RedirectResponse(
-                url='/users/login?code=USER_LOGIN_REQUIRED',
-                status_code=status.HTTP_303_SEE_OTHER
-            )
-
-        raise
+    # Falhas HTTP e de comunicação são tratadas pelos handlers globais.
+    user = await user_client.get_profile(
+        access_token=session.get('access_token')
+    )
+    addresses = await user_client.get_addresses(
+        access_token=session.get('access_token')
+    )
 
     form = UserWhatsappUpdateForm(
         data={'whatsapp': user.get('whatsapp')}

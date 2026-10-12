@@ -27,7 +27,8 @@ router = APIRouter()
 #
 @router.get(
     '/users/login',
-    response_class=HTMLResponse)
+    response_class=HTMLResponse
+)
 async def show_login_page(
     request: Request,
     code: str | None = None
@@ -230,10 +231,7 @@ async def logout_user(
                     refresh_token=session['refresh_token']
                 )
 
-            except (
-                httpx.HTTPStatusError,
-                httpx.RequestError
-            ):
+            except (httpx.HTTPStatusError, httpx.RequestError):
                 # O logout local continua mesmo que o user-service
                 # esteja indisponível ou não consiga revogar o token.
                 # Dessa forma, o navegador perde imediatamente o acesso

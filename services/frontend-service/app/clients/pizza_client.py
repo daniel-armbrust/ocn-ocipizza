@@ -80,6 +80,35 @@ class PizzaClient:
         # Retorna integralmente o JSON produzido pelo pizza-service.
         return response.json()
 
+    async def get_by_id(self, pizza_id: str) -> dict:
+        """
+        Obtém uma pizza específica pelo seu identificador.
+
+        Args:
+            pizza_id: Identificador UUID da pizza consultada.
+
+        Returns:
+            Dados da pizza retornados pelo pizza-service.
+
+        Raises:
+            httpx.HTTPStatusError: Caso o pizza-service retorne uma resposta
+                HTTP de erro.
+            httpx.RequestError: Caso ocorra uma falha de comunicação com o
+                pizza-service.
+        """
+
+        async with httpx.AsyncClient(
+            timeout=settings.http_client_timeout
+        ) as client:
+            response = await client.get(
+                f'{self.base_url}/pizzas/{pizza_id}',
+                timeout=settings.http_client_timeout
+            )
+
+        response.raise_for_status()
+
+        return response.json()['data']['pizza']
+
 
 def get_pizza_client() -> PizzaClient:
     """

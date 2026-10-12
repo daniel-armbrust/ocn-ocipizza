@@ -8,8 +8,6 @@
     aria-labelledby="cart-title"
     data-cart
     data-fallback-image="{{ url_for('static', path='img/pizza-logo.png') }}"
-    data-checkout-url="/cart/checkout"
-    data-csrf-token="{{ csrf_token(request) }}"
 >
     <div class="container">
         <header class="cart-heading">
@@ -45,13 +43,24 @@
                     <span>Total</span>
                     <strong data-cart-total>R$ 0,00</strong>
                 </div>
-                <button
-                    class="button cart-checkout-button"
-                    type="button"
-                    data-cart-checkout
+                <form
+                    method="post"
+                    action="/cart/checkout"
+                    data-cart-checkout-form
                 >
-                    Finalizar Pedido
-                </button>
+                    <input
+                        type="hidden"
+                        name="csrf_token"
+                        value="{{ csrf_token(request) }}"
+                    >
+                    <div data-cart-checkout-fields></div>
+                    <button
+                        class="button cart-checkout-button"
+                        type="submit"
+                    >
+                        Finalizar Pedido
+                    </button>
+                </form>
                 <button class="cart-clear-button" type="button" data-clear-cart>
                     Limpar Carrinho
                 </button>

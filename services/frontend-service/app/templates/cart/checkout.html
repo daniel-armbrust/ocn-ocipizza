@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout | OCI Pizza{% endblock %}
+
+{% block content %}
+<section class="checkout-section" aria-labelledby="checkout-title">
+    <header class="menu-hero checkout-hero">
+        <div class="container checkout-hero-content">
+            <div>
+                <span class="eyebrow">Finalização do pedido</span>
+                <h1 id="checkout-title">Checkout</h1>
+                <p>Revise a entrega e informe como deseja realizar o pagamento.</p>
+            </div>
+            <span class="checkout-secure-label" aria-label="Ambiente seguro">
+                <span class="checkout-secure-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" role="img">
+                        <path d="M7 10V7a5 5 0 0 1 10 0v3"></path>
+                        <rect x="4" y="10" width="16" height="11" rx="3"></rect>
+                        <path d="M12 14v3"></path>
+                    </svg>
+                </span>
+                Pagamento seguro
+            </span>
+        </div>
+    </header>
+
+    <div class="container checkout-layout">
+        <main class="checkout-main">
+            <section class="checkout-card" aria-labelledby="delivery-address-title">
+                <header class="checkout-card-heading">
+                    <span class="checkout-step" aria-hidden="true">01</span>
+                    <div>
+                        <span class="eyebrow">Entrega</span>
+                        <h2 id="delivery-address-title">Endereço de entrega</h2>
+                    </div>
+                </header>
+
+                <div class="checkout-address-preview">
+                    {% if address %}
+                    <div>
+                        <strong>{{ address.label or 'Endereço principal' }}</strong>
+                        <p>
+                            {{ address.street }}, {{ address.number }}
+                            {% if address.complement %}— {{ address.complement }}{% endif %}<br>
+                            {{ address.neighborhood }} — {{ address.city }}/{{ address.state }}<br>
+                            CEP {{ address.zip_code }}
+                        </p>
+                    </div>
+                    <a class="checkout-text-link" href="/users/profile">Alterar endereço</a>
+                    {% else %}
+                    <div>
+                        <strong>Nenhum endereço principal cadastrado</strong>
+                        <p>Cadastre ou defina um endereço principal para continuar.</p>
+                    </div>
+                    <a class="checkout-text-link" href="/users/profile">Gerenciar endereços</a>
+                    {% endif %}
+                </div>
+
+                <div class="checkout-delivery-status" role="status">
+                    {% if unavailable_items %}
+                    Uma ou mais pizzas do carrinho não estão disponíveis no momento.
+                    {% elif address and delivery_quote and delivery_quote.available %}
+                    Entrega disponível. Prazo estimado de {{ delivery_quote.estimated_minutes }} minutos.
+                    {% elif address and delivery_quote %}
+                    Ainda não realizamos entregas para este endereço.
+                    {% else %}
+                    Informe um endereço principal para verificarmos a disponibilidade da entrega.
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="checkout-card" aria-labelledby="payment-title">
+                <header class="checkout-card-heading">
+                    <span class="checkout-step" aria-hidden="true">02</span>
+                    <div>
+                        <span class="eyebrow">Pagamento</span>
+                        <h2 id="payment-title">Dados do pagamento</h2>
+                    </div>
+                </header>
+
+                <form class="checkout-payment-form" method="post" action="/cart/checkout/confirm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                    <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+                    {% if address %}
+                    <input type="hidden" name="address_id" value="{{ address.id }}">
+                    {% endif %}
+                    {% for item in items %}
+                    <input type="hidden" name="items-{{ loop.index0 }}-pizza_id" value="{{ item.pizza_id }}">
+                    <input type="hidden" name="items-{{ loop.index0 }}-quantity" value="{{ item.quantity }}">
+                    <input type="hidden" name="items-{{ loop.index0 }}-unit_price" value="{{ item.unit_price }}">
+                    {% endfor %}
+                    <input type="hidden" name="subtotal" value="{{ subtotal }}">
+                    <input type="hidden" name="delivery_fee" value="{{ delivery_fee }}">
+                    <input type="hidden" name="total" value="{{ total }}">
+
+                    <fieldset class="checkout-payment-methods"{% if not address %} disabled{% endif %}>
+                        <legend>Forma de pagamento</legend>
+                        <label class="checkout-payment-option">
+                            <input type="radio" name="payment_method" value="credit_card" checked>
+                            <span>
+                                <strong>Cartão de crédito</strong>
+                                <small>Pagamento realizado no ambiente seguro</small>
+                            </span>
+                        </label>
+                    </fieldset>
+
+                    <div class="checkout-fields">
+                        <label class="checkout-field checkout-field-full">
+                            <span>Nome impresso no cartão</span>
+                            <input type="text" name="cardholder_name" autocomplete="cc-name" placeholder="Como aparece no cartão" required{% if not address %} disabled{% endif %}>
+                        </label>
+
+                        <label class="checkout-field checkout-field-full">
+                            <span>Número do cartão</span>
+                            <input type="text" name="card_number" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000" maxlength="19" required{% if not address %} disabled{% endif %}>
+                        </label>
+
+                        <label class="checkout-field">
+                            <span>Validade</span>
+                            <input type="text" name="card_expiration" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/AA" maxlength="5" required{% if not address %} disabled{% endif %}>
+                        </label>
+
+                        <label class="checkout-field">
+                            <span>Código de segurança</span>
+                            <input type="password" name="card_security_code" inputmode="numeric" autocomplete="cc-csc" placeholder="CVV" maxlength="4" required{% if not address %} disabled{% endif %}>
+                        </label>
+
+                    </div>
+
+                    <button class="button checkout-submit-button" type="submit"{% if not checkout_ready %} disabled{% endif %}>
+                        Concluir pedido
+                    </button>
+                </form>
+            </section>
+        </main>
+
+        <aside class="checkout-summary" aria-labelledby="checkout-summary-title">
+            <span class="eyebrow">Seu pedido</span>
+            <h2 id="checkout-summary-title">Resumo</h2>
+
+            <div class="checkout-summary-items">
+                {% for item in items %}
+                <article class="checkout-summary-item{% if not item.available %} is-unavailable{% endif %}">
+                    <img src="{{ item.image_url }}" alt="" width="58" height="58">
+                    <div>
+                        <strong>{{ item.quantity }}× {{ item.name }}</strong>
+                        <small>R$ {{ '%.2f' | format(item.unit_price | float) | replace('.', ',') }} cada</small>
+                        {% if not item.available %}<small>Indisponível</small>{% endif %}
+                    </div>
+                    <strong>R$ {{ '%.2f' | format(item.subtotal | float) | replace('.', ',') }}</strong>
+                </article>
+                {% endfor %}
+            </div>
+
+            <div class="checkout-summary-row">
+                <span>Subtotal</span>
+                <strong>R$ {{ '%.2f' | format(subtotal | float) | replace('.', ',') }}</strong>
+            </div>
+            <div class="checkout-summary-row">
+                <span>Taxa de entrega</span>
+                <strong>
+                    {% if delivery_quote and delivery_quote.available %}
+                    R$ {{ '%.2f' | format(delivery_fee | float) | replace('.', ',') }}
+                    {% else %}
+                    Indisponível
+                    {% endif %}
+                </strong>
+            </div>
+            <div class="checkout-summary-row checkout-summary-total">
+                <span>Total</span>
+                <strong>R$ {{ '%.2f' | format(total | float) | replace('.', ',') }}</strong>
+            </div>
+
+            <a class="checkout-back-link" href="/cart">← Voltar ao carrinho</a>
+        </aside>
+    </div>
+</section>
+
+{% if not address or (delivery_quote and not delivery_quote.available) %}
+<dialog
+    class="pizza-added-modal checkout-address-modal"
+    aria-labelledby="checkout-address-modal-title"
+    aria-describedby="checkout-address-modal-message"
+    data-checkout-address-modal
+    data-redirect-url="/users/profile"
+>
+    <div class="pizza-added-modal-content checkout-address-modal-content">
+        <img
+            src="{{ url_for('static', path='img/favicon.png') }}"
+            alt=""
+            width="72"
+            height="72"
+        >
+        <div>
+            <span class="eyebrow">Endereço de entrega</span>
+            {% if not address %}
+            <h2 id="checkout-address-modal-title">Endereço necessário</h2>
+            <p id="checkout-address-modal-message">
+                {% if has_addresses %}
+                Selecione um endereço principal para continuar com o pedido.
+                {% else %}
+                Você ainda não possui um endereço de entrega cadastrado.
+                {% endif %}
+            </p>
+            {% else %}
+            <h2 id="checkout-address-modal-title">Entrega indisponível</h2>
+            <p id="checkout-address-modal-message">
+                No momento, não realizamos entregas no seu endereço principal.
+                Cadastre um novo endereço de entrega para tentar continuar com
+                o pedido.
+            </p>
+            {% endif %}
+            <button
+                class="button checkout-address-modal-confirm"
+                type="button"
+                data-checkout-address-modal-confirm
+            >
+                OK
+            </button>
+        </div>
+    </div>
+</dialog>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/checkout_client.js') }}" defer></script>
+{% endblock %}

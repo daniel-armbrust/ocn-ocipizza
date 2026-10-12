@@ -4,7 +4,7 @@
 
 import httpx
 
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 
 from app.clients.pizza_client import PizzaClient, get_pizza_client
@@ -102,18 +102,6 @@ async def list_all_pizzas(
             },
             status_code=ex.response.status_code
         )
-    except httpx.RequestError:
-        return templates.TemplateResponse(
-            request=request,
-            name='errors/503.html',
-            context={
-                'message': (
-                    'O serviço de pizzas está temporariamente indisponível.'
-                )
-            },
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE
-        )
-
     return templates.TemplateResponse(
         request=request,
         name='pizzas/list.html',
