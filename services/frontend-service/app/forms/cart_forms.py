@@ -2,10 +2,18 @@
 # forms/cart_forms.py
 #
 
-from wtforms import FieldList, Form, FormField, IntegerField, StringField
+from wtforms import (
+    DecimalField,
+    FieldList,
+    Form,
+    FormField,
+    IntegerField,
+    StringField
+)
 from wtforms.validators import (
     DataRequired,
     InputRequired,
+    Length,
     NumberRange,
     UUID,
     ValidationError
@@ -90,3 +98,96 @@ class CartCheckoutForm(Form):
                 'O pedido pode conter no máximo '
                 f'{MAX_PIZZAS_PER_CHECKOUT} pizzas.'
             )
+
+
+class CartCheckoutConfirmationItemForm(CartItemForm):
+    """
+    Define os dados de um item apresentados na tela de checkout.
+    """
+
+    unit_price = DecimalField(
+        'Preço unitário',
+        places=2,
+        validators=[
+            InputRequired(message='Informe o preço apresentado da pizza.'),
+            NumberRange(
+                min=0,
+                message='O preço apresentado da pizza é inválido.'
+            )
+        ]
+    )
+
+
+class CartCheckoutConfirmationForm(CartCheckoutForm):
+    """
+    Valida os dados submetidos para confirmação do checkout.
+
+    Os valores monetários representam apenas o estado apresentado ao usuário
+    e serão comparados com os dados atuais obtidos dos microserviços.
+    """
+
+    items = FieldList(
+        FormField(CartCheckoutConfirmationItemForm),
+        min_entries=1,
+        max_entries=MAX_PIZZAS_PER_CHECKOUT,
+        validators=[
+            DataRequired(message='Adicione pelo menos uma pizza ao carrinho.')
+        ]
+    )
+
+    address_id = StringField(
+        'Endereço',
+        validators=[
+            DataRequired(message='Informe o endereço de entrega.'),
+            UUID(message='Informe um identificador de endereço válido.')
+        ]
+    )
+
+    subtotal = DecimalField(
+        'Subtotal',
+        places=2,
+        validators=[
+            InputRequired(message='Informe o subtotal apresentado.'),
+            NumberRange(min=0, message='O subtotal apresentado é inválido.')
+        ]
+    )
+
+    delivery_fee = DecimalField(
+        'Taxa de entrega',
+        places=2,
+        validators=[
+            InputRequired(message='Informe a taxa de entrega apresentada.'),
+            NumberRange(
+                min=0,
+                message='A taxa de entrega apresentada é inválida.'
+            )
+        ]
+    )
+
+    total = DecimalField(
+        'Total',
+        places=2,
+        validators=[
+            InputRequired(message='Informe o total apresentado.'),
+            NumberRange(min=0, message='O total apresentado é inválido.')
+        ]
+    )
+
+    payment_token = StringField(
+        'Token de pagamento',
+        validators=[
+            DataRequired(message='Informe o token do gateway de pagamento.'),
+            Length(
+                max=4096,
+                message='O token do gateway de pagamento é inválido.'
+            )
+        ]
+    )
+
+    idempotency_key = StringField(
+        'Chave de idempotência',
+        validators=[
+            DataRequired(message='Informe a chave de idempotência.'),
+            UUID(message='Informe uma chave de idempotência válida.')
+        ]
+    )

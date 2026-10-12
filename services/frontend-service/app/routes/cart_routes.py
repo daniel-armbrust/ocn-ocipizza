@@ -11,9 +11,15 @@ from starlette_wtf import csrf_protect
 
 from app.dependencies.authentication import get_authenticated_session
 
-from app.dependencies.templates import templates
-from app.forms.cart_forms import CartCheckoutForm
+from app.exceptions.checkout_exceptions import CheckoutChangedError
+from app.forms.cart_forms import (
+    CartCheckoutConfirmationForm,
+    CartCheckoutForm
+)
+from app.messages.cart_messages import CART_MESSAGES
 from app.services.checkout_service import CheckoutService, get_checkout_service
+
+from app.dependencies.templates import templates
 
 router = APIRouter()
 
@@ -24,7 +30,10 @@ router = APIRouter()
         '/cart',
         response_class=HTMLResponse
 )
-async def show_cart(request: Request) -> HTMLResponse:
+async def show_cart(
+    request: Request,
+    code: str | None = None
+) -> HTMLResponse:
     """
     Exibe a página do carrinho de compras.
 
@@ -33,15 +42,27 @@ async def show_cart(request: Request) -> HTMLResponse:
 
     Args:
         request: Requisição HTTP recebida pelo frontend-service.
+        code: Código funcional opcional que identifica a mensagem exibida.
 
     Returns:
         Página HTML do carrinho de compras.
     """
 
+    message = CART_MESSAGES.get(
+        code,
+        {
+            'message': 'Não foi possível processar a operação solicitada.',
+            'type': 'error'
+        }
+    ) if code else None
+
     return templates.TemplateResponse(
         request=request,
         name='cart/cart.html',
-        context={}
+        context={
+            'message': message['message'] if message else None,
+            'type': message['type'] if message else None
+        }
     )
 
 #
@@ -83,7 +104,7 @@ async def show_checkout(
         # Retorna ao carrinho quando a carga não contiver ao menos um item
         # válido, evitando consultas desnecessárias aos demais serviços.
         return RedirectResponse(
-            url='/cart',
+            url='/cart?code=CART_INVALID_ITEMS',
             status_code=status.HTTP_303_SEE_OTHER
         )
 
@@ -118,3 +139,84 @@ async def show_checkout(
 #
 # POST: /cart/checkout/confirm
 #
+@router.post(
+    '/cart/checkout/confirm',
+    response_class=HTMLResponse
+)
+@csrf_protect
+async def confirm_checkout(
+    request: Request,
+    session=Depends(get_authenticated_session),
+    checkout_service: CheckoutService = Depends(get_checkout_service)
+) -> Response:
+    """
+    Confirma que o checkout não mudou antes da futura criação do pedido.
+
+    Args:
+        request: Requisição contendo o checkout e o token de pagamento.
+        session: Sessão autenticada mantida pelo frontend-service.
+        checkout_service: Serviço responsável por revalidar o checkout.
+
+    Returns:
+        Página do checkout revalidado ou redirecionamento para o carrinho
+        quando os dados forem inválidos ou tiverem mudado.
+    """
+
+    form = CartCheckoutConfirmationForm(await request.form())
+
+    if not form.validate():
+        code = (
+            'CART_PAYMENT_TOKEN_ERROR'
+            if form.payment_token.errors
+            else 'CART_CHECKOUT_CONFIRMATION_ERROR'
+        )
+
+        return RedirectResponse(
+            url=f'/cart?code={code}',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    # `submitted_checkout` representa o estado do checkout que foi apresentado
+    # ao usuário e devolvido pelo formulário por meio de campos ocultos. Esses
+    # valores não são considerados confiáveis nem usados diretamente para criar
+    # o pedido: o CheckoutService consulta novamente os serviços responsáveis e
+    # compara endereço, itens, preços e totais antes de autorizar a continuidade.
+    submitted_checkout = {
+        'address_id': form.address_id.data,
+        'items': [
+            {
+                'pizza_id': item.form.pizza_id.data,
+                'quantity': item.form.quantity.data,
+                'unit_price': item.form.unit_price.data
+            }
+            for item in form.items.entries
+        ],
+        'subtotal': form.subtotal.data,
+        'delivery_fee': form.delivery_fee.data,
+        'total': form.total.data
+    }
+
+    try:
+        checkout = await checkout_service.confirm_checkout(
+            access_token=session['access_token'],
+            submitted_checkout=submitted_checkout,
+            payment_token=form.payment_token.data,
+            idempotency_key=form.idempotency_key.data
+        )
+    except CheckoutChangedError:
+        # Retorna ao carrinho para que preços, disponibilidade e entrega sejam
+        # apresentados novamente antes de uma nova tentativa de pagamento.
+        return RedirectResponse(
+            url='/cart?code=CART_CHECKOUT_CHANGED',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    # Mantém a mesma chave quando a integração com o order-service ainda não
+    # produziu o redirecionamento para a página do pedido criado.
+    checkout['idempotency_key'] = form.idempotency_key.data
+
+    return templates.TemplateResponse(
+        request=request,
+        name='cart/checkout.html',
+        context=checkout
+    )

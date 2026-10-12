@@ -231,6 +231,17 @@ a {
     gap: 24px;
 }
 
+.cart-message-area {
+    width: 100%;
+    margin-bottom: 32px;
+}
+
+.cart-message-area .cart-notice {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
 .cart-heading h1 {
     margin: 0;
 }

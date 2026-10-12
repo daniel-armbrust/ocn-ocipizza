@@ -88,6 +88,13 @@
 
     postForms.forEach((form) => {
         form.addEventListener('submit', (event) => {
+            // Uma validação específica pode cancelar a submissão antes deste
+            // manipulador. Nesse caso, não existe uma requisição aguardando
+            // resposta e a interface deve permanecer disponível ao usuário.
+            if (event.defaultPrevented) {
+                return;
+            }
+
             if (form.dataset.submitting === 'true') {
                 event.preventDefault();
                 return;
