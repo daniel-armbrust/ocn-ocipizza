@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     """
-    Configurações utilizadas pelo frontend-service.
+    Configurações utilizadas pelo delivery-service.
     """
 
     model_config = SettingsConfigDict(
@@ -18,7 +18,7 @@ class Settings(BaseSettings):
         extra='ignore'
     )
 
-    app_name: str = 'frontend-service'
+    app_name: str = 'delivery-service'
     app_env: str = 'development'
     debug: bool = False
 
@@ -33,7 +33,6 @@ class Settings(BaseSettings):
 
     # SQLAlchemy
     database_url: str | None = None
-
 
     # Timeout padrão utilizado nas chamadas HTTP realizadas 
     # aos microserviços.

@@ -5,9 +5,10 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.user_address import UserAddress
+from app.utils.utils import normalize_zip_code
 
 
 class UserAddressCreateRequest(BaseModel):
@@ -29,7 +30,7 @@ class UserAddressCreateRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     label: str | None = Field(default=None, max_length=50)
-    zip_code: str = Field(min_length=8, max_length=9)
+    zip_code: str = Field(pattern=r'^\d{8}$')
     street: str = Field(min_length=1, max_length=255)
     number: str = Field(min_length=1, max_length=20)
     complement: str | None = Field(default=None, max_length=100)
@@ -37,6 +38,24 @@ class UserAddressCreateRequest(BaseModel):
     city: str = Field(min_length=1, max_length=100)
     state: str = Field(min_length=2, max_length=30)
     is_default: bool = False
+
+    @field_validator('zip_code', mode='before')
+    @classmethod
+    def validate_zip_code(cls, value: str) -> str:
+        """
+        Normaliza o CEP antes da validação do contrato.
+
+        Args:
+            value: CEP recebido com ou sem máscara.
+
+        Returns:
+            CEP contendo somente oito dígitos.
+
+        Raises:
+            ValueError: Quando o CEP informado for inválido.
+        """
+
+        return normalize_zip_code(value)
 
 
 class UserAddressResponse(BaseModel):
@@ -60,7 +79,7 @@ class UserAddressResponse(BaseModel):
 
     id: UUID
     label: str | None = None
-    zip_code: str
+    zip_code: str = Field(pattern=r'^\d{8}$')
     street: str
     number: str
     complement: str | None = None
@@ -70,6 +89,24 @@ class UserAddressResponse(BaseModel):
     is_default: bool
     created_at: datetime
     updated_at: datetime
+
+    @field_validator('zip_code', mode='before')
+    @classmethod
+    def validate_zip_code(cls, value: str) -> str:
+        """
+        Normaliza CEPs legados antes de montar a resposta.
+
+        Args:
+            value: CEP recuperado da persistência.
+
+        Returns:
+            CEP contendo somente oito dígitos.
+
+        Raises:
+            ValueError: Quando o CEP persistido for inválido.
+        """
+
+        return normalize_zip_code(value)
 
     @classmethod
     def from_model(cls, address: UserAddress) -> "UserAddressResponse":
@@ -118,7 +155,7 @@ class UserAddressUpdateRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     label: str | None = Field(default=None, max_length=50)
-    zip_code: str | None = Field(default=None, min_length=8, max_length=9)
+    zip_code: str | None = Field(default=None, pattern=r'^\d{8}$')
     street: str | None = Field(default=None, min_length=1, max_length=255)
     number: str | None = Field(default=None, min_length=1, max_length=20)
     complement: str | None = Field(default=None, max_length=100)
@@ -126,3 +163,21 @@ class UserAddressUpdateRequest(BaseModel):
     city: str | None = Field(default=None, min_length=1, max_length=100)
     state: str | None = Field(default=None, min_length=2, max_length=2)
     is_default: bool | None = None
+
+    @field_validator('zip_code', mode='before')
+    @classmethod
+    def validate_zip_code(cls, value: str | None) -> str | None:
+        """
+        Normaliza o CEP opcional antes da validação do contrato.
+
+        Args:
+            value: CEP recebido com ou sem máscara.
+
+        Returns:
+            CEP contendo somente oito dígitos ou `None` quando ausente.
+
+        Raises:
+            ValueError: Quando o CEP informado for inválido.
+        """
+
+        return normalize_zip_code(value) if value is not None else None

@@ -150,7 +150,7 @@ async def confirm_checkout(
     checkout_service: CheckoutService = Depends(get_checkout_service)
 ) -> Response:
     """
-    Confirma que o checkout não mudou antes da futura criação do pedido.
+    Confirma que o checkout não mudou e cria o pedido.
 
     Args:
         request: Requisição contendo o checkout e o token de pagamento.
@@ -158,8 +158,8 @@ async def confirm_checkout(
         checkout_service: Serviço responsável por revalidar o checkout.
 
     Returns:
-        Página do checkout revalidado ou redirecionamento para o carrinho
-        quando os dados forem inválidos ou tiverem mudado.
+        Redirecionamento para o cardápio após a criação do pedido ou para o
+        carrinho quando os dados forem inválidos ou tiverem mudado.
     """
 
     form = CartCheckoutConfirmationForm(await request.form())
@@ -197,7 +197,7 @@ async def confirm_checkout(
     }
 
     try:
-        checkout = await checkout_service.confirm_checkout(
+        await checkout_service.confirm_checkout(
             access_token=session['access_token'],
             submitted_checkout=submitted_checkout,
             payment_token=form.payment_token.data,
@@ -211,12 +211,7 @@ async def confirm_checkout(
             status_code=status.HTTP_303_SEE_OTHER
         )
 
-    # Mantém a mesma chave quando a integração com o order-service ainda não
-    # produziu o redirecionamento para a página do pedido criado.
-    checkout['idempotency_key'] = form.idempotency_key.data
-
-    return templates.TemplateResponse(
-        request=request,
-        name='cart/checkout.html',
-        context=checkout
+    return RedirectResponse(
+        url='/pizzas?code=CART_ORDER_SUCCESSFULLY_CREATED',
+        status_code=status.HTTP_303_SEE_OTHER
     )

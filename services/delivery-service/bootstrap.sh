@@ -137,7 +137,7 @@ import os
 
 from borneo import TableRequest
 
-from app.repositories.nosql.connection import get_nosql_handle
+from app.repositories.nosql.connection import create_nosql_handle
 
 
 table_name = os.getenv(
@@ -145,7 +145,7 @@ table_name = os.getenv(
     'delivery_areas'
 )
 
-handle = get_nosql_handle()
+handle = create_nosql_handle()
 
 drop_statement = f'''
     DROP TABLE IF EXISTS {table_name}
@@ -191,14 +191,18 @@ display_step 'Criando áreas de entrega de demonstração'
 
 python <<'PYTHON'
 import csv
+import os
 
 from datetime import datetime, timezone
 from decimal import Decimal
 from io import StringIO
 from uuid import NAMESPACE_URL, uuid5
 
-from app.dependencies.database import get_delivery_area_repository
 from app.models.delivery_area import DeliveryArea
+from app.repositories.nosql.connection import create_nosql_handle
+from app.repositories.nosql.nosql_delivery_area_repository import (
+    NosqlDeliveryAreaRepository
+)
 
 
 # As faixas abaixo correspondem aos dados de entrega de Sorocaba utilizados
@@ -237,7 +241,11 @@ DELIVERY_AREAS_CSV = '''zip_code_start,zip_code_end,delivery_fee,estimated_minut
 18108000,18109999,22.0,75,True
 '''
 
-repository = get_delivery_area_repository()
+handle = create_nosql_handle()
+repository = NosqlDeliveryAreaRepository(
+    handle=handle,
+    table_name=os.getenv('NOSQL_TABLE_NAME', 'delivery_areas')
+)
 created_at = datetime.now(timezone.utc)
 
 for position, row in enumerate(
@@ -283,7 +291,7 @@ for position, row in enumerate(
 persisted_areas = repository.get_all(limit=50)
 
 # O repositório NoSQL mantém o handle aberto durante todas as inclusões.
-repository.handle.close()
+handle.close()
 
 expected_total = 30
 persisted_total = len(persisted_areas)

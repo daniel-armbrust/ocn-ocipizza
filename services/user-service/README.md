@@ -500,7 +500,7 @@ os endereços no campo `data.addresses` do padrão JSend:
       {
         "id": "5cd4cc45-7ef7-4478-a048-e297b3570c86",
         "label": "Casa",
-        "zip_code": "01310-100",
+        "zip_code": "01310100",
         "street": "Avenida Paulista",
         "number": "1000",
         "complement": "Apartamento 101",
@@ -543,7 +543,7 @@ curl --request POST \
   --header 'Content-Type: application/json' \
   --data '{
     "label": "Casa",
-    "zip_code": "01310-100",
+    "zip_code": "01310100",
     "street": "Avenida Paulista",
     "number": "1000",
     "complement": "Apartamento 101",
@@ -559,7 +559,7 @@ Os campos aceitos são:
 | Campo | Obrigatório | Descrição |
 | --- | --- | --- |
 | `label` | Não | Identificação do endereço, com até 50 caracteres. |
-| `zip_code` | Sim | CEP contendo entre 8 e 9 caracteres. |
+| `zip_code` | Sim | CEP normalizado contendo exatamente oito dígitos. |
 | `street` | Sim | Logradouro contendo até 255 caracteres. |
 | `number` | Sim | Número do endereço, com até 20 caracteres. |
 | `complement` | Não | Complemento contendo até 100 caracteres. |
@@ -1149,7 +1149,7 @@ curl --request POST \
   --header 'Content-Type: application/json' \
   --data '{
     "label": "Casa",
-    "zip_code": "01310-100",
+    "zip_code": "01310100",
     "street": "Avenida Paulista",
     "number": "1000",
     "complement": "Apartamento 101",
@@ -1163,7 +1163,7 @@ curl --request POST \
 | Campo | Obrigatório | Descrição |
 | --- | --- | --- |
 | `label` | Não | Identificação do endereço, com até 50 caracteres. |
-| `zip_code` | Sim | CEP contendo entre 8 e 9 caracteres. |
+| `zip_code` | Sim | CEP normalizado contendo exatamente oito dígitos. |
 | `street` | Sim | Logradouro contendo até 255 caracteres. |
 | `number` | Sim | Número contendo até 20 caracteres. |
 | `complement` | Não | Complemento contendo até 100 caracteres. |

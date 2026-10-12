@@ -267,5 +267,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', path='js/checkout_client.js') }}" defer></script>
+{# O identificador de versão evita reutilizar validações antigas do checkout
+   mantidas no cache do navegador após uma atualização do JavaScript. #}
+<script src="{{ url_for('static', path='js/checkout_client.js') }}?v=2" defer></script>
 {% endblock %}

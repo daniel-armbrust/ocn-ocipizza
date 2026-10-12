@@ -11,7 +11,6 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from starlette_wtf import csrf_protect
 
-from app.clients.user_client import UserClient, get_user_client
 from app.dependencies.authentication import get_authenticated_session
 from app.forms.user_auth_forms import UserRegisterForm
 from app.forms.user_forms import UserAddressForm, UserWhatsappUpdateForm
@@ -19,6 +18,7 @@ from app.forms.user_forms import UserAddressForm, UserWhatsappUpdateForm
 from app.dependencies.templates import templates
 
 from app.messages.user_service_messages import USER_MESSAGES
+from app.services.user_service import UserService, get_user_service
 
 router = APIRouter()
 
@@ -56,15 +56,14 @@ def show_register_page(request: Request) -> HTMLResponse:
 @csrf_protect
 async def register_user(
     request: Request,
-    user_client: UserClient = Depends(get_user_client)
-) -> HTMLResponse:
+    user_service: UserService = Depends(get_user_service)
+) -> Response:
     """
     Processa o cadastro de um novo usuário.
 
     Args:
         request: Requisição HTTP recebida pelo frontend-service.
-        user_client: Cliente utilizado para comunicação com o
-            user-service.
+        user_service: Serviço responsável pelo cadastro do usuário.
 
     Returns:
         Redirecionamento para a página de login em caso de sucesso
@@ -84,7 +83,7 @@ async def register_user(
         )
 
     try:
-        await user_client.create(
+        await user_service.create(
             full_name=form.full_name.data,
             email=form.email.data,
             whatsapp=form.whatsapp.data,
@@ -144,7 +143,7 @@ async def show_profile_page(
     request: Request,
     code: str | None = None,
     session=Depends(get_authenticated_session),
-    user_client: UserClient = Depends(get_user_client)
+    user_service: UserService = Depends(get_user_service)
 ) -> Response:
     """
     Renderiza os dados pessoais e os endereços do usuário autenticado.
@@ -154,7 +153,7 @@ async def show_profile_page(
         code: Código funcional opcional utilizado para selecionar a mensagem
             apresentada no perfil.
         session: Sessão autenticada do usuário.
-        user_client: Cliente responsável pela comunicação com o user-service.
+        user_service: Serviço responsável por compor os dados do perfil.
 
     Returns:
         Página do perfil ou redirecionamento para o login quando o access
@@ -168,12 +167,12 @@ async def show_profile_page(
     """
 
     # Falhas HTTP e de comunicação são tratadas pelos handlers globais.
-    user = await user_client.get_profile(
+    profile = await user_service.get_profile(
         access_token=session.get('access_token')
     )
-    addresses = await user_client.get_addresses(
-        access_token=session.get('access_token')
-    )
+
+    user = profile['user']
+    addresses = profile['addresses']
 
     form = UserWhatsappUpdateForm(
         data={'whatsapp': user.get('whatsapp')}
@@ -246,7 +245,7 @@ async def show_new_address_page(
 async def create_new_address(
     request: Request,
     session=Depends(get_authenticated_session),
-    user_client: UserClient = Depends(get_user_client)
+    user_service: UserService = Depends(get_user_service)
 ) -> Response:
     """
     Processa o cadastro de um endereço do usuário autenticado.
@@ -254,7 +253,7 @@ async def create_new_address(
     Args:
         request: Requisição HTTP contendo os dados do formulário.
         session: Sessão autenticada do usuário.
-        user_client: Cliente responsável pela comunicação com o user-service.
+        user_service: Serviço responsável por cadastrar o endereço.
 
     Returns:
         Redirecionamento para o perfil em caso de sucesso ou página do
@@ -272,7 +271,7 @@ async def create_new_address(
         )
 
     try:
-        await user_client.create_address(
+        await user_service.create_address(
             access_token=session.get('access_token'),
             label=form.label.data,
             zip_code=form.zip_code.data,
@@ -337,17 +336,16 @@ async def create_new_address(
 @csrf_protect
 async def update_whatsapp(
     payload: dict,
-    session = Depends(get_authenticated_session),
-    user_client: UserClient = Depends(get_user_client)
+    session=Depends(get_authenticated_session),
+    user_service: UserService = Depends(get_user_service)
 ) -> Response:
     """
     Atualiza o número de WhatsApp do usuário autenticado.
 
     Args:
-        request: Requisição HTTP utilizada para validar o token CSRF.
         payload: Novo número de WhatsApp informado pelo usuário.
         session: Obtém e valida a sessão autenticada do usuário.
-        user_client: Cliente responsável pela comunicação com o user-service.
+        user_service: Serviço responsável por atualizar os dados do usuário.
 
     Returns:
         Redirecionamento para o perfil contendo o código correspondente ao
@@ -363,7 +361,7 @@ async def update_whatsapp(
         )
 
     try:
-        await user_client.update_whatsapp(
+        await user_service.update_whatsapp(
             access_token=session.get('access_token'),
             whatsapp=form.whatsapp.data
         )
@@ -400,7 +398,7 @@ async def delete_user_address(
     request: Request,
     address_id: UUID,
     session=Depends(get_authenticated_session),
-    user_client: UserClient = Depends(get_user_client)
+    user_service: UserService = Depends(get_user_service)
 ) -> Response:
     """
     Remove um endereço do usuário autenticado.
@@ -409,14 +407,14 @@ async def delete_user_address(
         request: Requisição HTTP utilizada para validar o token CSRF.
         address_id: Identificador único do endereço que será removido.
         session: Sessão autenticada do usuário.
-        user_client: Cliente responsável pela comunicação com o user-service.
+        user_service: Serviço responsável por remover o endereço.
 
     Returns:
         Redirecionamento para a página de perfil com o resultado da operação.
     """
 
     try:
-        await user_client.delete_address(
+        await user_service.delete_address(
             access_token=session.get('access_token'),
             address_id=address_id
         )

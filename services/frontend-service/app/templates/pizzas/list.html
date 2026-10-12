@@ -10,6 +10,7 @@
     <div
         class="message-area"
         {% if code == 'USER_AUTHENTICATION_SUCCESS' %}data-authentication-success{% endif %}
+        {% if code == 'CART_ORDER_SUCCESSFULLY_CREATED' %}data-order-success{% endif %}
     >
         {{ render_message(message, type, 'login-notice') }}
         <br aria-hidden="true">

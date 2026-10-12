@@ -150,6 +150,19 @@
         writeCart([]);
     }
 
+    const currentUrl = new URL(window.location.href);
+    const orderSucceeded = (
+        currentUrl.searchParams.get('code')
+        === 'CART_ORDER_SUCCESSFULLY_CREATED'
+    );
+
+    // A confirmação pertence ao fluxo global do carrinho. Ao retornar do
+    // backend com sucesso, os itens usados no pedido não podem permanecer no
+    // localStorage e ficar disponíveis para uma nova submissão acidental.
+    if (orderSucceeded) {
+        clearCart();
+    }
+
     // Remove o contador legado, que não possuía dados das pizzas.
     window.localStorage.removeItem('ocipizza.orderCount');
     renderOrderCount(cartItemCount(readCart()));

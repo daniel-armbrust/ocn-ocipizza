@@ -2,7 +2,7 @@
 
 set -e
 
-# Variáveis utilizadas pelo user-service em desenvolvimento.
+# Variáveis utilizadas pelo pizza-service em desenvolvimento.
 export APP_ENV="development"
 export LOG_LEVEL="INFO"
 

@@ -1,8 +1,8 @@
 """create initial user service tables
 
-Revision ID: 4f6c51ab2391
+Revision ID: 2958c5e30b99
 Revises: 
-Create Date: 2026-10-09 09:57:21.346707
+Create Date: 2026-10-12 15:40:26.316564
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '4f6c51ab2391'
+revision: str = '2958c5e30b99'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -88,7 +88,7 @@ def upgrade() -> None:
     sa.Column('id', sa.BINARY(length=16), nullable=False, comment='Identificador único do endereço.'),
     sa.Column('user_id', sa.BINARY(length=16), nullable=False, comment='Identificador do usuário proprietário do endereço.'),
     sa.Column('label', sa.String(length=50), nullable=True, comment='Nome utilizado pelo usuário para identificar o endereço.'),
-    sa.Column('zip_code', sa.String(length=9), nullable=False, comment='CEP do endereço.'),
+    sa.Column('zip_code', sa.String(length=8), nullable=False, comment='CEP do endereço.'),
     sa.Column('street', sa.String(length=255), nullable=False, comment='Logradouro do endereço.'),
     sa.Column('number', sa.String(length=20), nullable=False, comment='Número do endereço.'),
     sa.Column('complement', sa.String(length=100), nullable=True, comment='Complemento do endereço.'),

@@ -34,7 +34,8 @@ app = FastAPI(
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(
     request: Request, 
-    ex: RequestValidationError) -> JSONResponse:
+    ex: RequestValidationError
+) -> JSONResponse:
     """
     Converte erros de validação do FastAPI para o padrão JSend fail.
 
@@ -67,7 +68,8 @@ async def validation_exception_handler(
 @app.exception_handler(HTTPException)
 async def http_exception_handler(
     request: Request, 
-    ex: HTTPException) -> JSONResponse:
+    ex: HTTPException
+) -> JSONResponse:
     """
     Converte exceções HTTP conhecidas para o padrão JSend fail.
 
@@ -96,7 +98,8 @@ async def http_exception_handler(
 @app.exception_handler(Exception)
 async def unexpected_exception_handler(
     request: Request, 
-    ex: Exception) -> JSONResponse:
+    ex: Exception
+) -> JSONResponse:
     """
     Oculta detalhes de erros inesperados e retorna resposta JSend fail.
 

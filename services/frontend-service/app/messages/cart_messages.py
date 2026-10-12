@@ -3,6 +3,10 @@
 #
 
 CART_MESSAGES = {
+    'CART_ORDER_SUCCESSFULLY_CREATED': {
+        'message': 'Pedido realizado com sucesso! Agora é só aguardar.',
+        'type': 'success'
+    },
     'CART_INVALID_ITEMS': {
         'message': (
             'O carrinho possui itens ou quantidades inválidas. Revise o '

@@ -11,12 +11,15 @@ from starlette_wtf import csrf_protect
 
 from app.config.settings import settings
 
-from app.clients.user_auth_client import UserAuthClient, get_user_auth_client
 from app.forms.user_auth_forms import UserLoginForm
 
 from app.dependencies.templates import templates
 
 from app.services.session_service import SessionService, get_session_service
+from app.services.user_auth_service import (
+    UserAuthService,
+    get_user_auth_service
+)
 
 from app.messages.user_service_messages import USER_MESSAGES
 
@@ -82,8 +85,8 @@ async def show_login_page(
 @csrf_protect
 async def login_user(
     request: Request,
-    user_client: UserAuthClient = Depends(
-        get_user_auth_client
+    user_auth_service: UserAuthService = Depends(
+        get_user_auth_service
     ),
     session_service: SessionService = Depends(
         get_session_service
@@ -94,6 +97,16 @@ async def login_user(
 
     Os dados recebidos pelo formulário são validados localmente
     através do WTForms antes que o user-service seja chamado.
+
+    Args:
+        request: Requisição contendo os dados submetidos pelo formulário.
+        user_auth_service: Serviço responsável por coordenar a autenticação
+            junto ao user-service.
+        session_service: Serviço responsável por criar a sessão local do BFF.
+
+    Returns:
+        Redirecionamento após a autenticação ou página contendo os erros de
+        validação do formulário.
     """
 
     form = UserLoginForm(
@@ -113,16 +126,12 @@ async def login_user(
         )
 
     try:
-        # Encaminha ao user-service somente dados já validados
-        # pelo frontend-service.
-        payload = await user_client.login(
+        # O serviço recebe somente dados já validados pelo frontend-service e
+        # devolve as credenciais necessárias à criação da sessão local.
+        authentication = await user_auth_service.authenticate(
             email=form.email.data,
             password=form.password.data
         )
-
-        # O contrato do user-service retorna os tokens dentro
-        # do campo `data`.
-        authentication = payload['data']
 
         # Cria uma sessão no BFF (Backend For Frontend). Os tokens
         # permanecem armazenados no backend através do repositório de
@@ -184,8 +193,8 @@ async def login_user(
 @csrf_protect
 async def logout_user(
     request: Request,
-    user_client: UserAuthClient = Depends(
-        get_user_auth_client
+    user_auth_service: UserAuthService = Depends(
+        get_user_auth_service
     ),
     session_service: SessionService = Depends(
         get_session_service
@@ -201,8 +210,8 @@ async def logout_user(
 
     Args:
         request: Requisição HTTP recebida pelo frontend-service.
-        user_client: Cliente utilizado para comunicação com o
-            user-service.
+        user_auth_service: Serviço responsável por coordenar a revogação
+            da autenticação junto ao user-service.
         session_service: Serviço responsável pelo gerenciamento
             das sessões do frontend-service.
 
@@ -227,7 +236,7 @@ async def logout_user(
             try:
                 # Solicita ao user-service a revogação do refresh token
                 # associado à sessão antes de remover os dados locais.
-                await user_client.logout(
+                await user_auth_service.logout(
                     refresh_token=session['refresh_token']
                 )
 

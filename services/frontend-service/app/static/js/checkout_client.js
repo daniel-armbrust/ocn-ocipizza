@@ -83,6 +83,46 @@
         });
     }
 
+    /**
+     * Localiza o primeiro campo de pagamento que ainda não está completo.
+     *
+     * A conferência considera somente os dados visuais do cartão. Os campos
+     * ocultos pertencem à revalidação do checkout feita pelo backend e não
+     * devem provocar o modal de preenchimento do cartão.
+     *
+     * @returns {HTMLInputElement|null} Primeiro campo incompleto ou `null`
+     *     quando todos os dados de pagamento estiverem preenchidos.
+     */
+    function getFirstIncompletePaymentField() {
+        const expectedCardDigits = (
+            cardNumberField?.placeholder.match(/\d/g) ?? []
+        ).length;
+        const cardDigits = cardNumberField?.value.replace(/\D/g, '') ?? '';
+        const expiration = expirationField?.value ?? '';
+        const securityCode = securityCodeField?.value ?? '';
+
+        if (!cardholderField?.value.trim()) {
+            return cardholderField;
+        }
+
+        if (!expectedCardDigits || cardDigits.length !== expectedCardDigits) {
+            return cardNumberField;
+        }
+
+        if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiration)) {
+            return expirationField;
+        }
+
+        if (
+            securityCode.length < securityCodeField.minLength
+            || securityCode.length > securityCodeField.maxLength
+        ) {
+            return securityCodeField;
+        }
+
+        return null;
+    }
+
     bindFormatter(cardholderField, formatCardholderName);
     bindFormatter(cardNumberField, formatCardNumber);
     bindFormatter(expirationField, formatCardExpiration);
@@ -111,12 +151,13 @@
          * @returns {void}
          */
         function validatePaymentForm(event) {
-            if (paymentForm.checkValidity()) {
+            firstInvalidField = getFirstIncompletePaymentField();
+
+            if (!firstInvalidField) {
                 return;
             }
 
             event.preventDefault();
-            firstInvalidField = paymentForm.querySelector(':invalid');
             paymentModal.showModal();
         }
 

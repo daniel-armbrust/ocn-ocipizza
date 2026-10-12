@@ -3,6 +3,7 @@
 #
 
 import logging
+from collections.abc import Generator
 
 from borneo import NoSQLHandle, NoSQLHandleConfig
 from borneo.iam import SignatureProvider
@@ -13,9 +14,34 @@ from app.config.settings import settings
 logger = logging.getLogger(__name__)
 
 
-def get_nosql_handle() -> NoSQLHandle:
+def get_nosql_handle() -> Generator[NoSQLHandle | None, None, None]:
     """
-    Cria e retorna um handle para acesso ao Oracle NoSQL.
+    Fornece um handle compartilhado para acesso ao Oracle NoSQL.
+
+    Yields:
+        Handle configurado quando o provider for NoSQL. Para providers
+        diferentes, retorna None sem abrir uma conexão.
+
+    Raises:
+        ValueError: Caso alguma configuração obrigatória não esteja
+            definida.
+    """
+
+    if settings.persistence_provider != 'nosql':
+        yield None
+        return
+
+    handle = create_nosql_handle()
+
+    try:
+        yield handle
+    finally:
+        handle.close()
+
+
+def create_nosql_handle() -> NoSQLHandle:
+    """
+    Cria um handle Oracle NoSQL para uso fora da injeção do FastAPI.
 
     Em ambiente de desenvolvimento, utiliza o Oracle NoSQL local
     configurado por endpoint.

@@ -260,6 +260,9 @@ curl --request GET \
 Antes da consulta, todos os caracteres não numéricos são removidos. O valor
 normalizado deve conter exatamente oito dígitos.
 
+O mesmo formato canônico é utilizado nas faixas persistidas e nas respostas
+da API. O hífen pertence somente à apresentação em interfaces de usuário.
+
 ### Entrega disponível
 
 Quando existe uma faixa ativa que contempla o CEP, o serviço retorna `200 OK`:

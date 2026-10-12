@@ -2,6 +2,8 @@
 # repositories/nosql/nosql_pizza_repository.py
 #
 
+import re
+
 from uuid import UUID
 
 from borneo import (
@@ -48,6 +50,9 @@ class NosqlPizzaRepository(PizzaRepository):
         Returns:
             None.
         """
+
+        if not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*', table_name):
+            raise ValueError('Invalid Oracle NoSQL table name.')
 
         self.handle = handle
         self.table_name = table_name

@@ -38,7 +38,7 @@ class UserAddressORM(Base):
     )
 
     zip_code = Column(
-        String(9),
+        String(8),
         nullable=False,
         comment='CEP do endereço.'
     )

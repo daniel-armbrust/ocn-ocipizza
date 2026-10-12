@@ -21,6 +21,20 @@ def normalize_whatsapp(value: Any) -> str:
     return re.sub(r'\D', '', str(value or ''))
 
 
+def normalize_zip_code(value: Any) -> str:
+    """
+    Remove caracteres de formatação do CEP.
+
+    Args:
+        value: CEP recebido de um formulário ou serviço externo.
+
+    Returns:
+        CEP contendo somente dígitos.
+    """
+
+    return re.sub(r'\D', '', str(value or ''))
+
+
 def normalize_state(value: str | None) -> str | None:
     """
     Normaliza a sigla do estado para letras maiúsculas.

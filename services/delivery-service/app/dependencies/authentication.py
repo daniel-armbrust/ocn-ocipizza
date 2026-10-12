@@ -11,7 +11,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.config.settings import settings
 
-from app.dependencies.jwks_client import jwks_client
+from app.clients.jwks_client import jwks_client
 
 bearer_scheme = HTTPBearer()
 

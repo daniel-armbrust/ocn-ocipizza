@@ -16,6 +16,7 @@ export CSRF_SECRET_KEY="!!!Sup3rS3cr3t0!!!"
 export PIZZA_SERVICE_URL="http://localhost:8001"
 export USER_SERVICE_URL="http://localhost:8002"
 export DELIVERY_SERVICE_URL="http://localhost:8003"
+export ORDER_SERVICE_URL="http://localhost:8004"
 
 # Serviço REDIS
 export REDIS_ENDPOINT="redis://redis:16379/0"

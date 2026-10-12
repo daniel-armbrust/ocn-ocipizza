@@ -8,7 +8,8 @@ from wtforms.validators import AnyOf, DataRequired, Length, Optional, Regexp
 from app.utils.utils import (
     normalize_optional_string,
     normalize_state,
-    normalize_whatsapp
+    normalize_whatsapp,
+    normalize_zip_code
 )
 
 
@@ -65,10 +66,11 @@ class UserAddressForm(Form):
 
     zip_code = StringField(
         'CEP',
+        filters=[normalize_zip_code],
         validators=[
             DataRequired(message='Informe o CEP.'),
             Regexp(
-                r'^\d{5}-?\d{3}$',
+                r'^\d{8}$',
                 message='Informe um CEP válido.'
             )
         ],

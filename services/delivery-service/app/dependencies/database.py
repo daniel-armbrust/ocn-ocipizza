@@ -2,6 +2,7 @@
 # dependencies/database.py
 #
 
+from borneo import NoSQLHandle
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
@@ -15,8 +16,9 @@ from app.repositories.sqlalchemy.sqlalchemy_unit_of_work import SqlAlchemyUnitOf
 from app.repositories.nosql.nosql_unit_of_work import NosqlNoOpUnitOfWork
 
 from app.repositories.delivery_area_repository import DeliveryAreaRepository
-from app.repositories.sqlalchemy.sqlalchemy_delivery_area_repository import SqlAlchemyDeliveryAreaRepository
-from app.repositories.nosql.nosql_delivery_area_repository import NosqlDeliveryAreaRepository
+from app.repositories.nosql.nosql_delivery_area_repository import (
+    NosqlDeliveryAreaRepository
+)
 
 
 def get_unit_of_work(
@@ -52,27 +54,36 @@ def get_unit_of_work(
 
 
 def get_delivery_area_repository(
-        session: Session | None = Depends(get_session)
+    session: Session | None = Depends(get_session),
+    handle: NoSQLHandle | None = Depends(get_nosql_handle)
 ) -> DeliveryAreaRepository:
-    """ Obtém o repositório responsável pela persistência das 
-    áreas de entrega. 
-    
-    Args: 
-        session: Sessão utilizada para acesso à camada de persistência. 
-    
-    Returns: 
-        Repositório responsável pelas operações de persistência das 
-            áreas de entrega. 
     """
-    
-    if settings.persistence_provider == 'sqlalchemy':
-        return SqlAlchemyDeliveryAreaRepository(
-            _require_sqlalchemy_session(session)
-        )
+    Fornece o repositório correspondente ao provider configurado.
+
+    Args:
+        session: Sessão disponibilizada quando o provider for relacional.
+        handle: Handle Oracle NoSQL compartilhado pela requisição.
+
+    Returns:
+        Repositório de áreas de entrega configurado para a requisição atual.
+
+    Raises:
+        RuntimeError: Quando o provider não for suportado ou ainda não possuir
+            uma implementação de repositório.
+    """
 
     if settings.persistence_provider == 'nosql':
-        return NosqlDeliveryAreaRepository(handle=get_nosql_handle())
-    
+        return NosqlDeliveryAreaRepository(
+            handle=_require_nosql_handle(handle),
+            table_name=settings.nosql_table_name
+        )
+
+    if settings.persistence_provider == 'sqlalchemy':
+        _require_sqlalchemy_session(session)
+        raise RuntimeError(
+            'SQLAlchemy delivery area repository is not implemented.'
+        )
+
     raise RuntimeError(
         'Unsupported persistence provider: '
         f'{settings.persistence_provider}'
@@ -100,3 +111,26 @@ def _require_sqlalchemy_session(session: Session | None) -> Session:
         )
 
     return session
+
+
+def _require_nosql_handle(handle: NoSQLHandle | None) -> NoSQLHandle:
+    """
+    Valida o handle compartilhado usado pelas implementações Oracle NoSQL.
+
+    Args:
+        handle: Handle resolvido para a requisição atual.
+
+    Returns:
+        Handle Oracle NoSQL validado.
+
+    Raises:
+        RuntimeError: Caso NoSQL esteja configurado, mas nenhum handle
+            tenha sido disponibilizado.
+    """
+
+    if handle is None:
+        raise RuntimeError(
+            'Oracle NoSQL handle is unavailable for the configured provider.'
+        )
+
+    return handle

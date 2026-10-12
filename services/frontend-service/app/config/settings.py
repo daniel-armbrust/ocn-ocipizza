@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     pizza_service_url: str
     user_service_url: str
     delivery_service_url: str
+    order_service_url: str
 
     # Timeout padrão utilizado nas chamadas HTTP realizadas 
     # aos microserviços.

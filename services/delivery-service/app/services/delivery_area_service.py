@@ -115,8 +115,8 @@ class DeliveryAreaService:
         """ 
         
         # Normaliza os CEPs antes de validar a faixa e persistir os dados. 
-        zip_code_start = self._normalize_zip_code(payload.zip_code_start) 
-        zip_code_end = self._normalize_zip_code(payload.zip_code_end) 
+        zip_code_start = normalize_zip_code(payload.zip_code_start)
+        zip_code_end = normalize_zip_code(payload.zip_code_end)
         
         # O CEP inicial não pode ser maior que o CEP final da área. 
         if zip_code_start > zip_code_end: 
@@ -178,10 +178,10 @@ class DeliveryAreaService:
         zip_code_end = delivery_area.zip_code_end 
     
         if 'zip_code_start' in data: 
-            zip_code_start = self._normalize_zip_code(data['zip_code_start']) 
+            zip_code_start = normalize_zip_code(data['zip_code_start'])
         
         if 'zip_code_end' in data: 
-            zip_code_end = self._normalize_zip_code(data['zip_code_end']) 
+            zip_code_end = normalize_zip_code(data['zip_code_end'])
             
         # Valida novamente a faixa após combinar os valores atuais e novos. 
         if zip_code_start > zip_code_end: 

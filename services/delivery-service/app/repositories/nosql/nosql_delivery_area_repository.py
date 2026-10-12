@@ -2,6 +2,8 @@
 # repositories/nosql/nosql_delivery_area_repository.py
 #
 
+import re
+
 from decimal import Decimal
 from uuid import UUID
 
@@ -38,6 +40,9 @@ class NosqlDeliveryAreaRepository(DeliveryAreaRepository):
             table_name: Nome da tabela utilizada para armazenar as áreas
                 de entrega.
         """
+
+        if not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*', table_name):
+            raise ValueError('Invalid Oracle NoSQL table name.')
 
         self.handle = handle
         self.table_name = table_name

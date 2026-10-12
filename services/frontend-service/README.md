@@ -12,6 +12,8 @@ Suas principais responsabilidades são:
 - Renderizar o cardápio, o carrinho e as páginas de usuários
 - Consultar o catálogo no `pizza-service`
 - Intermediar cadastro, autenticação, perfil e endereços no `user-service`
+- Consultar elegibilidade, prazo e taxa de entrega no `delivery-service`
+- Preparar e revalidar os dados apresentados durante o checkout
 - Validar formulários com WTForms antes de chamar os microsserviços
 - Manter access token e refresh token no repositório de sessões do backend
 - Enviar ao navegador somente um identificador opaco de sessão em cookie
@@ -28,6 +30,7 @@ autenticação. As chamadas que exigem credenciais são realizadas pelo BFF.
 | --- | --- |
 | `pizza-service` | Fornece as pizzas exibidas no cardápio. |
 | `user-service` | Realiza cadastro, autenticação e operações do perfil e dos endereços. |
+| `delivery-service` | Verifica a elegibilidade do CEP e fornece prazo e taxa de entrega. |
 | Redis | Provider padrão para armazenamento das sessões opacas do BFF. |
 
 ### Dependências Python
@@ -72,6 +75,8 @@ podem ser definidas em `.env`.
 | `CSRF_SECRET_KEY` | Sim | Chave utilizada para assinar e validar tokens CSRF. |
 | `PIZZA_SERVICE_URL` | Sim | URL interna do `pizza-service`. |
 | `USER_SERVICE_URL` | Sim | URL interna do `user-service`. |
+| `DELIVERY_SERVICE_URL` | Sim | URL interna do `delivery-service`. |
+| `ORDER_SERVICE_URL` | Sim | URL interna do `order-service`. |
 | `HTTP_CLIENT_TIMEOUT` | Não | Timeout das chamadas aos microsserviços; padrão `10.0`. |
 | `CHATBOT_CLIENT_TIMEOUT` | Não | Timeout reservado às chamadas do chatbot; padrão `60.0`. |
 | `LOG_LEVEL` | Não | Nível de logging; padrão `INFO`. |
@@ -118,6 +123,8 @@ docker compose ps frontend-service
 | `GET` | `/` | Público | Redireciona para `/pizzas`. |
 | `GET` | `/pizzas` | Público | Renderiza o cardápio consultado no `pizza-service`. |
 | `GET` | `/cart` | Público | Renderiza o carrinho armazenado no navegador. |
+| `POST` | `/cart/checkout` | Autenticado | Prepara e exibe o checkout com dados atuais das APIs. |
+| `POST` | `/cart/checkout/confirm` | Autenticado | Revalida o checkout, cria o pedido e redireciona para o cardápio. |
 
 `GET /pizzas` aceita os parâmetros opcionais `category`, `available`, `limit`
 e `offset`. O filtro `available` só é encaminhado ao `pizza-service` quando
@@ -175,6 +182,9 @@ O formulário `UserAddressForm` centraliza atributos HTML, normalização e
 validação de identificação, CEP, logradouro, número, complemento, bairro,
 cidade, estado e indicação de endereço principal.
 
+O CEP é exibido no formulário com a máscara `99999-999`, mas é normalizado
+para exatamente oito dígitos antes de qualquer chamada aos microsserviços.
+
 No perfil, o usuário pode alternar entre os endereços pelo campo de seleção. O
 endereço principal é identificado pelo selo “Principal”. A exclusão exige
 confirmação no navegador, envia o token CSRF e redireciona novamente ao perfil
@@ -221,12 +231,14 @@ mostrada ao usuário.
 | `interaction_lock.js` | Bloqueia a interface durante formulários, chamadas assíncronas e navegações marcadas. |
 | `pizza_client.js` | Filtros, imagens e inclusão de pizzas no carrinho. |
 | `cart_client.js` | Exibição e manipulação dos itens do carrinho no `localStorage`. |
+| `checkout_client.js` | Máscaras, validação e modais do formulário de pagamento. |
 | `user_auth.js` | Máscara no cadastro e comportamento dos fluxos de autenticação. |
 | `user_profile.js` | Máscara e atualização do WhatsApp. |
 | `user_address.js` | Seleção e exclusão dos endereços do perfil. |
 
 Durante operações que aguardam resposta do backend, a tela recebe uma camada
 visual de processamento e fica temporariamente indisponível para novas ações.
+Submissões canceladas por validação não ativam esse bloqueio.
 
 ## Carrinho
 
@@ -234,8 +246,51 @@ O carrinho utiliza a chave `ocipizza.cart` no `localStorage`. Cada item mantém
 o identificador, nome, preço, URL da imagem e quantidade da pizza. A quantidade
 total é exibida no ícone do menu.
 
-Atualmente, o `frontend-service` possui a página `GET /cart`, mas não possui
-uma rota de checkout registrada.
+O conteúdo exibido em `GET /cart` é montado no navegador. Ao finalizar o
+carrinho, o JavaScript cria campos ocultos contendo somente os identificadores
+e as quantidades e submete um formulário tradicional para
+`POST /cart/checkout`. Nomes, disponibilidade e preços armazenados no
+`localStorage` não são considerados confiáveis pelo backend.
+
+O formulário limita cada item e a soma do pedido a, no máximo, 20 pizzas. O
+`CheckoutService` consulta as pizzas e os endereços em paralelo, utiliza os
+preços atuais do `pizza-service`, seleciona o endereço principal e consulta o
+`delivery-service`. A tela apresenta os itens, a disponibilidade, o subtotal,
+a taxa de entrega, o prazo estimado e o total.
+
+O checkout somente pode prosseguir quando todas as pizzas estão disponíveis,
+existe um endereço principal e o CEP é elegível para entrega. Sem endereço ou
+quando a entrega não estiver disponível, um modal orienta o usuário a acessar
+o perfil. Os campos de pagamento permanecem bloqueados nessas situações.
+
+### Pagamento e confirmação do checkout
+
+O formulário de pagamento oferece máscaras e validações no navegador:
+
+- O nome impresso aceita letras e espaços e é convertido para maiúsculas
+- O número do cartão aceita 16 dígitos separados em grupos de quatro
+- A validade utiliza o formato `MM/AA`
+- O código de segurança aceita exatamente três dígitos
+
+Uma tentativa de envio com dados ausentes ou inválidos abre um modal e
+posiciona o foco no primeiro campo que precisa ser corrigido. Os dados brutos
+do cartão não possuem `name` e, portanto, não são submetidos ao BFF. A futura
+integração com o SDK do gateway deverá gerar no navegador um token opaco de
+pagamento, enviado no campo `payment_token`.
+
+Ao apresentar o checkout, o BFF gera uma chave UUID de idempotência. Na
+confirmação, `POST /cart/checkout/confirm` consulta novamente os serviços e
+compara endereço, itens, quantidades, preços, subtotal, taxa e total com os
+valores anteriormente apresentados. Qualquer diferença interrompe o fluxo e
+redireciona o usuário ao carrinho para revisar os dados atuais.
+
+O token presente no template ainda é fictício e serve apenas ao fluxo de
+desenvolvimento; o processamento efetivo pelo gateway de pagamento não faz
+parte desta implementação. Após uma revalidação bem-sucedida, o
+`CheckoutService` consulta o perfil atual, monta os snapshots do cliente,
+endereço e itens e envia o pedido ao `order-service`. Em caso de sucesso, o
+usuário é redirecionado ao cardápio, recebe a confirmação visual e o carrinho
+armazenado no `localStorage` é esvaziado.
 
 ## Mensagens e erros
 
@@ -246,8 +301,11 @@ login, cadastro, cardápio, perfil e endereços.
 
 O serviço possui páginas HTML para os erros `404`, `500`, `502` e `503`. O
 handler global renderiza `404.html` para rotas inexistentes e `500.html` para
-falhas inesperadas. Indisponibilidade do `pizza-service` durante o cardápio
-renderiza `503.html`.
+falhas inesperadas. Respostas HTTP inválidas de qualquer microsserviço exibem
+`502.html`, enquanto falhas de conexão exibem `503.html`. Uma resposta `401`
+recebida de uma API redireciona para o login, e tentativas de acessar uma rota
+com um método HTTP não permitido redirecionam para `/` em vez de apresentar
+uma resposta JSON ao usuário.
 
 ## Logging
 

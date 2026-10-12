@@ -3,6 +3,7 @@
 #
 
 from datetime import datetime, timezone
+import re
 from uuid import UUID
 
 
@@ -18,6 +19,28 @@ def normalize_email(email: str) -> str:
     """
 
     return email.strip().lower()
+
+
+def normalize_zip_code(zip_code: str) -> str:
+    """
+    Normaliza e valida um CEP para uso interno e persistência.
+
+    Args:
+        zip_code: CEP com ou sem caracteres de apresentação.
+
+    Returns:
+        CEP contendo exatamente oito dígitos.
+
+    Raises:
+        ValueError: Quando o valor não resultar em oito dígitos.
+    """
+
+    normalized_zip_code = re.sub(r'\D', '', str(zip_code or ''))
+
+    if len(normalized_zip_code) != 8:
+        raise ValueError('O CEP deve conter oito dígitos.')
+
+    return normalized_zip_code
 
 
 def now_utc() -> datetime:

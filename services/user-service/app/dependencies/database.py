@@ -3,6 +3,7 @@
 #
 
 from fastapi import Depends
+from borneo import NoSQLHandle
 from sqlalchemy.orm import Session
 
 from app.config.settings import settings
@@ -74,7 +75,8 @@ def get_unit_of_work(
 
 
 def get_user_repository(
-        session: Session | None = Depends(get_session)
+        session: Session | None = Depends(get_session),
+        handle: NoSQLHandle | None = Depends(get_nosql_handle)
 ) -> UserRepository:
     """
     Monta o repositório de usuários de acordo com o provider
@@ -82,6 +84,7 @@ def get_user_repository(
 
     Args:
         session: Sessão SQLAlchemy compartilhada pela requisição.
+        handle: Handle Oracle NoSQL compartilhado pela requisição.
 
     Returns:
         Repositório de usuários correspondente ao provider configurado.
@@ -97,7 +100,7 @@ def get_user_repository(
         )
 
     if settings.persistence_provider == 'nosql':
-        return NosqlUserRepository(handle=get_nosql_handle())
+        return NosqlUserRepository(handle=_require_nosql_handle(handle))
 
     raise RuntimeError(
         'Unsupported persistence provider: '
@@ -106,7 +109,8 @@ def get_user_repository(
 
 
 def get_user_email_confirmation_token_repository(
-        session: Session | None = Depends(get_session)
+        session: Session | None = Depends(get_session),
+        handle: NoSQLHandle | None = Depends(get_nosql_handle)
 ) -> UserEmailConfirmationTokenRepository:
     """
     Monta o repositório responsável pela persistência dos tokens
@@ -114,6 +118,7 @@ def get_user_email_confirmation_token_repository(
 
     Args:
         session: Sessão SQLAlchemy compartilhada pela requisição.
+        handle: Handle Oracle NoSQL compartilhado pela requisição.
 
     Returns:
         Repositório de tokens correspondente ao provider configurado.
@@ -130,7 +135,7 @@ def get_user_email_confirmation_token_repository(
 
     if settings.persistence_provider == 'nosql':
         return NosqlUserEmailConfirmationTokenRepository(
-            handle=get_nosql_handle()
+            handle=_require_nosql_handle(handle)
         )
 
     raise RuntimeError(
@@ -140,7 +145,8 @@ def get_user_email_confirmation_token_repository(
 
 
 def get_user_password_reset_token_repository(
-        session: Session | None = Depends(get_session)
+        session: Session | None = Depends(get_session),
+        handle: NoSQLHandle | None = Depends(get_nosql_handle)
 ) -> UserPasswordResetTokenRepository:
     """
     Monta o repositório responsável pela persistência dos tokens
@@ -148,6 +154,7 @@ def get_user_password_reset_token_repository(
 
     Args:
         session: Sessão SQLAlchemy compartilhada pela requisição.
+        handle: Handle Oracle NoSQL compartilhado pela requisição.
 
     Returns:
         Repositório de tokens correspondente ao provider configurado.
@@ -164,7 +171,7 @@ def get_user_password_reset_token_repository(
 
     if settings.persistence_provider == 'nosql':
         return NosqlUserPasswordResetTokenRepository(
-            handle=get_nosql_handle()
+            handle=_require_nosql_handle(handle)
         )
 
     raise RuntimeError(
@@ -174,7 +181,8 @@ def get_user_password_reset_token_repository(
 
 
 def get_user_password_history_repository(
-        session: Session | None = Depends(get_session)
+        session: Session | None = Depends(get_session),
+        handle: NoSQLHandle | None = Depends(get_nosql_handle)
 ) -> UserPasswordHistoryRepository:
     """
     Monta o repositório responsável pela persistência do histórico
@@ -182,6 +190,7 @@ def get_user_password_history_repository(
 
     Args:
         session: Sessão SQLAlchemy compartilhada pela requisição.
+        handle: Handle Oracle NoSQL compartilhado pela requisição.
 
     Returns:
         Repositório de histórico correspondente ao provider configurado.
@@ -198,7 +207,7 @@ def get_user_password_history_repository(
 
     if settings.persistence_provider == 'nosql':
         return NosqlUserPasswordHistoryRepository(
-            handle=get_nosql_handle()
+            handle=_require_nosql_handle(handle)
         )
 
     raise RuntimeError(
@@ -208,7 +217,8 @@ def get_user_password_history_repository(
 
 
 def get_user_refresh_token_repository(
-        session: Session | None = Depends(get_session)
+        session: Session | None = Depends(get_session),
+        handle: NoSQLHandle | None = Depends(get_nosql_handle)
 ) -> UserRefreshTokenRepository:
     """
     Monta o repositório responsável pela persistência dos
@@ -216,6 +226,7 @@ def get_user_refresh_token_repository(
 
     Args:
         session: Sessão SQLAlchemy compartilhada pela requisição.
+        handle: Handle Oracle NoSQL compartilhado pela requisição.
 
     Returns:
         Repositório de refresh tokens correspondente ao provider configurado.
@@ -232,7 +243,7 @@ def get_user_refresh_token_repository(
 
     if settings.persistence_provider == 'nosql':
         return NosqlUserRefreshTokenRepository(
-            handle=get_nosql_handle()
+            handle=_require_nosql_handle(handle)
         )
 
     raise RuntimeError(
@@ -242,7 +253,8 @@ def get_user_refresh_token_repository(
 
 
 def get_user_address_repository(
-        session: Session | None = Depends(get_session)
+        session: Session | None = Depends(get_session),
+        handle: NoSQLHandle | None = Depends(get_nosql_handle)
 ) -> UserAddressRepository:
     """
     Monta o repositório responsável pela persistência dos
@@ -250,6 +262,7 @@ def get_user_address_repository(
 
     Args:
         session: Sessão SQLAlchemy compartilhada pela requisição.
+        handle: Handle Oracle NoSQL compartilhado pela requisição.
 
     Returns:
         Repositório de endereços correspondente ao provider configurado.
@@ -265,7 +278,9 @@ def get_user_address_repository(
         )
 
     if settings.persistence_provider == 'nosql':
-        return NosqlUserAddressRepository(handle=get_nosql_handle())
+        return NosqlUserAddressRepository(
+            handle=_require_nosql_handle(handle)
+        )
 
     raise RuntimeError(
         'Unsupported persistence provider: '
@@ -294,3 +309,28 @@ def _require_sqlalchemy_session(session: Session | None) -> Session:
         )
 
     return session
+
+
+def _require_nosql_handle(
+        handle: NoSQLHandle | None
+) -> NoSQLHandle:
+    """
+    Valida o handle compartilhado usado pelas implementações Oracle NoSQL.
+
+    Args:
+        handle: Handle resolvido para a requisição atual.
+
+    Returns:
+        Handle Oracle NoSQL validado.
+
+    Raises:
+        RuntimeError: Caso NoSQL esteja configurado, mas nenhum handle
+            tenha sido disponibilizado.
+    """
+
+    if handle is None:
+        raise RuntimeError(
+            'Oracle NoSQL handle is unavailable for the configured provider.'
+        )
+
+    return handle

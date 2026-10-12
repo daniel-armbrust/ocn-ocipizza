@@ -11,10 +11,12 @@ from uuid import UUID
 from fastapi import Depends
 
 from app.clients.delivery_client import DeliveryClient, get_delivery_client
+from app.clients.order_client import OrderClient, get_order_client
 from app.clients.pizza_client import PizzaClient, get_pizza_client
 from app.clients.user_client import UserClient, get_user_client
 
 from app.exceptions.checkout_exceptions import CheckoutChangedError
+from app.utils.utils import normalize_zip_code
 
 
 class CheckoutService:
@@ -25,7 +27,8 @@ class CheckoutService:
     def __init__(self,
                  pizza_client: PizzaClient,
                  user_client: UserClient,
-                 delivery_client: DeliveryClient) -> None:
+                 delivery_client: DeliveryClient,
+                 order_client: OrderClient) -> None:
         """
         Inicializa o serviço com os clientes dos microserviços envolvidos.
 
@@ -33,6 +36,7 @@ class CheckoutService:
             pizza_client: Cliente utilizado para consultar pizzas.
             user_client: Cliente utilizado para consultar endereços.
             delivery_client: Cliente utilizado para cotar a entrega.
+            order_client: Cliente utilizado para criar o pedido confirmado.
 
         Returns:
             None.
@@ -41,6 +45,7 @@ class CheckoutService:
         self.pizza_client = pizza_client
         self.user_client = user_client
         self.delivery_client = delivery_client
+        self.order_client = order_client
 
     async def prepare_checkout(self,
                                access_token: str,
@@ -71,7 +76,7 @@ class CheckoutService:
                                payment_token: str,
                                idempotency_key: str) -> dict[str, Any]:
         """
-        Revalida o checkout e prepara sua futura criação no order-service.
+        Revalida o checkout e cria o pedido no order-service.
 
         Args:
             access_token: Token JWT do usuário autenticado.
@@ -81,8 +86,7 @@ class CheckoutService:
                 de criação do pedido.
 
         Returns:
-            Checkout atual revalidado e pronto para ser enviado ao
-            order-service.
+            Pedido criado ou recuperado idempotentemente pelo order-service.
 
         Raises:
             CheckoutChangedError: Quando os dados atuais forem diferentes dos
@@ -118,9 +122,25 @@ class CheckoutService:
             current_checkout=current_checkout
         )
 
-        # TODO: Enviar `current_checkout`, `payment_token` e `idempotency_key`
-        # ao order-service.
-        return current_checkout
+        # O perfil é consultado somente depois da revalidação, evitando uma
+        # chamada adicional quando o checkout apresentado já estiver obsoleto.
+        customer = await self.user_client.get_profile(
+            access_token=access_token
+        )
+
+        order_payload = self._build_order_payload(
+            checkout=current_checkout,
+            customer=customer,
+            idempotency_key=idempotency_key
+        )
+
+        # O gateway representa os dados do cartão por um token opaco. O
+        # order-service recebe somente o pedido depois dessa validação e não
+        # recebe o token nem qualquer dado sensível de pagamento.
+        return await self.order_client.create(
+            access_token=access_token,
+            payload=order_payload
+        )
 
     async def _compose_checkout(self,
                                 access_token: str,
@@ -298,11 +318,71 @@ class CheckoutService:
         if not unchanged:
             raise CheckoutChangedError()
 
+    @staticmethod
+    def _build_order_payload(checkout: dict[str, Any],
+                             customer: dict[str, Any],
+                             idempotency_key: str) -> dict[str, Any]:
+        """
+        Monta o contrato de criação aceito pelo order-service.
+
+        Somente dados obtidos novamente dos microserviços são utilizados. Os
+        campos visuais do checkout e os dados sensíveis de pagamento não fazem
+        parte do snapshot persistido no pedido.
+
+        Args:
+            checkout: Checkout atual recomposto e revalidado.
+            customer: Perfil atual retornado pelo user-service.
+            idempotency_key: Chave UUID associada à tentativa de criação.
+
+        Returns:
+            Payload contendo cliente, endereço, itens, valores e idempotência.
+
+        Raises:
+            KeyError: Quando o contrato de algum serviço não contiver um
+                campo obrigatório para criar o pedido.
+        """
+
+        address = checkout['address']
+
+        return {
+            'customer': {
+                'name': customer['full_name'],
+                'email': customer['email'],
+                'whatsapp': customer['whatsapp']
+            },
+            'delivery_address': {
+                # O user-service pode devolver o CEP com máscara, enquanto o
+                # contrato do order-service aceita somente oito dígitos.
+                'zip_code': normalize_zip_code(address['zip_code']),
+                'street': address['street'],
+                'number': address['number'],
+                'complement': address.get('complement'),
+                'neighborhood': address['neighborhood'],
+                'city': address['city'],
+                'state': address['state']
+            },
+            'items': [
+                {
+                    'pizza_id': item['pizza_id'],
+                    'name': item['name'],
+                    'quantity': item['quantity'],
+                    'unit_price': str(item['unit_price']),
+                    'subtotal': str(item['subtotal'])
+                }
+                for item in checkout['items']
+            ],
+            'subtotal': str(checkout['subtotal']),
+            'delivery_fee': str(checkout['delivery_fee']),
+            'total': str(checkout['total']),
+            'idempotency_key': idempotency_key
+        }
+
 
 def get_checkout_service(
     pizza_client: PizzaClient = Depends(get_pizza_client),
     user_client: UserClient = Depends(get_user_client),
-    delivery_client: DeliveryClient = Depends(get_delivery_client)
+    delivery_client: DeliveryClient = Depends(get_delivery_client),
+    order_client: OrderClient = Depends(get_order_client)
 ) -> CheckoutService:
     """
     Fornece o serviço utilizado para preparar e confirmar o checkout.
@@ -311,6 +391,7 @@ def get_checkout_service(
         pizza_client: Cliente configurado do pizza-service.
         user_client: Cliente configurado do user-service.
         delivery_client: Cliente configurado do delivery-service.
+        order_client: Cliente configurado do order-service.
 
     Returns:
         Instância configurada de `CheckoutService`.
@@ -319,5 +400,6 @@ def get_checkout_service(
     return CheckoutService(
         pizza_client=pizza_client,
         user_client=user_client,
-        delivery_client=delivery_client
+        delivery_client=delivery_client,
+        order_client=order_client
     )

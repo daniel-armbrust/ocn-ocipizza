@@ -144,17 +144,29 @@ import os
 
 from borneo import NoSQLHandleConfig, TableRequest
 
-from app.repositories.nosql.connection import get_nosql_handle
+from app.repositories.nosql.connection import create_nosql_handle
 
 table_name = os.getenv(
     'NOSQL_TABLE_NAME',
     'pizzas'
 )
 
-handle = get_nosql_handle()
+handle = create_nosql_handle()
+
+drop_statement = f'''
+    DROP TABLE IF EXISTS {table_name}
+'''
+
+print(f'Excluindo tabela {table_name}, caso exista...')
+
+drop_request = TableRequest().set_statement(drop_statement)
+drop_result = handle.table_request(drop_request)
+drop_result.wait_for_completion(handle, 60000, 1000)
+
+print(f'Tabela {table_name} removida.')
 
 statement = f'''
-    CREATE TABLE IF NOT EXISTS {table_name} (
+    CREATE TABLE {table_name} (
         id STRING,
         name STRING,
         description STRING,
@@ -168,7 +180,7 @@ statement = f'''
     )
 '''
 
-print(f'Criando tabela {table_name}, caso ainda não exista...')
+print(f'Criando tabela {table_name}...')
 
 request = TableRequest().set_statement(statement)
 result = handle.table_request(request)
@@ -321,11 +333,16 @@ if [ "${APP_ENV}" = "development" ]; then
     display_step 'Criando pizzas de demonstração...'
 
     python <<'PYTHON'
+import os
+
 from decimal import Decimal
 from uuid import UUID
 
-from app.dependencies.database import get_pizza_repository
 from app.models.pizza import Pizza, PizzaCategory
+from app.repositories.nosql.connection import create_nosql_handle
+from app.repositories.nosql.nosql_pizza_repository import (
+    NosqlPizzaRepository
+)
 from app.utils.utils import now_utc
 
 
@@ -479,18 +496,30 @@ demo_pizzas = [
     )
 ]
 
-repository = get_pizza_repository()
+if os.getenv('PERSISTENCE_PROVIDER') != 'nosql':
+    raise RuntimeError(
+        'O seed de pizzas requer uma implementação de repositório disponível.'
+    )
 
-for pizza in demo_pizzas:
-    existing_pizza = repository.get_by_id(pizza.id)
+handle = create_nosql_handle()
+repository = NosqlPizzaRepository(
+    handle=handle,
+    table_name=os.getenv('NOSQL_TABLE_NAME', 'pizzas')
+)
 
-    if existing_pizza is not None:
-        print(f'Pizza de demonstração já existe: {pizza.name}')
-        continue
+try:
+    for pizza in demo_pizzas:
+        existing_pizza = repository.get_by_id(pizza.id)
 
-    repository.create(pizza)
+        if existing_pizza is not None:
+            print(f'Pizza de demonstração já existe: {pizza.name}')
+            continue
 
-    print(f'Pizza de demonstração criada: {pizza.name}')
+        repository.create(pizza)
+
+        print(f'Pizza de demonstração criada: {pizza.name}')
+finally:
+    handle.close()
 PYTHON
 
     display_step 'Enviando imagens de demonstração para o MinIO'

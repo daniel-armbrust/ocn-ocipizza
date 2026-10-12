@@ -6,9 +6,10 @@ from decimal import Decimal
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.delivery_area import DeliveryArea
+from app.utils.utils import normalize_zip_code
 
 
 class DeliveryAreaCreateRequest(BaseModel):
@@ -27,11 +28,29 @@ class DeliveryAreaCreateRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     name: str = Field(..., min_length=1, max_length=100)
-    zip_code_start: str = Field(..., min_length=8, max_length=9)
-    zip_code_end: str = Field(..., min_length=8, max_length=9)
+    zip_code_start: str = Field(..., pattern=r'^\d{8}$')
+    zip_code_end: str = Field(..., pattern=r'^\d{8}$')
     delivery_fee: Decimal = Field(..., ge=0)
     estimated_minutes: int = Field(..., ge=1)
     active: bool = True
+
+    @field_validator('zip_code_start', 'zip_code_end', mode='before')
+    @classmethod
+    def validate_zip_code(cls, value: str) -> str:
+        """
+        Normaliza os limites da faixa antes da validação do contrato.
+
+        Args:
+            value: CEP recebido com ou sem máscara.
+
+        Returns:
+            CEP contendo somente oito dígitos.
+
+        Raises:
+            ValueError: Quando o CEP informado for inválido.
+        """
+
+        return normalize_zip_code(value)
 
 
 class DeliveryAreaUpdateRequest(BaseModel): 
@@ -50,11 +69,29 @@ class DeliveryAreaUpdateRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True) 
     
     name: str | None = Field(default=None, min_length=1, max_length=100) 
-    zip_code_start: str | None = Field(default=None, min_length=8, max_length=9) 
-    zip_code_end: str | None = Field(default=None, min_length=8, max_length=9) 
+    zip_code_start: str | None = Field(default=None, pattern=r'^\d{8}$')
+    zip_code_end: str | None = Field(default=None, pattern=r'^\d{8}$')
     delivery_fee: Decimal | None = Field(default=None, ge=0) 
     estimated_minutes: int | None = Field(default=None, ge=1) 
     active: bool | None = None
+
+    @field_validator('zip_code_start', 'zip_code_end', mode='before')
+    @classmethod
+    def validate_zip_code(cls, value: str | None) -> str | None:
+        """
+        Normaliza os limites opcionais antes da validação do contrato.
+
+        Args:
+            value: CEP recebido com ou sem máscara.
+
+        Returns:
+            CEP contendo somente oito dígitos ou `None` quando ausente.
+
+        Raises:
+            ValueError: Quando o CEP informado for inválido.
+        """
+
+        return normalize_zip_code(value) if value is not None else None
 
 
 class DeliveryAreaResponse(BaseModel): 
@@ -75,13 +112,31 @@ class DeliveryAreaResponse(BaseModel):
     
     id: UUID 
     name: str 
-    zip_code_start: str 
-    zip_code_end: str 
+    zip_code_start: str = Field(pattern=r'^\d{8}$')
+    zip_code_end: str = Field(pattern=r'^\d{8}$')
     delivery_fee: Decimal 
     estimated_minutes: int 
     active: bool 
     created_at: datetime 
     updated_at: datetime 
+
+    @field_validator('zip_code_start', 'zip_code_end', mode='before')
+    @classmethod
+    def validate_zip_code(cls, value: str) -> str:
+        """
+        Normaliza os limites recuperados antes de montar a resposta.
+
+        Args:
+            value: CEP recuperado da persistência.
+
+        Returns:
+            CEP contendo somente oito dígitos.
+
+        Raises:
+            ValueError: Quando o CEP persistido for inválido.
+        """
+
+        return normalize_zip_code(value)
     
     @classmethod 
     def from_model(cls, delivery_area: DeliveryArea) -> 'DeliveryAreaResponse': 

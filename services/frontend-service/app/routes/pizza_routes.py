@@ -7,12 +7,13 @@ import httpx
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 
-from app.clients.pizza_client import PizzaClient, get_pizza_client
-
 from app.dependencies.templates import templates
 
+from app.messages.cart_messages import CART_MESSAGES
 from app.messages.pizza_service_messages import PIZZA_MESSAGES
 from app.messages.user_service_messages import USER_MESSAGES
+
+from app.services.pizza_service import PizzaService, get_pizza_service
 
 from app.utils.utils import normalize_optional_bool, normalize_optional_string
 
@@ -32,7 +33,7 @@ async def list_all_pizzas(
     available: str | None = None,
     limit: int = Query(default=10, ge=1, le=50),
     offset: int = Query(default=0, ge=0),
-    pizza_client: PizzaClient = Depends(get_pizza_client)
+    pizza_service: PizzaService = Depends(get_pizza_service)
 ) -> HTMLResponse:
     """
     Renderiza a página contendo a lista de pizzas.
@@ -49,14 +50,17 @@ async def list_all_pizzas(
             vazios representam ausência do filtro.
         limit: Quantidade máxima de pizzas retornadas.
         offset: Quantidade de registros ignorados antes da consulta.
-        pizza_client: Cliente utilizado para comunicação com o
-            pizza-service.
+        pizza_service: Serviço responsável pela consulta do cardápio.
 
     Returns:
         Página HTML contendo as pizzas retornadas pelo pizza-service.
     """
 
-    user_message = USER_MESSAGES.get(code) if code else None
+    page_message = (
+        USER_MESSAGES.get(code) or CART_MESSAGES.get(code)
+        if code
+        else None
+    )
 
     # Normaliza os parâmetros opcionais recebidos pela URL, convertendo
     # valores vazios para `None` e o filtro de disponibilidade para booleano
@@ -71,7 +75,7 @@ async def list_all_pizzas(
     )
 
     try:
-        pizzas = await pizza_client.get_all(
+        pizzas = await pizza_service.get_all(
             category=normalized_category,
             available=normalized_available,
             limit=limit,
@@ -108,8 +112,8 @@ async def list_all_pizzas(
         context={
             'pizzas': pizzas,
             'code': code,
-            'message': user_message['message'] if user_message else None,
-            'type': user_message['type'] if user_message else None,
+            'message': page_message['message'] if page_message else None,
+            'type': page_message['type'] if page_message else None,
             'category': normalized_category,
             'available': normalized_available,
             'limit': limit,

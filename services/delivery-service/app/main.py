@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from app.config.logging import configure_logging
 from app.config.settings import settings
 
-from app.dependencies.jwks_client import jwks_client
+from app.clients.jwks_client import jwks_client
 
 from app.routes.delivery_area_routes import router as delivery_area_router
 from app.routes.delivery_area_admin_routes import router as delivery_area_admin_router
@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(
-    title='OCI Pizza - User Service API',
+    title='OCI Pizza - Delivery Service API',
     version='1.0.0',
     lifespan=lifespan,
     docs_url='/docs' if settings.app_env == 'development' else None,
@@ -41,7 +41,8 @@ app = FastAPI(
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(
     request: Request, 
-    ex: RequestValidationError) -> JSONResponse:
+    ex: RequestValidationError
+) -> JSONResponse:
     """
     Converte erros de validação do FastAPI para o padrão JSend fail.
 
@@ -74,7 +75,8 @@ async def validation_exception_handler(
 @app.exception_handler(HTTPException)
 async def http_exception_handler(
     request: Request, 
-    ex: HTTPException) -> JSONResponse:
+    ex: HTTPException
+) -> JSONResponse:
     """
     Converte exceções HTTP conhecidas para o padrão JSend fail.
 
@@ -110,7 +112,8 @@ async def http_exception_handler(
 @app.exception_handler(Exception)
 async def unexpected_exception_handler(
     request: Request, 
-    ex: Exception) -> JSONResponse:
+    ex: Exception
+) -> JSONResponse:
     """
     Oculta detalhes de erros inesperados e retorna resposta JSend fail.
 
@@ -138,13 +141,13 @@ async def unexpected_exception_handler(
 @app.get('/health')
 def health_check() -> dict:
     """
-    Retorna o estado básico de saúde do `user-service`.
+    Retorna o estado básico de saúde do `delivery-service`.
 
     Returns:
         Dicionário JSend simples identificando o serviço ativo.
     """
 
-    return {'status': 'success', 'data': {'service': 'user-service'}}
+    return {'status': 'success', 'data': {'service': 'delivery-service'}}
 
 
 # Rotas responsáveis pela consulta das áreas e cotações
