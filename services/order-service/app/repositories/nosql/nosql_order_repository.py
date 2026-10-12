@@ -93,24 +93,47 @@ class NosqlOrderRepository(OrderRepository):
 
         return order
 
-    def get_by_id(self, order_id: UUID) -> Order | None:
+    def get_by_id(self,
+                  order_id: UUID,
+                  user_id: UUID | None = None) -> Order | None:
         """
         Localiza um pedido diretamente pela chave primária.
 
         Args:
             order_id: Identificador UUID do pedido.
+            user_id: Proprietário do pedido quando a consulta vier de uma
+                rota de usuário. Quando ausente, usa o índice administrativo
+                por identificador.
 
         Returns:
             Pedido encontrado ou `None` quando ele não existir.
         """
 
-        request = (
-            GetRequest()
-            .set_table_name(self.table_name)
-            .set_key({'id': str(order_id)})
-        )
+        if user_id is not None:
+            request = (
+                GetRequest()
+                .set_table_name(self.table_name)
+                .set_key({
+                    'user_id': str(user_id),
+                    'id': str(order_id)
+                })
+            )
 
-        row = self.handle.get(request).get_value()
+            row = self.handle.get(request).get_value()
+        else:
+            # Consultas administrativas não conhecem o user_id. O índice
+            # simples em `id` permite localizar o pedido sem usar GetRequest,
+            # que exige a chave composta completa.
+            statement = f'''
+                SELECT id, user_id, customer, delivery_address, items,
+                       subtotal, delivery_fee, total, status, payment_status,
+                       idempotency_key, created_at, updated_at
+                FROM {self.table_name}
+                WHERE id = "{order_id}"
+                LIMIT 1
+            '''
+            rows = self._query(statement)
+            row = rows[0] if rows else None
 
         return self._to_model(row) if row is not None else None
 
@@ -130,7 +153,7 @@ class NosqlOrderRepository(OrderRepository):
         """
 
         # Os valores interpolados são UUIDs já tipados pela aplicação. O
-        # índice de idempotency_key criado no bootstrap atende esta consulta.
+        # índice composto por usuário e idempotência atende esta consulta.
         statement = f'''
             SELECT id, user_id, customer, delivery_address, items, 
                    subtotal, delivery_fee, total, status, payment_status,

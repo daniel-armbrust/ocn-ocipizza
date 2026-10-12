@@ -46,13 +46,13 @@
                             CEP {{ address.zip_code }}
                         </p>
                     </div>
-                    <a class="checkout-text-link" href="/users/profile">Alterar endereço</a>
+                    <a class="checkout-text-link" href="/users/profile/addresses">Alterar endereço</a>
                     {% else %}
                     <div>
                         <strong>Nenhum endereço principal cadastrado</strong>
                         <p>Cadastre ou defina um endereço principal para continuar.</p>
                     </div>
-                    <a class="checkout-text-link" href="/users/profile">Gerenciar endereços</a>
+                    <a class="checkout-text-link" href="/users/profile/addresses">Gerenciar endereços</a>
                     {% endif %}
                 </div>
 
@@ -195,7 +195,8 @@
     aria-labelledby="checkout-address-modal-title"
     aria-describedby="checkout-address-modal-message"
     data-checkout-address-modal
-    data-redirect-url="/users/profile"
+    data-app-modal
+    data-redirect-url="/users/profile/addresses"
 >
     <div class="pizza-added-modal-content checkout-address-modal-content">
         <img
@@ -227,6 +228,7 @@
                 class="button checkout-address-modal-confirm"
                 type="button"
                 data-checkout-address-modal-confirm
+                data-modal-close
             >
                 OK
             </button>
@@ -240,6 +242,7 @@
     aria-labelledby="checkout-payment-modal-title"
     aria-describedby="checkout-payment-modal-message"
     data-checkout-payment-modal
+    data-app-modal
 >
     <div class="pizza-added-modal-content checkout-address-modal-content">
         <img
@@ -258,6 +261,7 @@
                 class="button checkout-address-modal-confirm"
                 type="button"
                 data-checkout-payment-modal-confirm
+                data-modal-close
             >
                 OK
             </button>

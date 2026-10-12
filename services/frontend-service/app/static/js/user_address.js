@@ -5,6 +5,9 @@
     const numericFields = document.querySelectorAll('[data-numeric-only]');
     const addressSelect = document.querySelector('[data-profile-address-select]');
     const addressPanels = document.querySelectorAll('[data-profile-address-panel]');
+    const deleteAddressButtons = document.querySelectorAll(
+        '[data-delete-address]'
+    );
     const profile = document.querySelector('[data-user-profile]');
     const deletionModal = document.querySelector('[data-address-delete-modal]');
     const confirmDeletionButton = document.querySelector(
@@ -46,7 +49,7 @@
         });
     });
 
-    if (!profile || !addressSelect || addressPanels.length === 0) {
+    if (!profile) {
         return;
     }
 
@@ -97,9 +100,7 @@
                 cancelDeletionButton.removeEventListener('click', cancel);
                 deletionModal.removeEventListener('cancel', cancel);
 
-                if (deletionModal.open) {
-                    deletionModal.close();
-                }
+                window.OciPizzaModal?.close(deletionModal);
 
                 resolve(confirmed);
             }
@@ -127,7 +128,7 @@
             confirmDeletionButton.addEventListener('click', confirm);
             cancelDeletionButton.addEventListener('click', cancel);
             deletionModal.addEventListener('cancel', cancel);
-            deletionModal.showModal();
+            window.OciPizzaModal?.open(deletionModal);
         });
     }
 
@@ -171,7 +172,8 @@
             }
 
             window.location.assign(
-                '/users/profile?code=USER_ADDRESS_SUCCESSFULLY_DELETED'
+                '/users/profile/addresses'
+                + '?code=USER_ADDRESS_SUCCESSFULLY_DELETED'
             );
         } catch (error) {
             window.OciPizza?.showToast(
@@ -185,15 +187,18 @@
         }
     }
 
-    addressSelect.addEventListener('change', renderSelectedAddress);
-    addressPanels.forEach((panel) => {
-        const deleteButton = panel.querySelector('[data-delete-address]');
+    if (addressSelect && addressPanels.length > 0) {
+        addressSelect.addEventListener('change', renderSelectedAddress);
+        renderSelectedAddress();
+    }
 
-        if (deleteButton?.dataset.addressId) {
+    // Os cards do painel não dependem mais de um seletor para exibir os
+    // endereços; cada botão é associado diretamente ao seu próprio recurso.
+    deleteAddressButtons.forEach((deleteButton) => {
+        if (deleteButton.dataset.addressId) {
             deleteButton.addEventListener('click', () => {
                 deleteAddress(deleteButton);
             });
         }
     });
-    renderSelectedAddress();
 })();

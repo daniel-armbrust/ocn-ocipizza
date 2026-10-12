@@ -93,6 +93,23 @@ class UserService:
             'addresses': addresses
         }
 
+    async def get_account(self, access_token: str) -> dict:
+        """
+        Obtém os dados da conta do usuário autenticado.
+
+        Args:
+            access_token: Token JWT do usuário autenticado.
+
+        Returns:
+            Dados pessoais retornados pelo user-service.
+
+        Raises:
+            httpx.HTTPStatusError: Caso o user-service rejeite a consulta.
+            httpx.RequestError: Caso o user-service esteja indisponível.
+        """
+
+        return await self.user_client.get_profile(access_token=access_token)
+
     async def create_address(self,
                              access_token: str,
                              label: str | None,

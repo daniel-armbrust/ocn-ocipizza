@@ -212,6 +212,6 @@ async def confirm_checkout(
         )
 
     return RedirectResponse(
-        url='/pizzas?code=CART_ORDER_SUCCESSFULLY_CREATED',
+        url='/users/profile/orders?code=CART_ORDER_SUCCESSFULLY_CREATED',
         status_code=status.HTTP_303_SEE_OTHER
     )

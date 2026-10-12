@@ -43,12 +43,16 @@
             `${pizzaName} foi adicionada ao seu carrinho.`
         );
 
-        if (!pizzaAddedModal.open) {
+        if (window.OciPizzaModal) {
+            window.OciPizzaModal.open(pizzaAddedModal);
+        } else if (!pizzaAddedModal.open) {
             pizzaAddedModal.showModal();
         }
 
         pizzaAddedModalTimeout = window.setTimeout(() => {
-            if (pizzaAddedModal.open) {
+            if (window.OciPizzaModal) {
+                window.OciPizzaModal.close(pizzaAddedModal);
+            } else if (pizzaAddedModal.open) {
                 pizzaAddedModal.close();
             }
         }, 3000);

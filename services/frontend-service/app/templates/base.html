@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}?v=chatbot-3">
     {% block head %}{% endblock %}
 </head>
 <body>
@@ -115,7 +115,95 @@
 
     <div class="toast-region" aria-live="polite" aria-atomic="true" data-toast-region></div>
 
+    <aside
+        class="chatbot"
+        data-chatbot
+        aria-label="Assistente OCI Pizza"
+    >
+        <button
+            class="chatbot-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="chatbot-panel"
+            data-chatbot-toggle
+        >
+            <span class="chatbot-toggle-icon" aria-hidden="true">
+                <img
+                    src="{{ url_for('static', path='img/favicon.png') }}"
+                    alt=""
+                    width="34"
+                    height="34"
+                >
+            </span>
+            <span class="chatbot-toggle-label">Fale conosco</span>
+        </button>
+
+        <section
+            id="chatbot-panel"
+            class="chatbot-panel"
+            aria-label="Conversa com o assistente"
+            aria-hidden="true"
+            hidden
+            data-chatbot-panel
+        >
+            <header class="chatbot-header">
+                <div class="chatbot-header-brand">
+                    <span class="chatbot-avatar" aria-hidden="true">
+                        <img
+                            src="{{ url_for('static', path='img/favicon.png') }}"
+                            alt=""
+                            width="34"
+                            height="34"
+                        >
+                    </span>
+                    <div>
+                        <strong>Assistente OCI Pizza</strong>
+                        <span><i aria-hidden="true"></i> Pronto para ajudar</span>
+                    </div>
+                </div>
+                <button
+                    class="chatbot-close"
+                    type="button"
+                    aria-label="Fechar assistente"
+                    data-chatbot-close
+                >
+                    <span aria-hidden="true">×</span>
+                </button>
+            </header>
+
+            <div class="chatbot-messages" aria-live="polite" data-chatbot-messages>
+                <div class="chatbot-message chatbot-message-assistant">
+                    Olá! Posso ajudar você a encontrar a pizza perfeita ou acompanhar seu pedido. 🍕
+                </div>
+                <div class="chatbot-suggestions" data-chatbot-suggestions>
+                    <button type="button" data-chatbot-suggestion="Quero escolher uma pizza">Escolher uma pizza</button>
+                    <button type="button" data-chatbot-suggestion="Quero acompanhar meu pedido">Acompanhar meu pedido</button>
+                    <button type="button" data-chatbot-suggestion="Preciso de ajuda">Preciso de ajuda</button>
+                </div>
+            </div>
+
+            <form class="chatbot-form" data-chatbot-form>
+                <label class="sr-only" for="chatbot-input">Digite sua mensagem</label>
+                <input
+                    id="chatbot-input"
+                    type="text"
+                    name="message"
+                    placeholder="Digite uma mensagem..."
+                    autocomplete="off"
+                    maxlength="240"
+                    data-chatbot-input
+                >
+                <button type="submit" aria-label="Enviar mensagem">
+                    <span aria-hidden="true">↑</span>
+                </button>
+            </form>
+            <p class="chatbot-disclaimer">Assistente OCI Pizza · Atendimento inteligente</p>
+        </section>
+    </aside>
+
     <script src="{{ url_for('static', path='js/app.js') }}?v=2" defer></script>
+    <script src="{{ url_for('static', path='js/modal.js') }}" defer></script>
+    <script src="{{ url_for('static', path='js/chatbot.js') }}?v=5" defer></script>
     <script src="{{ url_for('static', path='js/interaction_lock.js') }}" defer></script>
     <script src="{{ url_for('static', path='js/user_auth.js') }}" defer></script>
     {% block scripts %}{% endblock %}

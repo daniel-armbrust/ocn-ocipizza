@@ -172,8 +172,15 @@ def execute_ddl(statement: str, description: str) -> None:
     result.wait_for_completion(handle, 60000, 1000)
 
 
+drop_statement = f'DROP TABLE IF EXISTS {table_name}'
+
+execute_ddl(
+    drop_statement,
+    f'Excluindo tabela {table_name}, caso exista...'
+)
+
 table_statement = f'''
-    CREATE TABLE IF NOT EXISTS {table_name} (
+    CREATE TABLE {table_name} (
         id STRING,
         user_id STRING,
         customer RECORD(
@@ -207,48 +214,47 @@ table_statement = f'''
         idempotency_key STRING,
         created_at TIMESTAMP(3),
         updated_at TIMESTAMP(3),
-        PRIMARY KEY(id)
+        PRIMARY KEY(SHARD(user_id), id)
     )
 '''
 
 index_statements = (
     (
-        f'CREATE INDEX IF NOT EXISTS idx_orders_user_id '
-        f'ON {table_name}(user_id)',
-        'Criando índice para consulta dos pedidos por usuário...'
+        f'CREATE INDEX idx_orders_id ON {table_name}(id)',
+        'Criando índice para consulta administrativa por pedido...'
     ),
     (
-        f'CREATE INDEX IF NOT EXISTS idx_orders_user_created_at '
+        f'CREATE INDEX idx_orders_user_created_at '
         f'ON {table_name}(user_id, created_at)',
         'Criando índice para ordenar os pedidos de um usuário...'
     ),
     (
-        f'CREATE INDEX IF NOT EXISTS idx_orders_idempotency_key '
-        f'ON {table_name}(idempotency_key)',
-        'Criando índice para consulta pela chave de idempotência...'
+        f'CREATE INDEX idx_orders_user_idempotency '
+        f'ON {table_name}(user_id, idempotency_key)',
+        'Criando índice para consulta por idempotência...'
     ),
     (
-        f'CREATE INDEX IF NOT EXISTS idx_orders_status '
+        f'CREATE INDEX idx_orders_status '
         f'ON {table_name}(status)',
         'Criando índice para consulta dos pedidos por status...'
     ),
     (
-        f'CREATE INDEX IF NOT EXISTS idx_orders_created_at '
+        f'CREATE INDEX idx_orders_created_at '
         f'ON {table_name}(created_at)',
         'Criando índice para ordenar todos os pedidos...'
     ),
     (
-        f'CREATE INDEX IF NOT EXISTS idx_orders_status_created_at '
+        f'CREATE INDEX idx_orders_status_created_at '
         f'ON {table_name}(status, created_at)',
         'Criando índice para ordenar os pedidos por status...'
     ),
     (
-        f'CREATE INDEX IF NOT EXISTS idx_orders_payment_created_at '
+        f'CREATE INDEX idx_orders_payment_created_at '
         f'ON {table_name}(payment_status, created_at)',
         'Criando índice para ordenar os pedidos por pagamento...'
     ),
     (
-        f'CREATE INDEX IF NOT EXISTS idx_orders_status_payment_created_at '
+        f'CREATE INDEX idx_orders_status_payment_created_at '
         f'ON {table_name}(status, payment_status, created_at)',
         'Criando índice para ordenar os pedidos pelos dois status...'
     )
@@ -257,7 +263,7 @@ index_statements = (
 try:
     execute_ddl(
         table_statement,
-        f'Criando tabela {table_name}, caso ainda não exista...'
+        f'Criando tabela {table_name}...'
     )
 
     for statement, description in index_statements:

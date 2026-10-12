@@ -2,11 +2,12 @@
 # routes/user_routes.py
 #
 
+import asyncio
 import httpx
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request, status, Response
+from fastapi import APIRouter, Depends, Query, Request, status, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from starlette_wtf import csrf_protect
@@ -18,6 +19,8 @@ from app.forms.user_forms import UserAddressForm, UserWhatsappUpdateForm
 from app.dependencies.templates import templates
 
 from app.messages.user_service_messages import USER_MESSAGES
+from app.messages.cart_messages import CART_MESSAGES
+from app.services.order_service import OrderService, get_order_service
 from app.services.user_service import UserService, get_user_service
 
 router = APIRouter()
@@ -146,7 +149,7 @@ async def show_profile_page(
     user_service: UserService = Depends(get_user_service)
 ) -> Response:
     """
-    Renderiza os dados pessoais e os endereços do usuário autenticado.
+    Renderiza as informações da conta do usuário autenticado.
 
     Args:
         request: Requisição HTTP utilizada para renderizar a página.
@@ -167,12 +170,9 @@ async def show_profile_page(
     """
 
     # Falhas HTTP e de comunicação são tratadas pelos handlers globais.
-    profile = await user_service.get_profile(
+    user = await user_service.get_account(
         access_token=session.get('access_token')
     )
-
-    user = profile['user']
-    addresses = profile['addresses']
 
     form = UserWhatsappUpdateForm(
         data={'whatsapp': user.get('whatsapp')}
@@ -194,10 +194,132 @@ async def show_profile_page(
         name='users/profile.html',
         context={
             'user': user,
-            'addresses': addresses,
             'form': form,
             'message': message['message'] if message else None,
             'type': message['type'] if message else None,
+            'is_authenticated': True
+        }
+    )
+
+#
+# GET: /users/profile/addresses
+#
+@router.get(
+    '/users/profile/addresses',
+    response_class=HTMLResponse
+)
+async def show_addresses_page(
+    request: Request,
+    code: str | None = None,
+    session=Depends(get_authenticated_session),
+    user_service: UserService = Depends(get_user_service)
+) -> HTMLResponse:
+    """
+    Exibe os endereços do usuário dentro do painel da conta.
+
+    Args:
+        request: Requisição HTTP utilizada para renderizar a página.
+        code: Código funcional opcional associado à mensagem apresentada.
+        session: Sessão autenticada do usuário.
+        user_service: Serviço responsável pelos dados da conta e endereços.
+
+    Returns:
+        Página HTML contendo os endereços cadastrados.
+
+    Raises:
+        httpx.HTTPStatusError: Caso o user-service rejeite a consulta.
+        httpx.RequestError: Caso o user-service esteja indisponível.
+    """
+
+    profile = await user_service.get_profile(
+        access_token=session.get('access_token')
+    )
+    message = USER_MESSAGES.get(code) if code else None
+
+    return templates.TemplateResponse(
+        request=request,
+        name='users/addresses.html',
+        context={
+            'user': profile['user'],
+            'addresses': profile['addresses'],
+            'message': message['message'] if message else None,
+            'type': message['type'] if message else None,
+            'is_authenticated': True
+        }
+    )
+
+#
+# GET: /users/profile/orders
+#
+@router.get(
+    '/users/profile/orders',
+    response_class=HTMLResponse
+)
+async def show_orders_page(
+    request: Request,
+    code: str | None = None,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    session=Depends(get_authenticated_session),
+    user_service: UserService = Depends(get_user_service),
+    order_service: OrderService = Depends(get_order_service)
+) -> HTMLResponse:
+    """
+    Exibe o histórico de pedidos do usuário autenticado.
+
+    Args:
+        request: Requisição HTTP utilizada para renderizar a página.
+        code: Código funcional opcional associado ao resultado do pedido.
+        limit: Quantidade máxima de pedidos exibidos.
+        offset: Quantidade de pedidos ignorados antes da consulta.
+        session: Sessão autenticada do usuário.
+        user_service: Serviço responsável pelos dados básicos da conta.
+        order_service: Serviço responsável pela consulta dos pedidos.
+
+    Returns:
+        Página HTML contendo os pedidos retornados pelo order-service.
+
+    Raises:
+        httpx.HTTPStatusError: Caso um serviço rejeite a consulta.
+        httpx.RequestError: Caso um serviço esteja indisponível.
+    """
+
+    access_token = session.get('access_token')
+
+    # Conta e pedidos são recursos independentes e podem ser consultados em
+    # paralelo para reduzir o tempo de montagem do painel.
+    user, orders = await asyncio.gather(
+        user_service.get_account(access_token=access_token),
+        order_service.get_all(
+            access_token=access_token,
+            limit=limit,
+            offset=offset
+        )
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name='users/orders.html',
+        context={
+            'user': user,
+            'orders': orders,
+            # O sucesso do pedido é apresentado em modal; outros códigos
+            # continuam disponíveis para a mensagem padrão do painel.
+            'message': (
+                None
+                if code == 'CART_ORDER_SUCCESSFULLY_CREATED'
+                else (CART_MESSAGES.get(code) or {}).get('message')
+            ),
+            'type': (
+                None
+                if code == 'CART_ORDER_SUCCESSFULLY_CREATED'
+                else (CART_MESSAGES.get(code) or {}).get('type')
+            ),
+            'order_success_message': (
+                CART_MESSAGES.get(code, {}).get('message')
+                if code == 'CART_ORDER_SUCCESSFULLY_CREATED'
+                else None
+            ),
             'is_authenticated': True
         }
     )
@@ -325,7 +447,10 @@ async def create_new_address(
         )
 
     return RedirectResponse(
-        url='/users/profile?code=USER_ADDRESS_SUCCESSFULLY_ADDED',
+        url=(
+            '/users/profile/addresses'
+            '?code=USER_ADDRESS_SUCCESSFULLY_ADDED'
+        ),
         status_code=status.HTTP_303_SEE_OTHER
     )
 
@@ -429,16 +554,19 @@ async def delete_user_address(
         # Redireciona para o perfil informando que não foi possível
         # remover o endereço.
         return RedirectResponse(
-            url='/users/profile?code=USER_ADDRESS_DELETE_ERROR',
+            url='/users/profile/addresses?code=USER_ADDRESS_DELETE_ERROR',
             status_code=status.HTTP_303_SEE_OTHER
         )
     except httpx.RequestError:
         return RedirectResponse(
-            url='/users/profile?code=USER_ADDRESS_DELETE_ERROR',
+            url='/users/profile/addresses?code=USER_ADDRESS_DELETE_ERROR',
             status_code=status.HTTP_303_SEE_OTHER
         )
 
     return RedirectResponse(
-        url='/users/profile?code=USER_ADDRESS_SUCCESSFULLY_DELETED',
+        url=(
+            '/users/profile/addresses'
+            '?code=USER_ADDRESS_SUCCESSFULLY_DELETED'
+        ),
         status_code=status.HTTP_303_SEE_OTHER
     )

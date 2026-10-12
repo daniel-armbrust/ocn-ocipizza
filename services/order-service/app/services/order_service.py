@@ -112,7 +112,10 @@ class OrderService:
         """
 
         try:
-            order = self.order_repository.get_by_id(order_id)
+            order = self.order_repository.get_by_id(
+                order_id=order_id,
+                user_id=user_id
+            )
         except Exception as ex:
             raise OrderQueryError('Error retrieving order.') from ex
 
@@ -177,7 +180,7 @@ class OrderService:
         """
 
         try:
-            order = self.order_repository.get_by_id(order_id)
+            order = self.order_repository.get_by_id(order_id=order_id)
         except Exception as ex:
             raise OrderQueryError('Error retrieving order.') from ex
 
@@ -317,7 +320,10 @@ class OrderService:
             # a primeira consulta e o create. A leitura direta pelo id evita
             # depender da atualização assíncrona do índice secundário.
             try:
-                concurrent_order = self.order_repository.get_by_id(order.id)
+                concurrent_order = self.order_repository.get_by_id(
+                    order_id=order.id,
+                    user_id=user_id
+                )
             except Exception:
                 raise OrderCreationError('Error creating order.') from ex
 

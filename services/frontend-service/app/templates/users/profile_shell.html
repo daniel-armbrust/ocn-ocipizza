@@ -1,0 +1,40 @@
+{% from "components/message.html" import render_message %}
+
+{% macro profile_shell(user, active_section, message=none, type='info') %}
+<section class="profile-section" aria-labelledby="profile-title">
+    <header class="menu-hero profile-hero{% if message %} has-message{% endif %}">
+        {% if message %}
+        <div class="message-area">
+            {{ render_message(message, type, 'login-notice') }}
+            <br aria-hidden="true">
+            <br aria-hidden="true">
+        </div>
+        {% endif %}
+        <div class="container hero-grid">
+            <div class="hero-copy">
+                <span class="eyebrow">Sua conta OCI Pizza</span>
+                <h1 id="profile-title">Meus Dados</h1>
+                <p>Gerencie sua conta, seus endereços e acompanhe seus pedidos.</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="container profile-dashboard">
+        <aside class="profile-sidebar" aria-label="Painel do usuário">
+            <div class="profile-user-summary">
+                <span class="profile-avatar" aria-hidden="true"><span class="profile-avatar-letter">{{ (user.full_name | default('U', true))[:1] | upper }}</span></span>
+                <div>
+                    <strong>{{ user.full_name | default('Minha conta', true) }}</strong>
+                    <span>{{ user.email | default('', true) }}</span>
+                </div>
+            </div>
+            <nav class="profile-navigation" aria-label="Seções da conta">
+                <a href="/users/profile"{% if active_section == 'account' %} class="is-active" aria-current="page"{% endif %} data-lock-navigation><span class="profile-navigation-icon" aria-hidden="true">01</span>Informações da conta</a>
+                <a href="/users/profile/addresses"{% if active_section == 'addresses' %} class="is-active" aria-current="page"{% endif %} data-lock-navigation><span class="profile-navigation-icon" aria-hidden="true">02</span>Meus endereços</a>
+                <a href="/users/profile/orders"{% if active_section == 'orders' %} class="is-active" aria-current="page"{% endif %} data-lock-navigation><span class="profile-navigation-icon" aria-hidden="true">03</span>Meus pedidos</a>
+            </nav>
+        </aside>
+        <main class="profile-dashboard-content">{{ caller() }}</main>
+    </div>
+</section>
+{% endmacro %}

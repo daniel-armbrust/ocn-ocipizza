@@ -5,17 +5,13 @@
 
 {% block content %}
 {% set pizza_items = pizzas.get('data', {}).get('pizzas', []) if pizzas is mapping else [] %}
-<section class="menu-hero{% if message and type in ['info', 'success'] %} has-message{% endif %}" aria-labelledby="menu-title">
-    {% if message and type in ['info', 'success'] %}
-    <div
-        class="message-area"
-        {% if code == 'USER_AUTHENTICATION_SUCCESS' %}data-authentication-success{% endif %}
-        {% if code == 'CART_ORDER_SUCCESSFULLY_CREATED' %}data-order-success{% endif %}
-    >
-        {{ render_message(message, type, 'login-notice') }}
-        <br aria-hidden="true">
-        <br aria-hidden="true">
-    </div>
+<section class="menu-hero{% if message %} has-message{% endif %}" aria-labelledby="menu-title">
+    {% if message %}
+        <div
+            class="message-area"
+        >
+            {{ render_message(message, type, 'login-notice') }}
+        </div>
     {% endif %}
 
     <div class="container hero-grid">
@@ -167,6 +163,7 @@
     aria-labelledby="pizza-added-modal-title"
     aria-describedby="pizza-added-modal-message"
     data-pizza-added-modal
+    data-app-modal
 >
     <div class="pizza-added-modal-content">
         <img

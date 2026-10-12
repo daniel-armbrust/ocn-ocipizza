@@ -140,7 +140,7 @@
          * @returns {void}
          */
         function closePaymentModal() {
-            paymentModal.close();
+            window.OciPizzaModal?.close(paymentModal);
             firstInvalidField?.focus();
         }
 
@@ -158,7 +158,7 @@
             }
 
             event.preventDefault();
-            paymentModal.showModal();
+            window.OciPizzaModal?.open(paymentModal);
         }
 
         // A validação roda na fase de captura para cancelar formulários
@@ -186,7 +186,7 @@
 
         // O modal representa uma condição obrigatória do checkout e, por isso,
         // é aberto assim que a página termina de carregar.
-        addressModal.showModal();
+        window.OciPizzaModal?.open(addressModal);
         confirmationButton.addEventListener('click', redirectToProfile);
 
         // Impede fechar o aviso com Esc e permanecer em um checkout que não pode

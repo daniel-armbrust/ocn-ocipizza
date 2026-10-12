@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "users/profile_shell.html" import profile_shell %}
+
+{% block title %}Meus Pedidos | OCI Pizza{% endblock %}
+
+{% block content %}
+{% set status_labels = {'RECEIVED': 'Recebido', 'PREPARING': 'Em preparo', 'READY': 'Pronto', 'OUT_FOR_DELIVERY': 'Saiu para entrega', 'DELIVERED': 'Entregue', 'CANCELLED': 'Cancelado'} %}
+{% call profile_shell(user, 'orders', message, type) %}
+<section class="profile-card" aria-labelledby="orders-title">
+    <header class="profile-card-heading profile-orders-heading"><span class="profile-card-icon" aria-hidden="true">03</span><div><span class="eyebrow">Histórico</span><h2 id="orders-title">Meus pedidos</h2></div><span class="profile-address-count">{{ orders | length }} {{ 'pedido' if orders | length == 1 else 'pedidos' }}</span></header>
+    {% if orders %}
+    <div class="profile-order-list">
+        {% for order in orders %}
+        <article class="profile-order-card">
+            <header class="profile-order-header"><div><span class="eyebrow">Pedido</span><h3>#{{ (order.id | string)[:8] | upper }}</h3><time datetime="{{ order.created_at }}">{{ (order.created_at | string)[:10] }}</time></div><span class="order-status order-status-{{ order.status | lower }}">{{ status_labels.get(order.status, order.status) }}</span></header>
+            <div class="profile-order-items">{% for item in order['items'] %}<p><strong>{{ item.quantity }}×</strong> {{ item.name }} <span>R$ {{ '%.2f' | format(item.subtotal | float) | replace('.', ',') }}</span></p>{% endfor %}</div>
+            <footer class="profile-order-footer"><span>{{ order.delivery_address.street }}, {{ order.delivery_address.number }}</span><strong>Total: R$ {{ '%.2f' | format(order.total | float) | replace('.', ',') }}</strong></footer>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="profile-empty-state"><span aria-hidden="true">03</span><h3>Você ainda não fez nenhum pedido</h3><p>Seu próximo sabor favorito está esperando no cardápio.</p><a class="button button-small" href="/pizzas" data-lock-navigation>Ver cardápio</a></div>
+    {% endif %}
+</section>
+{% endcall %}
+
+{% if order_success_message %}
+<dialog
+    class="pizza-added-modal profile-order-success-modal"
+    aria-labelledby="order-success-modal-title"
+    aria-describedby="order-success-modal-message"
+    data-order-success-modal
+    data-app-modal
+    data-modal-auto-open
+    data-modal-clean-url
+>
+    <div class="pizza-added-modal-content">
+        <img
+            src="{{ url_for('static', path='img/favicon.png') }}"
+            alt=""
+            width="72"
+            height="72"
+        >
+        <div>
+            <span class="eyebrow">Pedido recebido</span>
+            <h2 id="order-success-modal-title">Pedido recebido com sucesso!</h2>
+            <p id="order-success-modal-message">{{ order_success_message }}</p>
+            <button class="button" type="button" data-order-success-modal-confirm data-modal-close>OK</button>
+        </div>
+    </div>
+</dialog>
+{% endif %}
+{% endblock %}

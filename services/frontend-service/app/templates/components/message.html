@@ -1,53 +1,34 @@
-{% macro render_message(message, type='info', extra_class='') %}
-    {% set palettes = {
-        'error': {
-            'color': '#8f1119',
-            'background': 'rgb(229 37 42 / 10%)',
-            'border': 'rgb(185 20 29 / 30%)'
-        },
-        'warning': {
-            'color': '#7a4a00',
-            'background': 'rgb(255 201 40 / 18%)',
-            'border': 'rgb(244 154 32 / 42%)'
-        },
-        'info': {
-            'color': '#145d7a',
-            'background': 'rgb(35 145 190 / 10%)',
-            'border': 'rgb(35 145 190 / 30%)'
-        },
-        'success': {
-            'color': '#17653a',
-            'background': 'rgb(45 156 92 / 10%)',
-            'border': 'rgb(32 122 72 / 28%)'
-        }
-    } %}
-    {% set message_type = type if type in palettes else 'info' %}
-    {% set palette = palettes[message_type] %}
+{% macro render_message(message, type='info', extra_class='', title='') %}
+    {% set message_types = ['error', 'warning', 'success', 'info'] %}
+    {% set message_type = type if type in message_types else 'info' %}
+
+    {% set modal_title = title or {
+        'error': 'Não foi possível concluir',
+        'warning': 'Atenção',
+        'success': 'Sucesso',
+        'info': 'Informação'
+    }[message_type] %}
 
     {% if message %}
-    <aside
-        class="message-box message-{{ message_type }} {{ extra_class }}"
-        role="{{ 'alert' if message_type in ['error', 'warning'] else 'status' }}"
-        aria-live="{{ 'assertive' if message_type == 'error' else 'polite' }}"
-        data-message-type="{{ message_type }}"
-        style="
-            width: 80vw;
-            max-width: calc(100vw - 28px);
-            padding: 18px 32px;
-            margin-inline: auto;
-            border: 1px solid {{ palette.border }};
-            color: {{ palette.color }};
-            background: {{ palette.background }};
-            border-radius: var(--radius-small);
-            box-shadow: 0 10px 24px {{ palette.border }};
-            text-align: center;
-            white-space: normal;
-            overflow-wrap: anywhere;
-            font-size: 1.12rem;
-            font-weight: 800;
-        "
+    <dialog
+        class="pizza-added-modal app-message-modal message-{{ message_type }} {{ extra_class }}"
+        aria-labelledby="message-modal-title"
+        aria-describedby="message-modal-content"
+        data-app-modal
+        data-modal-auto-open
+        data-modal-clean-url
     >
-        {{ message }}
-    </aside>
+        <div class="pizza-added-modal-content">
+            <span class="app-modal-icon" aria-hidden="true">
+                {% if message_type == 'success' %}✓{% elif message_type == 'error' %}!{% elif message_type == 'warning' %}!{% else %}i{% endif %}
+            </span>
+            <div>
+                <span class="eyebrow">{{ modal_title }}</span>
+                <h2 id="message-modal-title">{{ modal_title }}</h2>
+                <p id="message-modal-content">{{ message }}</p>
+                <button class="button" type="button" data-modal-close>OK</button>
+            </div>
+        </div>
+    </dialog>
     {% endif %}
 {% endmacro %}

@@ -4,7 +4,9 @@
 
 CART_MESSAGES = {
     'CART_ORDER_SUCCESSFULLY_CREATED': {
-        'message': 'Pedido realizado com sucesso! Agora é só aguardar.',
+        'message': (
+            'Seu pedido foi recebido com sucesso e será preparado em breve.'
+        ),
         'type': 'success'
     },
     'CART_INVALID_ITEMS': {

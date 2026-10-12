@@ -30,12 +30,16 @@ class OrderRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, order_id: UUID) -> Order | None:
+    def get_by_id(self,
+                  order_id: UUID,
+                  user_id: UUID | None = None) -> Order | None:
         """
         Localiza um pedido pelo identificador.
 
         Args:
             order_id: Identificador UUID do pedido.
+            user_id: Identificador do proprietário quando a consulta ocorrer
+                no contexto de um usuário autenticado.
 
         Returns:
             Pedido encontrado ou `None` quando ele não existir.
