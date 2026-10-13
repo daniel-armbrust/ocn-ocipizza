@@ -55,12 +55,12 @@ O ambiente de execução utiliza Python 3.11.
 ## `bootstrap.sh` — Bootstrap do ambiente local
 
 O script `bootstrap.sh` prepara o ambiente Python, cria a configuração local e
-garante a existência da tabela e dos índices utilizados pelo serviço no Oracle
-NoSQL.
+recria a tabela e os índices utilizados pelo serviço no Oracle NoSQL.
 
-> **Importante:** o bootstrap utiliza `CREATE TABLE IF NOT EXISTS` e
-> `CREATE INDEX IF NOT EXISTS`. Ele não exclui a tabela, não apaga pedidos
-> existentes e não cadastra dados de demonstração.
+> **Atenção:** o bootstrap é destrutivo e deve ser utilizado somente para
+> preparar o ambiente de desenvolvimento. Ele executa `DROP TABLE IF EXISTS`
+> antes de recriar a tabela `orders`; portanto, todos os pedidos existentes na
+> tabela configurada serão removidos.
 
 ### Pré-requisitos
 
@@ -117,8 +117,8 @@ docker compose ps order-service
 4. Cria o arquivo `.env`, caso ele ainda não exista
 5. Carrega as configurações locais
 6. Valida o provider definido em `PERSISTENCE_PROVIDER`
-7. Cria a tabela `orders`, caso ela ainda não exista
-8. Cria os índices utilizados nas consultas e ordenações
+7. Exclui a tabela `orders`, caso ela exista
+8. Recria a tabela e os índices utilizados nas consultas e ordenações
 
 ### Configuração local criada
 
@@ -247,13 +247,17 @@ do `user-service`. A validação verifica:
 - Prazo de validade do token
 - Claim `sub` contendo um UUID de usuário válido
 
-As rotas sob `/admin/orders` também exigem o claim:
+As rotas sob `/admin/orders` atualmente exigem o claim:
 
 ```json
 {
   "role": "admin"
 }
 ```
+
+<!-- TODO: Alinhar a autorização administrativa ao claim `is_admin` emitido
+pelo user-service. Enquanto essa integração não for ajustada, tokens emitidos
+pelo user-service não autorizam as rotas administrativas do order-service. -->
 
 O serviço tenta aquecer o cache de chaves públicas durante a inicialização.
 Quando o `kid` solicitado não está no cache, o JWKS é consultado novamente.
@@ -348,8 +352,12 @@ Resposta `201 Created`:
 }
 ```
 
-O pedido nasce com `status=RECEIVED` e `payment_status=PAID`, pois o endpoint é
-utilizado depois da aprovação do pagamento.
+O pedido nasce com `status=RECEIVED` e `payment_status=PAID`. No fluxo atual de
+desenvolvimento, o frontend ainda utiliza um token de pagamento fictício e não
+existe integração efetiva com um gateway.
+
+<!-- TODO: Criar o pedido somente depois da confirmação efetiva do pagamento
+pelo provider configurado. -->
 
 #### Validações do pedido
 
@@ -426,7 +434,9 @@ terceiros.
 
 ## Operações administrativas
 
-As operações desta seção exigem um JWT válido com `role=admin`.
+As operações desta seção exigem, na implementação atual, um JWT válido com
+`role=admin`. Consulte a limitação de integração descrita na seção de
+autenticação e autorização.
 
 ### GET `/admin/orders` — Listar todos os pedidos
 
@@ -591,14 +601,19 @@ Os handlers globais utilizam códigos com o prefixo `ORDER_SERVICE_`:
 | `DATABASE_URL` | — | URL reservada para o provider SQLAlchemy. |
 | `HTTP_CLIENT_TIMEOUT` | `10.0` | Timeout da consulta HTTP ao JWKS, em segundos. |
 | `JWT_ISSUER` | `user-service` | Emissor esperado no access token. |
-| `JWT_AUDIENCE` | `oci-pizza` | Audiência esperada no access token. |
+| `JWT_AUDIENCE` | `ocipizza` | Audiência esperada no access token. |
 | `JWT_JWKS_URL` | `http://user-service:8000/.well-known/jwks.json` | Endpoint das chaves públicas JWT. |
 | `LOG_LEVEL` | `INFO` | Nível de logging da aplicação. |
 | `OCI_LOG_ID` | — | OCID do Custom Log obrigatório fora de desenvolvimento. |
 
-Os valores refletem os padrões definidos em `app/config/settings.py`. Em
-execução local fora do Docker, ajuste `JWT_JWKS_URL` para
+Os valores refletem os padrões definidos em `app/config/settings.py`. Os scripts
+locais `startdev.sh` e `bootstrap.sh` sobrescrevem `JWT_AUDIENCE` com
+`oci-pizza`, acompanhando a configuração local do `user-service`. Em execução
+local fora do Docker, ajuste também `JWT_JWKS_URL` para
 `http://localhost:8002/.well-known/jwks.json`.
+
+<!-- TODO: Unificar o valor de JWT_AUDIENCE entre settings, Docker Compose,
+arquivos de exemplo e scripts de desenvolvimento de todos os serviços. -->
 
 ## Documentação interativa
 

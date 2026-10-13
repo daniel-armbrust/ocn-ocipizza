@@ -31,6 +31,7 @@ autenticação. As chamadas que exigem credenciais são realizadas pelo BFF.
 | `pizza-service` | Fornece as pizzas exibidas no cardápio. |
 | `user-service` | Realiza cadastro, autenticação e operações do perfil e dos endereços. |
 | `delivery-service` | Verifica a elegibilidade do CEP e fornece prazo e taxa de entrega. |
+| `order-service` | Cria pedidos e fornece o histórico do usuário autenticado. |
 | Redis | Provider padrão para armazenamento das sessões opacas do BFF. |
 
 ### Dependências Python
@@ -40,7 +41,7 @@ As dependências são instaladas pelo arquivo `requirements.txt`.
 | Biblioteca | Versão | Uso principal |
 | --- | --- | --- |
 | FastAPI | 0.141.1 | Rotas do BFF, injeção de dependências e servidor ASGI. |
-| HTTPX | 0.28.1 | Chamadas assíncronas ao `pizza-service` e ao `user-service`. |
+| HTTPX | 0.28.1 | Chamadas assíncronas aos microsserviços consumidos pelo BFF. |
 | Jinja2 | 3.1.6 | Renderização dos templates HTML. |
 | pydantic-settings | 2.15.0 | Leitura das configurações de ambiente. |
 | WTForms | 3.2.2 | Renderização e validação dos formulários. |
@@ -107,6 +108,10 @@ cd services/frontend-service
 ./startdev.sh
 ```
 
+<!-- TODO: O startdev.sh combina o hostname interno `redis` com a porta
+publicada `16379`. Alinhar o endpoint para execução no host antes de considerar
+esse fluxo autossuficiente; o .env.example utiliza 127.0.0.1:16379. -->
+
 Para executar pelo Docker Compose a partir da raiz do monorepo:
 
 ```bash
@@ -125,6 +130,7 @@ docker compose ps frontend-service
 | `GET` | `/cart` | Público | Renderiza o carrinho armazenado no navegador. |
 | `POST` | `/cart/checkout` | Autenticado | Prepara e exibe o checkout com dados atuais das APIs. |
 | `POST` | `/cart/checkout/confirm` | Autenticado | Revalida o checkout, cria o pedido e redireciona para o cardápio. |
+| `GET` | `/health` | Público | Retorna o estado básico do frontend-service. |
 
 `GET /pizzas` aceita os parâmetros opcionais `category`, `available`, `limit`
 e `offset`. O filtro `available` só é encaminhado ao `pizza-service` quando
@@ -163,8 +169,9 @@ de mensagens apresenta o resultado da confirmação.
 
 | Método | Rota | Acesso | Comportamento |
 | --- | --- | --- | --- |
-| `GET` | `/users/profile` | Autenticado | Consulta e exibe os dados pessoais e os endereços. |
+| `GET` | `/users/profile` | Autenticado | Consulta e exibe os dados pessoais. |
 | `PUT` | `/users/profile/whatsapp` | Autenticado | Valida e atualiza o WhatsApp pelo `user-service`. |
+| `GET` | `/users/profile/orders` | Autenticado | Consulta e exibe o histórico retornado pelo `order-service`. |
 
 Nome completo e e-mail são apresentados como campos somente para leitura. O
 WhatsApp é renderizado por `UserWhatsappUpdateForm`, recebe a máscara
@@ -179,6 +186,7 @@ componente compartilhado de mensagens.
 
 | Método | Rota | Acesso | Comportamento |
 | --- | --- | --- | --- |
+| `GET` | `/users/profile/addresses` | Autenticado | Consulta e exibe os endereços cadastrados. |
 | `GET` | `/users/profile/addresses/new` | Autenticado | Exibe o formulário de um novo endereço. |
 | `POST` | `/users/profile/addresses/new` | Autenticado | Valida e cadastra o endereço pelo `user-service`. |
 | `DELETE` | `/users/profile/addresses/{address_id}` | Autenticado | Exclui o endereço selecionado. |
