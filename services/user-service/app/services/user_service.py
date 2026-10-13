@@ -229,41 +229,27 @@ class UserService:
             self.unit_of_work.rollback() 
             raise UserDeletionError('Error deleting the user.')
 
-    def confirm_email(self, email: str, token: str) -> None:
+    def confirm_email(self, token: str) -> None:
         """
         Confirma o endereço de e-mail associado ao cadastro de um usuário.
 
-        O usuário é localizado através do endereço de e-mail informado e o
-        token recebido é validado antes da confirmação do cadastro.
+        O token recebido é validado e utilizado para localizar o usuário
+        associado antes da confirmação do cadastro.
 
         Args:
-            email: Endereço de e-mail associado ao usuário.
             token: Token de confirmação recebido pelo usuário.
 
         Returns:
             None.
 
         Raises:
-            UserNotFoundError: Caso o usuário associado ao endereço de e-mail
-                não seja encontrado.
+            UserNotFoundError: Caso o usuário associado ao token não seja
+                encontrado.
             UserInvalidEmailConfirmationTokenError: Caso o token seja inválido,
-                expirado, já utilizado, revogado ou não pertença ao usuário.
+                expirado, já utilizado ou revogado.
             UserEmailConfirmationError: Caso ocorra uma falha durante a consulta
                 ou persistência dos dados necessários à confirmação do usuário.
         """
-
-        normalized_email = normalize_email(email)
-
-        try:
-            # Localiza o usuário associado ao endereço de e-mail informado.
-            user = self.user_repository.get_by_email(normalized_email)
-        except Exception as ex:
-            raise UserEmailConfirmationError(
-                'Error retrieving user for email confirmation.'
-            ) from ex
-
-        if user is None:
-            raise UserNotFoundError('User not found.')
 
         # Gera o hash do token recebido, pois somente o hash
         # do token é armazenado no banco de dados.
@@ -286,12 +272,19 @@ class UserService:
             self._validate_email_confirmation_token(email_confirmation_token, now)
         )
 
-        # Garante que o token realmente pertence ao usuário
-        # correspondente ao endereço de e-mail informado.
-        if email_confirmation_token.user_id != user.id:
-            raise UserInvalidEmailConfirmationTokenError(
-                'Email confirmation token does not belong to the user.'
+        try:
+            # Localiza o usuário diretamente pelo identificador associado ao
+            # token, sem exigir que o e-mail seja enviado na requisição.
+            user = self.user_repository.get_by_id(
+                email_confirmation_token.user_id
             )
+        except Exception as ex:
+            raise UserEmailConfirmationError(
+                'Error retrieving user for email confirmation.'
+            ) from ex
+
+        if user is None:
+            raise UserNotFoundError('User not found.')
 
         try:
             # Consome o token atomicamente. Apenas uma requisição concorrente

@@ -293,6 +293,33 @@ class UserClient:
 
         response.raise_for_status()
 
+    async def confirm_email(self, token: str) -> None:
+        """
+        Confirma o endereço de e-mail do usuário utilizando o token.
+
+        Args:
+            token: Token utilizado para confirmar o endereço de e-mail.
+
+        Returns:
+            None.
+
+        Raises:
+            httpx.HTTPStatusError: Caso o user-service rejeite a confirmação.
+            httpx.RequestError: Caso ocorra uma falha de comunicação com o
+                user-service.
+        """
+
+        async with httpx.AsyncClient(
+            timeout=settings.http_client_timeout
+        ) as client:
+            response = await client.post(
+                f'{self.base_url}/users/confirm',
+                json={'token': token},
+                timeout=settings.http_client_timeout
+            )
+
+        response.raise_for_status()
+
 
 def get_user_client() -> UserClient:
     """

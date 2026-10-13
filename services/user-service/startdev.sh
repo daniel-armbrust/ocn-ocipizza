@@ -14,7 +14,7 @@ export MESSAGING_PROVIDER="rabbitmq"
 export RABBITMQ_HOST="localhost"
 export RABBITMQ_PORT="5672"
 export RABBITMQ_PASSWORD="oci_pizza"
-export RABBITMQ_QUEUE_NAME="notifications"
+export QUEUE_NAME="notifications-queue"
 
 export JWT_KEY_PROVIDER="local"
 export JWT_ISSUER="user-service"

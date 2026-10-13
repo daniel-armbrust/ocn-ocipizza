@@ -266,6 +266,20 @@ def root(request: Request) -> RedirectResponse:
         status_code=307
     )
 
+@app.get('/health')
+def health_check() -> dict:
+    """
+    Retorna o estado básico de saúde do `frontend-service`.
+
+    Returns:
+        Dicionário JSend simples identificando o serviço ativo.
+    """
+
+    return {
+        'status': 'success', 
+        'data': {'service': 'frontend-service'}
+    }
+
 # Rotas responsáveis pelo cadastro e gerenciamento dos usuários.
 app.include_router(user_routes.router)
 

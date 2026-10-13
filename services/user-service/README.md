@@ -26,12 +26,13 @@ de desenvolvimento:
 | --- | --- |
 | MySQL | Provider de persistência para armazenar usuários, tokens e históricos de senha. |
 | OCI NoSQL | Provider de persistência para armazenar usuários, tokens e históricos de senha. |
-| RabbitMQ | Publica mensagens assíncronas, como solicitações de envio de e-mail. |
+| RabbitMQ | Provider local para publicação de mensagens assíncronas. |
+| OCI Queue | Provider OCI para publicação de mensagens assíncronas. |
 
 O serviço não acessa diretamente o banco de dados de outro microsserviço. No
 Docker Compose, MySQL, RabbitMQ e OCI NoSQL são serviços de infraestrutura
 independentes. O `user-service` pode utilizar MySQL ou OCI NoSQL como provider
-de persistência e RabbitMQ como provider de mensageria.
+de persistência e RabbitMQ ou OCI Queue como provider de mensageria.
 
 ### Dependências Python
 
@@ -68,7 +69,7 @@ definidas em `requirements.txt`.
 | `RABBITMQ_PORT` | — | Porta do RabbitMQ. |
 | `RABBITMQ_USERNAME` | — | Usuário utilizado na conexão com o RabbitMQ. |
 | `RABBITMQ_PASSWORD` | — | Senha utilizada na conexão com o RabbitMQ. |
-| `RABBITMQ_QUEUE_NAME` | — | Nome da fila de notificações no RabbitMQ. |
+| `QUEUE_NAME` | — | Nome lógico da fila utilizada pelo provider de mensageria. |
 | `OCI_QUEUE_ID` | — | OCID da fila utilizada pelo provider OCI Queue. |
 | `OCI_QUEUE_MESSAGES_ENDPOINT` | — | Endpoint de mensagens da OCI Queue. |
 | `OCI_REGION` | — | Região dos serviços OCI utilizados pela instância. |
@@ -79,6 +80,14 @@ definidas em `requirements.txt`.
 | `JWT_PRIVATE_KEY_PATH` | `/run/secrets/jwt_private_key.pem` | Caminho da chave privada RSA local. |
 | `JWT_PUBLIC_KEY_PATH` | `/run/secrets/jwt_public_key.pem` | Caminho da chave pública RSA local. |
 | `JWT_PRIVATE_KEY_SECRET_ID` | — | OCID do secret que contém a chave privada no provider OCI. |
+
+Quando `MESSAGING_PROVIDER=oci_queue`, o serviço autentica no OCI Queue por
+Instance Principal. A instância deve pertencer a um Dynamic Group autorizado
+por uma IAM Policy a publicar na fila configurada. Esse fluxo não utiliza
+arquivo de configuração OCI, API key ou chave privada armazenada na aplicação.
+
+O `OCI_QUEUE_MESSAGES_ENDPOINT` deve receber o `messagesEndpoint` específico
+da fila, e não o endpoint administrativo do serviço OCI Queue.
 | `REFRESH_TOKEN_EXPIRATION_DAYS` | `30` | Validade do refresh token em dias. |
 | `LOG_LEVEL` | `INFO` | Nível global de logging da aplicação. |
 | `OCI_LOG_ID` | — | OCID do Custom Log, obrigatório fora de desenvolvimento. |
@@ -249,7 +258,7 @@ Quando o `.env` não existe, o script o cria com:
 - Persistência via SQLAlchemy no banco MySQL `users`
 - Conexão local pela porta `13306` com o usuário `user_service`
 - Mensageria via RabbitMQ em `127.0.0.1:5672`
-- Fila de notificações chamada `notifications`
+- Fila de notificações chamada `notifications-queue`
 - Emissor JWT `user-service` e audiência `oci-pizza`
 
 <!-- TODO: Adicionar ao .env as configurações locais necessárias para selecionar
@@ -711,7 +720,6 @@ curl --request POST \
   --header 'Accept: application/json' \
   --header 'Content-Type: application/json' \
   --data '{
-    "email": "ana.laura@example.com",
     "token": "TOKEN_RECEBIDO_POR_EMAIL"
   }'
 ```
@@ -720,14 +728,12 @@ Os campos enviados são:
 
 | Campo | Descrição |
 | --- | --- |
-| `email` | Endereço de e-mail associado ao cadastro do usuário. |
 | `token` | Token temporário recebido no e-mail de confirmação do cadastro. |
 
-O token é válido por 24 horas, pertence ao usuário associado ao e-mail
-informado e pode ser utilizado somente uma vez. A API rejeita tokens
-inexistentes, expirados, utilizados anteriormente, revogados ou pertencentes a
-outro usuário. O token original não é armazenado no banco de dados; somente seu
-hash é persistido.
+O token é válido por 24 horas, está associado internamente ao usuário e pode
+ser utilizado somente uma vez. A API rejeita tokens inexistentes, expirados,
+utilizados anteriormente ou revogados. O token original não é armazenado no
+banco de dados; somente seu hash é persistido.
 
 Quando a confirmação for concluída, o campo `confirmed` do usuário será alterado
 para `True`, o token será marcado como utilizado e a API responderá com o status

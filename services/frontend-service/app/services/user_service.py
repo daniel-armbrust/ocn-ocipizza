@@ -206,6 +206,23 @@ class UserService:
             address_id=address_id
         )
 
+    async def confirm_email(self, token: str) -> None:
+        """
+        Confirma o endereço de e-mail do usuário utilizando o token.
+
+        Args:
+            token: Token utilizado para confirmar o endereço de e-mail.
+
+        Returns:
+            None.
+
+        Raises:
+            httpx.HTTPStatusError: Caso o user-service rejeite a confirmação.
+            httpx.RequestError: Caso ocorra uma falha de comunicação com o
+                user-service.
+        """
+
+        await self.user_client.confirm_email(token=token)
 
 def get_user_service(
     user_client: UserClient = Depends(get_user_client)

@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     app_env: str = 'development'
     debug: bool = False
 
+    oci_region: str = 'sa-saopaulo-1'
+
     # Persistência
     persistence_provider: str = 'nosql'
 
@@ -29,7 +31,6 @@ class Settings(BaseSettings):
     nosql_table_name: str = 'orders'
     nosql_endpoint: str | None = None
     nosql_compartment_id: str | None = None
-    oci_region: str | None = None
 
     # SQLAlchemy
     database_url: str | None = None
@@ -40,7 +41,7 @@ class Settings(BaseSettings):
 
     # JWT
     jwt_issuer: str = 'user-service'
-    jwt_audience: str = 'oci-pizza'
+    jwt_audience: str = 'ocipizza'
     jwt_jwks_url: str = 'http://user-service:8000/.well-known/jwks.json'
 
     # Credenciais utilizadas apenas no ambiente de desenvolvimento

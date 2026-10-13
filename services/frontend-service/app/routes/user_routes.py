@@ -32,7 +32,7 @@ router = APIRouter()
     '/users/register',
     response_class=HTMLResponse
 )
-def show_register_page(request: Request) -> HTMLResponse:
+async def show_register_page(request: Request) -> HTMLResponse:
     """
     Renderiza a página utilizada para cadastro de usuários.
 
@@ -47,6 +47,60 @@ def show_register_page(request: Request) -> HTMLResponse:
         request=request,
         name='users/register.html',
         context={'form': UserRegisterForm()}
+    )
+
+#
+# GET: /users/confirm
+#
+@router.get(
+    '/users/confirm'
+)
+async def confirm_user_email(
+    token: str = Query(..., min_length=20, max_length=255),
+    user_service: UserService = Depends(get_user_service)
+) -> RedirectResponse:
+    """
+    Confirma o e-mail do usuário a partir do token recebido na URL.
+
+    Args:
+        token: Token utilizado para confirmar o endereço de e-mail.
+        user_service: Serviço responsável pelas operações relacionadas
+            aos usuários.
+
+    Returns:
+        Redirecionamento para o login com o resultado da confirmação.
+    """
+
+    try:
+        await user_service.confirm_email(token=token)
+    except httpx.HTTPStatusError as ex:
+        code = 'USER_CONFIRMATION_ERROR'
+
+        try:
+            payload = ex.response.json()
+            response_code = payload.get('data', {}).get('code')
+
+            # Encaminha somente códigos funcionais conhecidos pelo frontend,
+            # evitando propagar valores inesperados para a URL de destino.
+            if response_code in USER_MESSAGES:
+                code = response_code
+        except ValueError:
+            # Mantém a mensagem genérica quando a resposta não contém JSON.
+            pass
+
+        return RedirectResponse(
+            url=f'/users/login?code={code}',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+    except httpx.RequestError:
+        return RedirectResponse(
+            url='/users/login?code=USER_CONFIRMATION_ERROR',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    return RedirectResponse(
+        url='/users/login?code=USER_CONFIRMATION_SUCCESS',
+        status_code=status.HTTP_303_SEE_OTHER
     )
 
 #
@@ -234,6 +288,7 @@ async def show_addresses_page(
     profile = await user_service.get_profile(
         access_token=session.get('access_token')
     )
+
     message = USER_MESSAGES.get(code) if code else None
 
     return templates.TemplateResponse(

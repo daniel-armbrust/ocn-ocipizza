@@ -14,6 +14,10 @@ USER_MESSAGES = {
         ),
         'type': 'info'
     },
+    'USER_CONFIRMATION_SUCCESS': {
+        'message': 'E-mail confirmado com sucesso. Você já pode entrar.',
+        'type': 'success'
+    },
     'USER_NOT_FOUND': {
         'message': 'Usuário não encontrado.',
         'type': 'warning'

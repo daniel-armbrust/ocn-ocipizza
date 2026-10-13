@@ -4,62 +4,112 @@ Aplicação cloud-native de referência para demonstrar desenvolvimento de aplic
 
 ## Desenvolvimento local
 
-O ambiente local utiliza Docker Compose e os comandos definidos no `Makefile`.
+O ambiente local utiliza Docker Compose e os alvos definidos no `Makefile`.
+Esses alvos separam a infraestrutura, o bootstrap dos dados e os serviços da
+aplicação.
 
-Para subir a infraestrutura atualmente utilizada pelos serviços ativos:
+Para listar os alvos disponíveis e suas descrições:
 
 ```bash
-docker compose up -d mysql nosql rabbitmq
+make help
 ```
 
-Ou usando o Makefile:
+O alvo `help` é o padrão e também será executado quando `make` for chamado sem
+argumentos.
+
+### Iniciar o ambiente
+
+Para iniciar a infraestrutura, aguardar sua disponibilidade e subir todos os
+serviços da aplicação:
+
+```bash
+make development
+```
+
+Para iniciar e validar apenas os componentes de infraestrutura:
 
 ```bash
 make development-infra
 ```
 
-Para executar o seed após a infraestrutura estar disponível:
+Para iniciar apenas os serviços da aplicação, quando a infraestrutura já
+estiver disponível:
 
 ```bash
-docker compose run --rm seed
+make development-services
 ```
 
-Ou usando o Makefile:
+### Bootstrap dos serviços
+
+O bootstrap inicia e valida a infraestrutura e, em seguida, executa todos os
+arquivos `services/*/bootstrap.sh` encontrados no repositório:
 
 ```bash
-make development-seed
+make development-bootstrap
 ```
 
-Para subir infraestrutura, executar seed e iniciar os serviços da aplicação
-em sequência:
+Atualmente, possuem bootstrap os serviços `delivery-service`, `order-service`,
+`pizza-service` e `user-service`. Cada script é executado a partir da raiz do
+respectivo serviço.
+
+> **Atenção:** os scripts de bootstrap preparam o ambiente local e podem
+> recriar tabelas e dados de demonstração. Use esse alvo somente quando essa
+> reinicialização for desejada.
+
+Após o bootstrap, inicie os serviços com:
 
 ```bash
-make development-up
+make development-services
 ```
 
-Esse alvo executa:
+### Construção das imagens
 
-1. `development-infra`
-2. `development-seed`
-3. `development-services`
-
-Para construir as imagens normalmente:
+Para construir somente as imagens dos serviços da aplicação, utilizando o
+cache disponível:
 
 ```bash
 make build
 ```
 
-Para reconstruir as imagens sem cache:
+Para reconstruir somente essas imagens, sem utilizar cache:
 
 ```bash
-make force-build
-make development-up
+make rebuild
 ```
 
-## Testando o pizza-service
+Para reconstruir os serviços sem cache e depois iniciar o ambiente completo:
 
-> O `pizza-service` está comentado no `docker-compose.yaml` atual. Os comandos
-> abaixo se aplicam quando esse serviço estiver habilitado.
+```bash
+make development-rebuild
+```
+
+Os alvos de construção não incluem MySQL, Oracle NoSQL, RabbitMQ, Redis,
+Object Storage ou Mailpit.
+
+### Logs e encerramento
+
+Para acompanhar os logs dos serviços da aplicação:
+
+```bash
+make development-logs
+```
+
+Para parar e remover os containers e a rede do ambiente, preservando os
+volumes:
+
+```bash
+make development-down
+```
+
+### Qualidade e CI/CD
+
+<!-- TODO: Documentar e disponibilizar o alvo de lint dos serviços. -->
+<!-- TODO: Documentar e disponibilizar o alvo de testes automatizados. -->
+<!-- TODO: Documentar os alvos compartilhados com os pipelines de CI/CD. -->
+
+Os comandos de lint, testes automatizados e CI/CD ainda serão implementados.
+
+## Testando o pizza-service
 
 Com o ambiente iniciado, o `pizza-service` fica disponível no host em:
 
@@ -99,22 +149,4 @@ curl -i -X POST http://localhost:8001/pizzas \
     "image_name": "teste.jpg",
     "available": true
   }'
-```
-
-Para executar os testes automatizados:
-
-```bash
-make test
-```
-
-Para acompanhar os logs:
-
-```bash
-make development-logs
-```
-
-Para parar o ambiente:
-
-```bash
-make development-down
 ```

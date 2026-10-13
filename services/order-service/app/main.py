@@ -300,7 +300,10 @@ def health_check() -> dict:
         Dicionário JSend simples identificando o serviço ativo.
     """
 
-    return {'status': 'success', 'data': {'service': 'order-service'}}
+    return {
+        'status': 'success', 
+        'data': {'service': 'order-service'}
+    }
 
 
 # Rotas responsáveis pela criação e consulta dos pedidos.

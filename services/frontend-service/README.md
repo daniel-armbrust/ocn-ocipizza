@@ -146,6 +146,7 @@ de itens armazenados no `localStorage`.
 | --- | --- | --- | --- |
 | `GET` | `/users/register` | Público | Exibe o formulário de cadastro. |
 | `POST` | `/users/register` | Público | Valida o formulário e cria o usuário pelo `user-service`. |
+| `GET` | `/users/confirm` | Público | Confirma o e-mail pelo token e redireciona para o login. |
 | `GET` | `/users/login` | Público | Exibe o formulário de autenticação. |
 | `POST` | `/users/login` | Público | Autentica o usuário e cria uma sessão opaca no BFF. |
 | `POST` | `/users/logout` | Autenticado | Revoga a sessão remota, remove a sessão local e apaga o cookie. |
@@ -153,6 +154,10 @@ de itens armazenados no `localStorage`.
 Após um cadastro bem-sucedido, o usuário é redirecionado para o login com a
 mensagem de que o e-mail de confirmação foi enviado. Após o login, o usuário é
 redirecionado ao cardápio.
+
+O link de confirmação utiliza `GET /users/confirm?token=...`. O frontend envia
+o token ao `user-service` e redireciona para o login, onde o componente global
+de mensagens apresenta o resultado da confirmação.
 
 ### Perfil do usuário
 

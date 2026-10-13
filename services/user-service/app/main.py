@@ -133,7 +133,10 @@ def health_check() -> dict:
         Dicionário JSend simples identificando o serviço ativo.
     """
 
-    return {'status': 'success', 'data': {'service': 'user-service'}}
+    return {
+        'status': 'success', 
+        'data': {'service': 'user-service'}
+    }
 
 
 # Rotas de cadastro, consulta, atualização e desativação 

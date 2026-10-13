@@ -94,9 +94,7 @@ class UserConfirmationRequest(BaseModel):
     de um usuário.
 
     Attributes:
-        email: Endereço de e-mail associado ao cadastro.
         token: Token utilizado para validar a confirmação do usuário.
     """
 
-    email: EmailStr
     token: str = Field(min_length=20, max_length=255)

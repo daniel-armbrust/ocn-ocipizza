@@ -2094,12 +2094,19 @@ h1 {
 }
 
 .app-message-modal {
-    width: 80vw;
-    max-width: 80vw;
+    box-sizing: border-box;
+    width: min(640px, calc(100vw - 32px));
+    max-width: 640px;
+    max-height: calc(100dvh - 32px);
+    overflow: auto;
+    text-align: left;
+    white-space: normal;
 }
 
 .app-message-modal .pizza-added-modal-content {
+    padding: 24px;
     border-color: rgb(35 145 190 / 42%);
+    gap: 16px;
 }
 
 .app-message-modal.message-success .pizza-added-modal-content {
@@ -2156,6 +2163,25 @@ h1 {
     display: block;
     min-width: 118px;
     margin-top: 18px;
+}
+
+@media (max-width: 480px) {
+    .app-message-modal .pizza-added-modal-content {
+        grid-template-columns: 1fr;
+        padding: 22px;
+        text-align: center;
+    }
+
+    .app-message-modal .app-modal-icon {
+        width: 54px;
+        height: 54px;
+        margin-inline: auto;
+        font-size: 1.65rem;
+    }
+
+    .app-message-modal .button {
+        width: 100%;
+    }
 }
 
 /* Assistente flutuante de atendimento */

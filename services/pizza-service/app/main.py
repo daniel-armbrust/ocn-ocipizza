@@ -140,7 +140,10 @@ def health_check() -> dict:
         Dicionário JSend simples identificando o serviço ativo.
     """
 
-    return {'status': 'success', 'data': {'service': 'pizza-service'}}
+    return {
+        'status': 'success', 
+        'data': {'service': 'pizza-service'}
+    }
 
 
 app.include_router(pizza_router)

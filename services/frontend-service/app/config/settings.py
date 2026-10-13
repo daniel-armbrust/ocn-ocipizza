@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     app_env: str = 'development'
     debug: bool = False
 
+    oci_region: str = 'sa-saopaulo-1'
+
     # Persistência
     persistence_provider: str = 'redis'
 

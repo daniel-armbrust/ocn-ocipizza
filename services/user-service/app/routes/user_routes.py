@@ -181,7 +181,7 @@ def update_me(
     )
 
 #
-# GET: /users/confirm
+# POST: /users/confirm
 #
 @router.post(
     '/users/confirm',
@@ -191,7 +191,7 @@ def update_me(
 def confirm_user(
     payload: UserConfirmationRequest,
     service: UserService = Depends(get_user_service)
-) -> JSendSuccessResponse | JSendSuccessResponse:
+) -> JSendSuccessResponse | JSONResponse:
     """
     Confirma o endereço de e-mail de um usuário para que seja 
     possível o usuário utilizar o sistema.
@@ -201,7 +201,7 @@ def confirm_user(
 
     Args:
         payload: Dados necessários para confirmação do usuário,
-            contendo o endereço de e-mail e o token de confirmação.
+            contendo o token de confirmação.
         service: Serviço responsável pelos casos de uso relacionados
             à confirmação de e-mail.
 
@@ -210,10 +210,7 @@ def confirm_user(
     """
 
     try:
-        service.confirm_email(
-            email=payload.email,
-            token=payload.token
-        )
+        service.confirm_email(token=payload.token)
     except (
         UserNotFoundError,
         UserInvalidEmailConfirmationTokenError

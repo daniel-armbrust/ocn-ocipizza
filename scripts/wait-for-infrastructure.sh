@@ -40,4 +40,24 @@ done
 
 echo "Redis disponível."
 
+echo "Aguardando Mailpit HTTP..."
+
+until curl -s http://localhost:8025 >/dev/null
+do
+    echo "Mailpit HTTP ainda não está disponível. Tentando novamente..."
+    sleep 2
+done
+
+echo "Mailpit HTTP disponível."
+
+echo "Aguardando Mailpit SMTP..."
+
+until timeout 1 bash -c "</dev/tcp/localhost/1025" 2>/dev/null
+do
+    echo "Mailpit SMTP ainda não está disponível. Tentando novamente..."
+    sleep 2
+done
+
+echo "Mailpit SMTP disponível."
+
 exit 0

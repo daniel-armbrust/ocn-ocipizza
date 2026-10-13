@@ -53,6 +53,28 @@ def now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def ensure_utc(value: datetime) -> datetime:
+    """
+    Normaliza uma data e hora para UTC com informação de timezone.
+
+    O MySQL pode devolver valores ``DATETIME`` sem timezone mesmo quando a
+    coluna SQLAlchemy declara ``timezone=True``. Nesses casos, o valor
+    persistido pelo serviço já representa UTC e recebe explicitamente esse
+    timezone ao retornar para o domínio.
+
+    Args:
+        value: Data e hora que deve ser normalizada.
+
+    Returns:
+        Data e hora equivalente com timezone UTC.
+    """
+
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+
+    return value.astimezone(timezone.utc)
+
+
 def uuid_to_bin(value: UUID) -> bytes: 
     """
     Converte um UUID para sua representação binária de 16 bytes. 
