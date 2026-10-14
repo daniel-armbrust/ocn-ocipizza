@@ -105,6 +105,7 @@ class UserRepository(ABC):
                 email: str | None = None,
                 confirmed: bool | None = None,
                 is_admin: bool | None = None,
+                is_kitchen: bool | None = None,
                 limit: int = 50,
                 offset: int = 0) -> list[User]:
         """
@@ -114,6 +115,8 @@ class UserRepository(ABC):
             email: Parte do endereço de e-mail utilizada como filtro.
             confirmed: Filtra usuários de acordo com o estado de confirmação.
             is_admin: Filtra usuários de acordo com o privilégio administrativo.
+            is_kitchen: Filtra usuários de acordo com o acesso às funcionalidades 
+                da cozinha.
             limit: Quantidade máxima de usuários retornados.
             offset: Quantidade de registros ignorados antes do retorno.
 

@@ -427,6 +427,7 @@ DEMO_USERS = [
         'email': 'maria.oliveira@example.com',
         'confirmed': True,
         'is_admin': False,
+        'is_kitchen': False,
         'whatsapp': '+5511999999999',
         'password': 'DemoPassword123!'
     },
@@ -438,6 +439,7 @@ DEMO_USERS = [
         'email': 'joao.silva@example.com',
         'confirmed': False,
         'is_admin': False,
+        'is_kitchen': False,
         'whatsapp': '+5511988888888',
         'password': 'DemoPassword123!'
     },
@@ -449,6 +451,7 @@ DEMO_USERS = [
         'email': 'rita.cassia@example.com',
         'confirmed': True,
         'is_admin': False,
+        'is_kitchen': False,
         'whatsapp': '+5511977777777',
         'password': 'DemoPassword123!'
     }
@@ -459,15 +462,49 @@ ADMIN_USER = {
     'full_name': 'Administrador',
     'email': 'admin@ocipizza.com.br',
     'confirmed': True,
+    'is_kitchen': False,
     'is_admin': True,
     'whatsapp': '+5511900000000',
-    'password': 'AdminPassword123!',
-    'is_admin': True
+    'password': 'AdminPassword123!'
 }
+
+KITCHEN_USERS = [
+    {
+        'id': uuid.UUID('2f4d7c8a-9b31-4e6f-8a25-1c7d93b5e402'),
+        'full_name': 'Alice Picanha',
+        'email': 'ali@ocipizza.com.br',
+        'confirmed': True,
+        'is_admin': False,
+        'is_kitchen': True,
+        'whatsapp': '+5511900000100',
+        'password': 'KitchenPassword123!'
+    },
+    {
+        'id': uuid.UUID('7a91d2e4-3c68-4f0b-b517-6e29a8c4d135'),
+        'full_name': 'João Neto',
+        'email': 'j.neto@ocipizza.com.br',
+        'confirmed': False,
+        'is_admin': False,
+        'is_kitchen': True,
+        'whatsapp': '+5511902000000',
+        'password': 'KitchenPassword123!'        
+    },
+    {
+        'id': uuid.UUID('c5e8031f-72a4-4d9c-91b6-8f3a25d7e640'),
+        'full_name': 'Mali Camargo',
+        'email': 'mali@ocipizza.com.br',
+        'confirmed': True,
+        'is_admin': False,
+        'is_kitchen': True,
+        'whatsapp': '+5511902006000',
+        'password': 'KitchenPassword123!'        
+    }
+]
 
 USERS_TO_SEED = [
     ADMIN_USER,
     *DEMO_USERS,
+    *KITCHEN_USERS
 ]
 
 #
@@ -492,7 +529,20 @@ password_service = UserPasswordService(
 )
 
 with Session(engine) as session:
+    current_group = None
+
     for seed_user in USERS_TO_SEED:
+
+        if seed_user['is_admin']:
+            group = 'Usuários administradores'
+        elif seed_user['is_kitchen']:
+            group = 'Usuários da cozinha'
+        else:
+            group = 'Usuários regulares'
+
+        if group != current_group:
+            print(f'\n{group}:')
+            current_group = group
 
         #
         # Verifica se o usuário já existe.
@@ -509,8 +559,8 @@ with Session(engine) as session:
 
         if existing_user is not None:
             print(
-                'Usuário de demonstração já existe: '
-                f"{seed_user['email']}"
+                f"  - {seed_user['full_name']} / "
+                f"{seed_user['email']} (já existe)"
             )
             continue
 
@@ -528,6 +578,7 @@ with Session(engine) as session:
             whatsapp=seed_user['whatsapp'],
             confirmed=seed_user['confirmed'],
             is_admin=seed_user['is_admin'],
+            is_kitchen=seed_user['is_kitchen'],
             password_hash=password_service.hash_password(seed_user['password']),
             created_at=now,
             updated_at=now
@@ -535,16 +586,10 @@ with Session(engine) as session:
 
         session.add(user)
 
-        if seed_user['is_admin']:
-            print(
-                'Usuário administrador criado: '
-                f"{seed_user['full_name']} / {seed_user['password']}\n"
-            )
-        else:
-            print(
-                'Usuário de demonstração criado: '
-                f"{seed_user['full_name']} / {seed_user['password']}"
-            )
+        print(
+            f"  - {seed_user['full_name']} / "
+            f"{seed_user['email']} / {seed_user['password']}"
+        )
 
     #
     # Confirma todas as inserções realizadas pelo processo de seed.

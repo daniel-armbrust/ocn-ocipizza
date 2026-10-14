@@ -1,5 +1,5 @@
 #
-# form/user_forms.py
+# forms/user_forms.py
 #
 
 
@@ -11,6 +11,7 @@ from wtforms import (
     StringField,
     ValidationError
 )
+
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Regexp
 
 from app.utils.utils import normalize_whatsapp

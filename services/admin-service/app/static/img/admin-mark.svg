@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">OCI Pizza Admin</title>
+  <rect width="64" height="64" rx="16" fill="#c63d32"/>
+  <path fill="#fff" d="M17 42.7 28.4 18a4 4 0 0 1 7.2 0L47 42.7a3 3 0 0 1-2.7 4.3H19.7a3 3 0 0 1-2.7-4.3Z"/>
+  <path fill="#e3a72f" d="M25.4 28h13.2l2 4.5H23.3l2.1-4.5Z"/>
+  <circle cx="29" cy="37.5" r="2.5" fill="#c63d32"/>
+  <circle cx="37.5" cy="40" r="2.5" fill="#c63d32"/>
+  <path fill="#101820" d="M28 21.5h8l1.8 4H26.2l1.8-4Z"/>
+</svg>

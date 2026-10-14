@@ -19,6 +19,8 @@ class UserAdminCreateRequest(BaseModel):
             considerado confirmado.
         is_admin: Indica se o usuário possuirá privilégios
             administrativos.
+        is_kitchen: Indica se o usuário possui acesso às 
+            funcionalidades da cozinha.
     """
 
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -29,6 +31,7 @@ class UserAdminCreateRequest(BaseModel):
     password: str = Field(min_length=8, max_length=20)
     confirmed: bool = False
     is_admin: bool = False
+    is_kitchen: bool = False
 
 
 class UserAdminUpdateRequest(BaseModel):
@@ -43,6 +46,8 @@ class UserAdminUpdateRequest(BaseModel):
         confirmed: Indica se o endereço de e-mail do usuário
             está confirmado.
         is_admin: Indica se o usuário possui privilégios administrativos.
+        is_kitchen: Indica se o usuário possui acesso às funcionalidades 
+            da cozinha.
     """
 
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -52,6 +57,7 @@ class UserAdminUpdateRequest(BaseModel):
     whatsapp: str = Field(min_length=11, max_length=11)
     confirmed: bool
     is_admin: bool
+    is_kitchen: bool
 
 
 class UserAdminPasswordUpdateRequest(BaseModel):

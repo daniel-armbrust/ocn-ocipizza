@@ -1,8 +1,8 @@
 """create initial user service tables
 
-Revision ID: 2958c5e30b99
+Revision ID: 3a1689b5317e
 Revises: 
-Create Date: 2026-10-12 15:40:26.316564
+Create Date: 2026-10-14 17:52:35.777157
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '2958c5e30b99'
+revision: str = '3a1689b5317e'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -29,6 +29,7 @@ def upgrade() -> None:
     sa.Column('password_hash', sa.String(length=255), nullable=False, comment='Hash criptográfico da senha do usuário.'),
     sa.Column('confirmed', sa.Boolean(), nullable=False, comment='Indica se o usuário confirmou o endereço de e-mail.'),
     sa.Column('is_admin', sa.Boolean(), nullable=False, comment='Indica se o usuário possui privilégios administrativos.'),
+    sa.Column('is_kitchen', sa.Boolean(), nullable=False, comment='Indica se o usuário possui acesso às funcionalidades da cozinha.'),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, comment='Data e hora da criação do usuário em UTC.'),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, comment='Data e hora da última atualização do usuário em UTC.'),
     sa.PrimaryKeyConstraint('id'),

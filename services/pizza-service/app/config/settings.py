@@ -42,16 +42,19 @@ class Settings(BaseSettings):
     # JWT
     jwt_issuer: str = 'user-service'
     jwt_audience: str = 'ocipizza'
-    jwt_jwks_url: str = 'http://user-service:8000/.well-known/jwks.json'
+    jwt_jwks_url: str
 
     # Object Storage
-    objectstorage_endpoint: str | None = 'http://object-storage:9000'
+    objectstorage_endpoint: str
     objectstorage_namespace: str | None = None
-    objectstorage_bucket: str | None = None
-
-    # Credenciais utilizadas apenas no ambiente de desenvolvimento
+    
+    # Credenciais do Object Storage utilizadas apenas no ambiente 
+    # de desenvolvimento.
     objectstorage_access_key: str | None = None
     objectstorage_secret_key: str | None = None
+
+    # Object Storage Bucket para as imagens das pizzas.
+    objectstorage_bucket: str
 
     # Logging
     log_level: str = 'INFO'

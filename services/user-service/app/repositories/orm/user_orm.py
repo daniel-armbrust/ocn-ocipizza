@@ -62,6 +62,13 @@ class UserORM(Base):
         comment='Indica se o usuário possui privilégios administrativos.'
     )
 
+    is_kitchen = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        comment='Indica se o usuário possui acesso às funcionalidades da cozinha.'
+    )
+
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,

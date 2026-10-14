@@ -23,6 +23,7 @@ class User:
     email: str
     confirmed: bool
     is_admin: bool
+    is_kitchen: bool
     whatsapp: str
     password_hash: str
     created_at: datetime

@@ -12,7 +12,8 @@ APPLICATION_SERVICES := \
 	delivery-service \
 	order-service \
 	notification-service \
-	frontend-service
+	frontend-service \
+	admin-service
 
 BOOTSTRAP_SCRIPTS := $(wildcard services/*/bootstrap.sh)
 

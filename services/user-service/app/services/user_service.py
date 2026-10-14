@@ -139,6 +139,7 @@ class UserService:
                 ),
                 confirmed=False,
                 is_admin=False,
+                is_kitchen=False,
                 created_at=now,
                 updated_at=now
             )
@@ -364,6 +365,7 @@ class UserService:
                 email: str | None = None,
                 confirmed: bool | None = None,
                 is_admin: bool | None = None,
+                is_kitchen: bool | None = None,
                 limit: int = 50,
                 offset: int = 0) -> list[User]:
         """
@@ -373,6 +375,8 @@ class UserService:
             email: Parte do endereço de e-mail utilizada como filtro.
             confirmed: Filtra usuários de acordo com o estado de confirmação.
             is_admin: Filtra usuários de acordo com o privilégio administrativo.
+            is_kitchen: Filtra usuários de acordo com o acesso às funcionalidades 
+                da cozinha.
             limit: Quantidade máxima de usuários retornados.
             offset: Quantidade de registros ignorados antes do retorno.
 
@@ -388,6 +392,7 @@ class UserService:
                 email=email,
                 confirmed=confirmed,
                 is_admin=is_admin,
+                is_kitchen=is_kitchen,
                 limit=limit,
                 offset=offset
             )

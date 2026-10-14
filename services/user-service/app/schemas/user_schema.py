@@ -32,11 +32,13 @@ class UserResponse(BaseModel):
     Representa os dados de um usuário retornados pela API.
 
     Attributes:
-        id: Identificador único do usuário.
-        full_name: Nome completo do usuário.
-        email: Endereço de e-mail cadastrado.
-        whatsapp: Número de WhatsApp cadastrado.
-        confirmed: Indica se o endereço de e-mail do usuário foi confirmado.
+        id: Identificador único do usuário. 
+        full_name: Nome completo do usuário. 
+        email: Endereço de e-mail cadastrado. 
+        whatsapp: Número de WhatsApp cadastrado. 
+        confirmed: Indica se o endereço de e-mail do usuário foi confirmado. 
+        is_admin: Indica se o usuário possui privilégios administrativos. 
+        is_kitchen: Indica se o usuário possui acesso às funcionalidades da cozinha.
         created_at: Data e hora de criação do usuário em UTC.
         updated_at: Data e hora da última atualização do usuário em UTC.
     """
@@ -46,6 +48,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     confirmed: bool
     is_admin: bool
+    is_kitchen: bool
     whatsapp: str = Field(min_length=11, max_length=11)
     created_at: datetime
     updated_at: datetime
@@ -68,6 +71,7 @@ class UserResponse(BaseModel):
             email=user.email,
             confirmed=user.confirmed,
             is_admin=user.is_admin,
+            is_kitchen=user.is_kitchen,
             whatsapp=user.whatsapp,
             created_at=user.created_at,
             updated_at=user.updated_at

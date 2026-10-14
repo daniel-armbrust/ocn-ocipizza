@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     # JWT
     jwt_issuer: str = 'user-service'
     jwt_audience: str = 'ocipizza'
-    jwt_jwks_url: str = 'http://user-service:8000/.well-known/jwks.json'
+    jwt_jwks_url: str
 
     # Logging
     log_level: str = 'INFO'

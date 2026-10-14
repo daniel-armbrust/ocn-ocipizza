@@ -102,6 +102,7 @@ class UserServiceAdmin:
                 ),
                 confirmed=payload.confirmed,
                 is_admin=payload.is_admin,
+                is_kitchen=payload.is_kitchen,
                 created_at=now,
                 updated_at=now
             )
@@ -167,6 +168,7 @@ class UserServiceAdmin:
         user.whatsapp = payload.whatsapp
         user.confirmed = payload.confirmed
         user.is_admin = payload.is_admin
+        user.is_kitchen = payload.is_kitchen
         user.updated_at = now_utc()
 
         try:
@@ -268,6 +270,7 @@ class UserServiceAdmin:
                 email: str | None = None,
                 confirmed: bool | None = None,
                 is_admin: bool | None = None,
+                is_kitchen: bool | None = None,
                 limit: int = 50,
                 offset: int = 0) -> list[User]:
         """
@@ -277,6 +280,8 @@ class UserServiceAdmin:
             email: Parte do endereço de e-mail utilizada como filtro.
             confirmed: Filtra pelo estado de confirmação.
             is_admin: Filtra pelo privilégio administrativo.
+            is_kitchen: Filtra usuários de acordo com o acesso às 
+                funcionalidades da cozinha.
             limit: Quantidade máxima de usuários retornados.
             offset: Quantidade de registros ignorados.
 
@@ -292,6 +297,7 @@ class UserServiceAdmin:
                 email=email,
                 confirmed=confirmed,
                 is_admin=is_admin,
+                is_kitchen=is_kitchen,
                 limit=limit,
                 offset=offset
             )

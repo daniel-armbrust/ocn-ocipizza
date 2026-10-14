@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Página não encontrada | OCI Pizza Admin{% endblock %}
+
+{% block content %}
+<section class="error-page" aria-labelledby="error-title">
+    <header class="error-brand">
+        <img
+            src="{{ url_for('static', path='img/admin-mark.svg') }}"
+            alt=""
+            width="44"
+            height="44"
+        >
+        <div>
+            <strong>OCI Pizza</strong>
+            <span>Centro de operações</span>
+        </div>
+    </header>
+
+    <div class="error-panel">
+        <div class="error-code" aria-hidden="true">404</div>
+        <div class="error-copy">
+            <p class="eyebrow">Rota não localizada</p>
+            <h1 id="error-title">Esta área não está disponível.</h1>
+            <p>
+                O endereço informado pode ter sido alterado ou não fazer
+                parte do seu fluxo operacional.
+            </p>
+            <a class="primary-button error-button" href="/users/login">
+                <span>Voltar ao acesso</span>
+                <span aria-hidden="true">→</span>
+            </a>
+        </div>
+    </div>
+
+    <footer class="error-footer">
+        <span class="status-dot" aria-hidden="true"></span>
+        Painel administrativo OCI Pizza
+    </footer>
+</section>
+{% endblock %}

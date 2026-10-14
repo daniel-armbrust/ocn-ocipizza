@@ -20,12 +20,10 @@ from app.dependencies.templates import templates
 from app.dependencies.authentication import load_authentication_context
 from app.exceptions.user_auth_exceptions import AuthenticationRequiredError
 
-from app.routes import (
-    pizza_routes,
-    user_routes,
-    user_auth_routes,
-    cart_routes
-)
+from app.routes.pizza_routes import router as pizza_router
+from app.routes.user_auth_routes import router as user_auth_router
+from app.routes.user_routes import router as user_router
+from app.routes.cart_routes import router as cart_router
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -262,8 +260,8 @@ def root(request: Request) -> RedirectResponse:
     """
 
     return RedirectResponse(
-        url=request.url_for('list_all_pizzas'),
-        status_code=307
+        url='/pizzas',
+        status_code=status.HTTP_303_SEE_OTHER
     )
 
 @app.get('/health')
@@ -281,13 +279,13 @@ def health_check() -> dict:
     }
 
 # Rotas responsáveis pelo cadastro e gerenciamento dos usuários.
-app.include_router(user_routes.router)
+app.include_router(user_router)
 
 # Rotas responsáveis pelos fluxos de autenticação dos usuários.
-app.include_router(user_auth_routes.router)
+app.include_router(user_auth_router)
 
 # Rotas responsáveis pela consulta e interação com as pizzas.
-app.include_router(pizza_routes.router)
+app.include_router(pizza_router)
 
 # Rotas responsáveis pelo gerenciamento do carrinho de compras.
-app.include_router(cart_routes.router)
+app.include_router(cart_router)

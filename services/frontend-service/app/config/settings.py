@@ -31,7 +31,9 @@ class Settings(BaseSettings):
     database_url: str | None = None
 
     # Redis
-    redis_endpoint: str | None = None
+    redis_endpoint: str
+    redis_user: str | None = None
+    redis_password: str | None = None
 
     # Nome do cookie utilizado para identificar o cookie de
     # sessão.
@@ -39,7 +41,7 @@ class Settings(BaseSettings):
 
     # Tempo máximo de vida da sessão do frontend-service, 
     # em segundos.
-    session_ttl: int = 86400
+    session_ttl: int = 3600
 
     # Chaves utilizadas pelas sessões internas e pela proteção CSRF
     # mantidas pelo frontend-service.

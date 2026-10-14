@@ -2,8 +2,6 @@
 # dependencies/authentication.py
 #
 
-# app/dependencies/authentication.py
-
 from fastapi import Depends, Request
 
 from app.config.settings import settings

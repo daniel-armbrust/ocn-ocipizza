@@ -60,6 +60,7 @@ class SqlAlchemyUserRepository(UserRepository):
             password_hash=user.password_hash,
             confirmed=user.confirmed,
             is_admin=user.is_admin,
+            is_kitchen=user.is_kitchen,
             created_at=user.created_at,
             updated_at=user.updated_at
         )
@@ -158,6 +159,7 @@ class SqlAlchemyUserRepository(UserRepository):
                 email: str | None = None,
                 confirmed: bool | None = None,
                 is_admin: bool | None = None,
+                is_kitchen: bool | None = None,
                 limit: int = 50,
                 offset: int = 0) -> list[User]:
         """
@@ -188,6 +190,9 @@ class SqlAlchemyUserRepository(UserRepository):
         # Filtro pelo privilégio administrativo.
         if is_admin is not None:
             query = query.where(UserORM.is_admin == is_admin)
+
+        if is_kitchen is not None:
+            query = query.where(UserORM.is_kitchen == is_kitchen)
 
         # Ordena os usuários do mais recente para o mais antigo e aplica
         # paginação através de offset e limit.
@@ -241,6 +246,7 @@ class SqlAlchemyUserRepository(UserRepository):
         orm_user.password_hash = user.password_hash
         orm_user.confirmed = user.confirmed
         orm_user.is_admin = user.is_admin
+        orm_user.is_kitchen = user.is_kitchen
         orm_user.updated_at = user.updated_at
 
         try:
@@ -298,6 +304,7 @@ class SqlAlchemyUserRepository(UserRepository):
             password_hash=orm_user.password_hash,
             confirmed=orm_user.confirmed,
             is_admin=orm_user.is_admin,
+            is_kitchen=orm_user.is_kitchen,
             created_at=orm_user.created_at,
             updated_at=orm_user.updated_at
         )

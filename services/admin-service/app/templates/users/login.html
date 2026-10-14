@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Acesso administrativo | OCI Pizza{% endblock %}
+
+{% block content %}
+<div class="auth-shell">
+    <section class="auth-context" aria-labelledby="admin-context-title">
+        <header class="admin-brand">
+            <img
+                src="{{ url_for('static', path='img/admin-mark.svg') }}"
+                alt=""
+                width="52"
+                height="52"
+            >
+            <div>
+                <strong>OCI Pizza</strong>
+                <span>Centro de operações</span>
+            </div>
+        </header>
+
+        <div class="context-copy">
+            <p class="eyebrow">Operação em tempo real</p>
+            <h1 id="admin-context-title">Controle a operação de um só lugar.</h1>
+            <p class="context-description">
+                Acompanhe pedidos, organize a produção da cozinha e monitore
+                os serviços que mantêm a OCI Pizza funcionando.
+            </p>
+
+            <ul class="capability-list" aria-label="Recursos do painel">
+                <li>
+                    <span class="capability-icon" aria-hidden="true">01</span>
+                    <span><strong>Pedidos e cozinha</strong>Fluxo operacional do recebimento à entrega.</span>
+                </li>
+                <li>
+                    <span class="capability-icon" aria-hidden="true">02</span>
+                    <span><strong>Gestão administrativa</strong>Usuários, cardápio e áreas de entrega.</span>
+                </li>
+                <li>
+                    <span class="capability-icon" aria-hidden="true">03</span>
+                    <span><strong>Saúde da plataforma</strong>Status dos microsserviços e recursos OCI.</span>
+                </li>
+            </ul>
+        </div>
+
+        <footer class="context-footer">
+            <span class="status-dot" aria-hidden="true"></span>
+            Ambiente administrativo protegido
+        </footer>
+    </section>
+
+    <section class="auth-access" aria-labelledby="login-title">
+        <div class="access-panel">
+            <div class="access-heading">
+                <p class="eyebrow">Acesso restrito</p>
+                <h2 id="login-title">Bem-vindo ao painel</h2>
+                <p>Entre com sua conta administrativa ou da equipe de cozinha.</p>
+            </div>
+
+            {% if message %}
+            <div class="alert alert-{{ type | default('error', true) }}" role="alert">
+                <span aria-hidden="true">!</span>
+                <p>{{ message }}</p>
+            </div>
+            {% endif %}
+
+            <form method="post" action="/users/login" class="auth-form" data-login-form novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+
+                <div class="field-group">
+                    {{ form.email.label(class_='field-label') }}
+                    {{ form.email(
+                        class_='field-input',
+                        placeholder='nome@ocipizza.com',
+                        inputmode='email',
+                        autofocus=true
+                    ) }}
+                    <small class="field-hint">Use o e-mail vinculado ao seu perfil de acesso.</small>
+                    {% if form.email.errors %}
+                    <small class="field-error">{{ form.email.errors | first }}</small>
+                    {% endif %}
+                </div>
+
+                <div class="field-group">
+                    <div class="field-label-row">
+                        {{ form.password.label(class_='field-label') }}
+                    </div>
+                    <div class="password-control">
+                        {{ form.password(
+                            class_='field-input',
+                            placeholder='Digite sua senha'
+                        ) }}
+                        <button
+                            class="password-toggle"
+                            type="button"
+                            aria-label="Mostrar senha"
+                            aria-pressed="false"
+                            data-password-toggle
+                        >
+                            Mostrar
+                        </button>
+                    </div>
+                    {% if form.password.errors %}
+                    <small class="field-error">{{ form.password.errors | first }}</small>
+                    {% endif %}
+                </div>
+
+                <button class="primary-button" type="submit">
+                    <span>Acessar painel</span>
+                    <span aria-hidden="true">→</span>
+                </button>
+            </form>
+
+            <div class="access-notice">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3 5 6v5c0 4.8 2.9 8.2 7 10 4.1-1.8 7-5.2 7-10V6l-7-3Zm0 2.2L17 7v4c0 3.7-2 6.4-5 7.9-3-1.5-5-4.2-5-7.9V7l5-1.8Zm-1 3.3h2v5h-2v-5Zm0 6.5h2v2h-2v-2Z"/>
+                </svg>
+                <p>O acesso é registrado e monitorado para proteger a operação.</p>
+            </div>
+        </div>
+
+        <footer class="access-footer">
+            <span>© <span data-current-year></span> OCI Pizza</span>
+            <span>Admin Service</span>
+        </footer>
+    </section>
+</div>
+{% endblock %}

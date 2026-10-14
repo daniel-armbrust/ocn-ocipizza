@@ -151,7 +151,8 @@ class UserAuthenticationService:
             access_token, expires_in = (
                 self.jwt_service.create_access_token(
                     user_id=user.id,
-                    is_admin=user.is_admin
+                    is_admin=user.is_admin,
+                    is_kitchen=user.is_kitchen
                 )
             )
 
@@ -169,7 +170,9 @@ class UserAuthenticationService:
                 user_id=user.id,
                 token_hash=refresh_token_hash,
                 created_at=now,
-                expires_at=(now + timedelta(days=self.refresh_token_expiration_days))
+                expires_at=(
+                    now + timedelta(days=self.refresh_token_expiration_days)
+                )
             )
 
             # Persiste somente o hash do refresh token.

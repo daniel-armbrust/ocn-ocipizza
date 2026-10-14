@@ -4,7 +4,7 @@
 
 USER_MESSAGES = {
     'USER_AUTHENTICATION_SUCCESS': {
-        'message': 'Obbaaa!!! É hora de pedir PIZZA',
+        'message': 'Obbaaa!!! É hora de pedir PIZZA!!!',
         'type': 'success'
     },
     'USER_CONFIRMATION_SENT': {

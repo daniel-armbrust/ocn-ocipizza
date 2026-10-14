@@ -57,7 +57,10 @@ class JwtService:
         self.audience = audience
         self.access_token_expiration_minutes = access_token_expiration_minutes
 
-    def create_access_token(self, user_id: UUID, is_admin: bool) -> tuple[str, int]:
+    def create_access_token(self, 
+                            user_id: UUID, 
+                            is_admin: bool,
+                            is_kitchen: bool) -> tuple[str, int]:
         """
         Cria um access token JWT para um usuário autenticado.
 
@@ -65,6 +68,8 @@ class JwtService:
             user_id: Identificador UUID do usuário.
             is_admin: Indica se o usuário possui privilégios
                 administrativos.
+            is_kitchen: Indica se o usuário possui acesso às 
+                funcionalidades da cozinha.
 
         Returns:
             Tupla contendo o access token JWT e seu tempo de validade,
@@ -78,13 +83,16 @@ class JwtService:
 
         now = now_utc()
 
-        expires_at = now + timedelta(minutes=self.access_token_expiration_minutes)
+        expires_at = now + timedelta(
+            minutes=self.access_token_expiration_minutes
+        )
 
         # Claims utilizadas para identificar o usuário e controlar
         # a validade e o contexto de utilização do token.
         payload = {
             'sub': str(user_id),
             'is_admin': is_admin,
+            'is_kitchen': is_kitchen,
             'iss': self.issuer,
             'aud': self.audience,
             'iat': now,

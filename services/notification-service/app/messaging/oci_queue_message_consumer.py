@@ -4,7 +4,8 @@
 
 import json
 
-import oci
+from oci.auth.signers import InstancePrincipalsSecurityTokenSigner
+from oci.queue import QueueClient
 
 from app.messaging.exceptions import MessageConsumeError
 from app.messaging.message_consumer import MessageConsumer
@@ -29,7 +30,7 @@ class OCIQueueMessageConsumer(MessageConsumer):
         self.queue_id = queue_id
         self.messages_endpoint = messages_endpoint
         self.region = region
-        self._client: oci.queue.QueueClient | None = None
+        self._client: QueueClient | None = None
 
     def receive(self) -> list[dict]:
         """
@@ -106,7 +107,7 @@ class OCIQueueMessageConsumer(MessageConsumer):
                 'Unable to delete message from OCI Queue.'
             ) from ex
 
-    def _get_client(self) -> oci.queue.QueueClient:
+    def _get_client(self) -> QueueClient:
         """
         Cria o client OCI Queue autenticado por Instance Principal.
 
@@ -115,11 +116,9 @@ class OCIQueueMessageConsumer(MessageConsumer):
         """
 
         if self._client is None:
-            signer = (
-                oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
-            )
+            signer = InstancePrincipalsSecurityTokenSigner()
             
-            self._client = oci.queue.QueueClient(
+            self._client = QueueClient(
                 config={'region': self.region},
                 signer=signer,
                 service_endpoint=self.messages_endpoint

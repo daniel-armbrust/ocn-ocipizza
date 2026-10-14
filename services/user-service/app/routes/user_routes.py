@@ -239,6 +239,7 @@ def list_users(
     email: str | None = None,
     confirmed: bool | None = None,
     is_admin: bool | None = None,
+    is_kitchen: bool | None = None,
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     _: UUID = Depends(get_current_admin_id),
@@ -253,6 +254,8 @@ def list_users(
         email: Parte do endereço de e-mail utilizada como filtro.
         confirmed: Filtra usuários de acordo com o estado de confirmação.
         is_admin: Filtra usuários de acordo com o privilégio administrativo.
+        is_kitchen: Filtra usuários de acordo com o acesso às funcionalidades 
+            da cozinha.
         limit: Quantidade máxima de usuários retornados.
         offset: Quantidade de registros ignorados antes do retorno.
         service: Serviço responsável pelos casos de uso relacionados
@@ -267,6 +270,7 @@ def list_users(
             email=email,
             confirmed=confirmed,
             is_admin=is_admin,
+            is_kitchen=is_kitchen,
             limit=limit,
             offset=offset
         )

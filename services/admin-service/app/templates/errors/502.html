@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Falha de comunicação | OCI Pizza Admin{% endblock %}
+
+{% block content %}
+<section class="error-page" aria-labelledby="error-title">
+    <header class="error-brand">
+        <img
+            src="{{ url_for('static', path='img/admin-mark.svg') }}"
+            alt=""
+            width="44"
+            height="44"
+        >
+        <div>
+            <strong>OCI Pizza</strong>
+            <span>Centro de operações</span>
+        </div>
+    </header>
+
+    <div class="error-panel">
+        <div class="error-code" aria-hidden="true">502</div>
+        <div class="error-copy">
+            <p class="eyebrow">Resposta inesperada</p>
+            <h1 id="error-title">Um serviço não respondeu como esperado.</h1>
+            <p>
+                A solicitação chegou ao painel, mas um dos serviços da
+                plataforma devolveu uma resposta inválida. Aguarde e tente novamente.
+            </p>
+            <div class="error-actions">
+                <a class="primary-button error-button" href="{{ retry_url | default('/users/login', true) }}">
+                    <span>Tentar novamente</span>
+                    <span aria-hidden="true">↻</span>
+                </a>
+                <a class="secondary-button" href="/users/login">Voltar ao acesso</a>
+            </div>
+        </div>
+    </div>
+
+    <footer class="error-footer">
+        <span class="status-dot status-dot-warning" aria-hidden="true"></span>
+        Comunicação entre serviços temporariamente afetada
+    </footer>
+</section>
+{% endblock %}

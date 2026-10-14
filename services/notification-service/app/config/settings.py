@@ -12,7 +12,7 @@ APP_DIR = Path(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
     """
-    Configurações utilizadas pelo order-service.
+    Configurações utilizadas pelo notification-service.
     """
 
     model_config = SettingsConfigDict(

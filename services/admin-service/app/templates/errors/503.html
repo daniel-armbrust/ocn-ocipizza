@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Serviço indisponível | OCI Pizza Admin{% endblock %}
+
+{% block content %}
+<section class="error-page" aria-labelledby="error-title">
+    <header class="error-brand">
+        <img
+            src="{{ url_for('static', path='img/admin-mark.svg') }}"
+            alt=""
+            width="44"
+            height="44"
+        >
+        <div>
+            <strong>OCI Pizza</strong>
+            <span>Centro de operações</span>
+        </div>
+    </header>
+
+    <div class="error-panel">
+        <div class="error-code" aria-hidden="true">503</div>
+        <div class="error-copy">
+            <p class="eyebrow">Serviço indisponível</p>
+            <h1 id="error-title">A conexão não está disponível agora.</h1>
+            <p>
+                Um serviço necessário para esta operação está temporariamente
+                inacessível. Aguarde alguns instantes antes de tentar novamente.
+            </p>
+            <div class="error-actions">
+                <a class="primary-button error-button" href="{{ retry_url | default('/users/login', true) }}">
+                    <span>Tentar novamente</span>
+                    <span aria-hidden="true">↻</span>
+                </a>
+                <a class="secondary-button" href="/users/login">Voltar ao acesso</a>
+            </div>
+        </div>
+    </div>
+
+    <footer class="error-footer">
+        <span class="status-dot status-dot-warning" aria-hidden="true"></span>
+        Disponibilidade da plataforma em verificação
+    </footer>
+</section>
+{% endblock %}

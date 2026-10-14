@@ -231,6 +231,57 @@ services:
       redis:
         condition: service_healthy
 
+  # Microserviço responsável pela interface administrativa 
+  # da aplicação.
+  admin-service:
+    container_name: ocipizza-admin-service
+    build:
+      context: ./services/admin-service
+      dockerfile: Dockerfile
+    ports:
+      - "8006:8000"
+    networks:
+      - ocipizza-network
+    environment:
+        APP_ENV: development
+        LOG_LEVEL: INFO
+
+        REDIS_ENDPOINT: redis://redis:6379/1
+
+        SESSION_SECRET_KEY: "!!!Sup3rS3cr3t0!!!"
+        CSRF_SECRET_KEY: "!!!Sup3rS3cr3t0!!!"
+
+        PIZZA_SERVICE_URL: http://pizza-service:8000
+        USER_SERVICE_URL: http://user-service:8000
+        DELIVERY_SERVICE_URL: http://delivery-service:8000
+        ORDER_SERVICE_URL: http://order-service:8000
+        NOTIFICATION_SERVICE_URL: http://notification-service:8000
+
+        JWT_ISSUER: user-service
+        JWT_AUDIENCE: ocipizza
+        JWT_JWKS_URL: http://user-service:8000/.well-known/jwks.json
+
+        OBJECTSTORAGE_ENDPOINT: http://object-storage:9000
+        OBJECTSTORAGE_ACCESS_KEY: minioadmin
+        OBJECTSTORAGE_SECRET_KEY: minioadmin
+
+        PIZZA_IMAGES_OBJECTSTORAGE_BUCKET: pizza-images
+    depends_on:
+      pizza-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+      delivery-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      object-storage:
+        condition: service_started
+
   # Banco de dados NoSQL utilizado pelos serviços da 
   # aplicação que necessitam de persistência orientada 
   # a documentos/chave-valor.

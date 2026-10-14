@@ -244,8 +244,8 @@ Durante a execução, o `bootstrap.sh`:
 9. Inicializa e configura o Alembic quando sua estrutura ainda não existe
 10. Gera a migration inicial caso `alembic/versions` não contenha migrations
 11. Executa `alembic upgrade head` para atualizar o schema do banco
-12. Cria os usuários de demonstração e o administrador local que ainda não
-    estiverem cadastrados
+12. Cria os usuários de demonstração, o administrador local e os usuários da
+    cozinha que ainda não estiverem cadastrados
 
 <!-- TODO: Incluir no bootstrap a preparação dos recursos de persistência do
 user-service no OCI NoSQL e a carga dos usuários de demonstração quando esse
@@ -342,12 +342,15 @@ Os registros enviados ao OCI Logging identificam o `user-service` como origem.
 
 O bootstrap inclui os seguintes usuários para demonstrações e testes locais:
 
-| Nome | E-mail | E-mail confirmado | Administrador | Senha local |
-| --- | --- | --- | --- | --- |
-| Administrador | `admin@ocipizza.com.br` | Sim | Sim | `AdminPassword123!` |
-| Maria Oliveira | `maria.oliveira@example.com` | Sim | Não | `DemoPassword123!` |
-| Joao Silva | `joao.silva@example.com` | Não | Não | `DemoPassword123!` |
-| Rita de Cássia | `rita.cassia@example.com` | Sim | Não | `DemoPassword123!` |
+| Nome | E-mail | E-mail confirmado | Administrador | Cozinha | Senha local |
+| --- | --- | --- | --- | --- | --- |
+| Administrador | `admin@ocipizza.com.br` | Sim | Sim | Não | `AdminPassword123!` |
+| Maria Oliveira | `maria.oliveira@example.com` | Sim | Não | Não | `DemoPassword123!` |
+| Joao Silva | `joao.silva@example.com` | Não | Não | Não | `DemoPassword123!` |
+| Rita de Cássia | `rita.cassia@example.com` | Sim | Não | Não | `DemoPassword123!` |
+| Alice Picanha | `ali@ocipizza.com.br` | Sim | Não | Sim | `KitchenPassword123!` |
+| João Neto | `j.neto@ocipizza.com.br` | Não | Não | Sim | `KitchenPassword123!` |
+| Mali Camargo | `mali@ocipizza.com.br` | Sim | Não | Sim | `KitchenPassword123!` |
 
 As senhas são persistidas como hash, usando o mesmo serviço de senha da
 aplicação.
@@ -691,6 +694,13 @@ enviado no cabeçalho `Authorization` das operações autenticadas:
 Authorization: Bearer <access_token>
 ```
 
+Além da claim `sub`, que identifica o usuário, o access token inclui as claims
+booleanas `is_admin` e `is_kitchen`. A claim `is_admin` identifica contas com
+privilégios administrativos; `is_kitchen` identifica contas autorizadas a
+utilizar as funcionalidades operacionais da cozinha. Os serviços consumidores
+devem validar a assinatura, o emissor e a audiência do token antes de utilizar
+essas claims para autorização.
+
 O `refresh_token` permite solicitar futuramente um novo access token sem
 informar novamente o e-mail e a senha. Ele não deve ser enviado no cabeçalho
 das requisições autenticadas nem exposto em logs.
@@ -908,8 +918,9 @@ serviços para validar a assinatura dos access tokens emitidos pelo
 As operações administrativas permitem gerenciar qualquer usuário da
 aplicação, tanto contas administrativas quanto contas sem privilégios
 administrativos. Todas exigem um access token JWT cuja claim `is_admin` possua
-o valor `true`. O campo ou filtro `is_admin` determina o tipo da conta que será
-criada, atualizada ou consultada.
+o valor `true`. Os campos e filtros `is_admin` e `is_kitchen` determinam os
+perfis de acesso da conta criada, atualizada ou consultada. A claim
+`is_kitchen` não concede acesso às operações administrativas.
 
 #### Administração de usuários
 
@@ -942,7 +953,8 @@ curl --request POST \
     "whatsapp": "11955555555",
     "password": "LocalPassword123!",
     "confirmed": true,
-    "is_admin": false
+    "is_admin": false,
+    "is_kitchen": true
   }'
 ```
 
@@ -954,6 +966,7 @@ curl --request POST \
 | `password` | Senha inicial do usuário. |
 | `confirmed` | Indica se o e-mail deve ser criado como confirmado; o padrão é `false`. |
 | `is_admin` | Indica se o usuário possuirá privilégios administrativos; o padrão é `false`. |
+| `is_kitchen` | Indica se o usuário possuirá acesso às funcionalidades da cozinha; o padrão é `false`. |
 
 Quando `confirmed` for `false`, o serviço inicia o fluxo de envio do e-mail de
 confirmação. A criação retorna `201 Created`; e-mail ou WhatsApp duplicado
@@ -963,21 +976,22 @@ resulta em `409 Conflict`.
 
 ```bash
 curl --request GET \
-  --url 'http://localhost:8002/admin/users?email=example.com&confirmed=true&is_admin=false&limit=50&offset=0' \
+  --url 'http://localhost:8002/admin/users?email=example.com&confirmed=true&is_admin=false&is_kitchen=true&limit=50&offset=0' \
   --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
   --header 'Accept: application/json'
 ```
 
-Os filtros `email`, `confirmed` e `is_admin` são opcionais. `limit` possui o
-valor padrão `50` e `offset`, o valor padrão `0`. A resposta `200 OK` retorna
-os registros no campo `data.users`, ordenados do mais recente para o mais
-antigo.
+Os filtros `email`, `confirmed`, `is_admin` e `is_kitchen` são opcionais.
+`limit` possui o valor padrão `50` e `offset`, o valor padrão `0`. A resposta
+`200 OK` retorna os registros no campo `data.users`, ordenados do mais recente
+para o mais antigo.
 
 | Campo | Descrição |
 | --- | --- |
 | `email` | Filtra por parte do endereço de e-mail, sem diferenciar letras maiúsculas e minúsculas. |
 | `confirmed` | Filtra pelo estado de confirmação do e-mail; aceita `true` ou `false`. |
 | `is_admin` | Filtra pela presença de privilégios administrativos; aceita `true` ou `false`. |
+| `is_kitchen` | Filtra pelo acesso às funcionalidades da cozinha; aceita `true` ou `false`. |
 | `limit` | Define a quantidade máxima de usuários retornados; o padrão é `50`. |
 | `offset` | Define a quantidade de registros ignorados antes do retorno; o padrão é `0`. |
 
@@ -989,15 +1003,15 @@ prefixo `/admin`:
 
 ```bash
 curl --request GET \
-  --url 'http://localhost:8002/users?email=example.com&confirmed=true&is_admin=false&limit=50&offset=0' \
+  --url 'http://localhost:8002/users?email=example.com&confirmed=true&is_admin=false&is_kitchen=true&limit=50&offset=0' \
   --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
   --header 'Accept: application/json'
 ```
 
-Os parâmetros `email`, `confirmed`, `is_admin`, `limit` e `offset` possuem o
-mesmo comportamento descrito para `GET /admin/users`. A resposta `200 OK`
-retorna os registros em `data.users`; quando nenhum registro atender aos
-filtros, esse campo será uma lista vazia.
+Os parâmetros `email`, `confirmed`, `is_admin`, `is_kitchen`, `limit` e `offset`
+possuem o mesmo comportamento descrito para `GET /admin/users`. A resposta
+`200 OK` retorna os registros em `data.users`; quando nenhum registro atender
+aos filtros, esse campo será uma lista vazia.
 
 ##### Consultar um usuário
 
@@ -1028,14 +1042,15 @@ curl --request PUT \
     "email": "juliana.martins@example.com",
     "whatsapp": "11944444444",
     "confirmed": true,
-    "is_admin": false
+    "is_admin": false,
+    "is_kitchen": true
   }'
 ```
 
 Todos os campos do payload são obrigatórios. A operação permite alterar nome,
-e-mail, WhatsApp, estado de confirmação e privilégio administrativo. A resposta
-de sucesso é `200 OK`; usuário inexistente resulta em `404 Not Found` e e-mail
-ou WhatsApp duplicado resulta em `409 Conflict`.
+e-mail, WhatsApp, estado de confirmação, privilégio administrativo e acesso à
+cozinha. A resposta de sucesso é `200 OK`; usuário inexistente resulta em
+`404 Not Found` e e-mail ou WhatsApp duplicado resulta em `409 Conflict`.
 
 | Campo | Descrição |
 | --- | --- |
@@ -1045,6 +1060,7 @@ ou WhatsApp duplicado resulta em `409 Conflict`.
 | `whatsapp` | Número de WhatsApp único do usuário. |
 | `confirmed` | Indica se o endereço de e-mail do usuário está confirmado. |
 | `is_admin` | Indica se o usuário possui privilégios administrativos. |
+| `is_kitchen` | Indica se o usuário possui acesso às funcionalidades da cozinha. |
 
 ##### Definir a senha de um usuário
 

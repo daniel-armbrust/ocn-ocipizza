@@ -4,7 +4,12 @@
 
 import json
 
-import oci
+from oci.auth.signers import InstancePrincipalsSecurityTokenSigner
+from oci.queue import QueueClient
+from oci.queue.models import (
+    PutMessagesDetails,
+    PutMessagesDetailsEntry
+)
 
 from app.messaging.exceptions import MessagePublishError
 from app.messaging.message_publisher import MessagePublisher
@@ -31,7 +36,7 @@ class OCIQueueMessagePublisher(MessagePublisher):
         self.queue_id = queue_id
         self.messages_endpoint = messages_endpoint
         self.region = region
-        self._client: oci.queue.QueueClient | None = None
+        self._client: QueueClient | None = None
 
     def publish(self, payload: dict) -> None:
         """
@@ -55,14 +60,14 @@ class OCIQueueMessagePublisher(MessagePublisher):
             # Representa uma mensagem individual que será publicada na fila.
             # O conteúdo deve ser uma string, por isso o payload foi
             # previamente serializado para JSON.
-            message = oci.queue.models.PutMessagesDetailsEntry(
+            message = PutMessagesDetailsEntry(
                 content=content
             )
 
             # Agrupa as mensagens no formato esperado pela operação
             # put_messages. A API utiliza uma lista para permitir que uma
             # única requisição publique uma ou várias mensagens.
-            messages = oci.queue.models.PutMessagesDetails(
+            messages = PutMessagesDetails(
                 messages=[message]
             )
 
@@ -79,7 +84,7 @@ class OCIQueueMessagePublisher(MessagePublisher):
                 'Unable to publish message to OCI Queue.'
             ) from ex
 
-    def _get_client(self) -> oci.queue.QueueClient:
+    def _get_client(self) -> QueueClient:
         """
         Cria o client OCI Queue autenticado por Instance Principal.
 
@@ -88,11 +93,9 @@ class OCIQueueMessagePublisher(MessagePublisher):
         """
 
         if self._client is None:
-            signer = (
-                oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
-            )
+            signer = InstancePrincipalsSecurityTokenSigner()
             
-            self._client = oci.queue.QueueClient(
+            self._client = QueueClient(
                 config={'region': self.region},
                 signer=signer,
                 service_endpoint=self.messages_endpoint,
