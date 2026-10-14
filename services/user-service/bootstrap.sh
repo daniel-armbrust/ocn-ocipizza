@@ -189,7 +189,7 @@ QUEUE_NAME=notifications-queue
 
 # JWT
 JWT_ISSUER=user-service
-JWT_AUDIENCE=oci-pizza
+JWT_AUDIENCE=ocipizza
 EOF
 
 else

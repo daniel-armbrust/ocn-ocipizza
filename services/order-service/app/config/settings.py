@@ -35,6 +35,20 @@ class Settings(BaseSettings):
     # SQLAlchemy
     database_url: str | None = None
 
+    # Mensageria
+    messaging_provider: str
+    queue_name: str = 'notifications-queue'
+
+    # RabbitMQ
+    rabbitmq_host: str | None = None
+    rabbitmq_port: int | None = None
+    rabbitmq_username: str | None = None
+    rabbitmq_password: str | None = None
+        
+    # OCI Queue
+    oci_queue_id: str | None = None
+    oci_queue_messages_endpoint: str | None = None
+
     # Timeout padrão utilizado nas chamadas HTTP realizadas 
     # aos microserviços.
     http_client_timeout: float = 10.0
@@ -43,10 +57,6 @@ class Settings(BaseSettings):
     jwt_issuer: str = 'user-service'
     jwt_audience: str = 'ocipizza'
     jwt_jwks_url: str = 'http://user-service:8000/.well-known/jwks.json'
-
-    # Credenciais utilizadas apenas no ambiente de desenvolvimento
-    objectstorage_access_key: str | None = None
-    objectstorage_secret_key: str | None = None
 
     # Logging
     log_level: str = 'INFO'

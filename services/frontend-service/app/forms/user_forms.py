@@ -2,8 +2,15 @@
 # forms/user_forms.py
 #
 
-from wtforms import BooleanField, Form, StringField
-from wtforms.validators import AnyOf, DataRequired, Length, Optional, Regexp
+from wtforms import BooleanField, EmailField, Form, StringField
+from wtforms.validators import (
+    AnyOf,
+    DataRequired,
+    Email,
+    Length,
+    Optional,
+    Regexp
+)
 
 from app.utils.utils import (
     normalize_optional_string,
@@ -11,6 +18,24 @@ from app.utils.utils import (
     normalize_whatsapp,
     normalize_zip_code
 )
+
+
+class UserPasswordResetRequestForm(Form):
+    """
+    Define e valida o campo utilizado para solicitar a redefinição de senha.
+    """
+
+    email = EmailField(
+        'E-mail',
+        validators=[
+            DataRequired(message='Informe seu e-mail.'),
+            Email(message='Informe um endereço de e-mail válido.')
+        ],
+        render_kw={
+            'autocomplete': 'email',
+            'required': True
+        }
+    )
 
 
 class UserWhatsappUpdateForm(Form):

@@ -1613,6 +1613,10 @@ h1 {
     margin-top: 6px;
 }
 
+.login-card-link {
+    text-align: center;
+}
+
 .form-error {
     padding: 12px 14px;
     border: 1px solid rgb(185 20 29 / 24%);

@@ -61,9 +61,41 @@ encaminhados ao preparador e ao template do tipo selecionado.
 | Tipo | Estado | Dados específicos |
 | --- | --- | --- |
 | `USER_CONFIRMATION` | Implementado | `full_name` e `token`. |
+| `ORDER_RECEIVED` | Implementado | Dados do cliente, pedido, itens e valores. |
 
 Para `USER_CONFIRMATION`, o link enviado por e-mail é construído como
 `{SITE_URL}/users/confirm?token=...`.
+
+Para `ORDER_RECEIVED`, o e-mail informa que o pedido foi recebido, apresenta
+os itens e o resumo financeiro e avisa que o cliente será notificado quando as
+pizzas saírem para entrega.
+
+O contrato esperado para esse tipo é:
+
+```json
+{
+  "type": "ORDER_RECEIVED",
+  "recipient": "ana.laura@example.com",
+  "full_name": "Ana Laura",
+  "order_id": "93da1548-90ba-4b69-83e2-dfe4d42bcdb4",
+  "items": [
+    {
+      "name": "Margherita",
+      "quantity": 2,
+      "unit_price": "45.00",
+      "total": "90.00"
+    }
+  ],
+  "subtotal": "90.00",
+  "delivery_fee": "10.00",
+  "total": "100.00"
+}
+```
+
+`items` deve ser uma lista não vazia. Cada item deve conter `name`, `quantity`,
+`unit_price` e `total`. Os campos monetários `unit_price`, `items[].total`,
+`subtotal`, `delivery_fee` e `total` são recebidos como strings decimais com
+exatamente duas casas e renderizados no e-mail com o prefixo `R$`.
 
 <!-- TODO: Implementar e alinhar os identificadores, preparadores e templates
 de redefinição de senha e de pedido enviado. Atualmente USER_PASSWORD_RESET,
@@ -161,6 +193,18 @@ Com RabbitMQ e Mailpit disponíveis, execute:
 ```bash
 cd services/notification-service
 ./startdev.sh
+```
+
+O `startdev.sh` configura diretamente RabbitMQ e SMTP com Mailpit. Para manter
+uma configuração local própria ou selecionar outros providers, copie o arquivo
+de exemplo e inicie o Uvicorn sem o script:
+
+```bash
+cp .env.example .env
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8005 --reload
 ```
 
 O script utiliza RabbitMQ em `localhost:5672`, Mailpit em `localhost:1025`, a

@@ -18,7 +18,7 @@ export QUEUE_NAME="notifications-queue"
 
 export JWT_KEY_PROVIDER="local"
 export JWT_ISSUER="user-service"
-export JWT_AUDIENCE="oci-pizza"
+export JWT_AUDIENCE="ocipizza"
 export JWT_ACCESS_TOKEN_EXPIRATION_MINUTES="15"
 export JWT_PRIVATE_KEY_PATH="./secrets/jwt_private_key.pem"
 export JWT_PUBLIC_KEY_PATH="./secrets/jwt_public_key.pem"

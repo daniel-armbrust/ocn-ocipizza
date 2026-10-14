@@ -75,7 +75,7 @@ definidas em `requirements.txt`.
 | `OCI_REGION` | — | Região dos serviços OCI utilizados pela instância. |
 | `JWT_KEY_PROVIDER` | `local` | Provider das chaves JWT: `local` ou `oci`. |
 | `JWT_ISSUER` | `user-service` | Emissor incluído e esperado nos access tokens. |
-| `JWT_AUDIENCE` | `oci-pizza` | Audiência incluída e esperada nos access tokens. |
+| `JWT_AUDIENCE` | `ocipizza` | Audiência incluída e esperada nos access tokens. |
 | `JWT_ACCESS_TOKEN_EXPIRATION_MINUTES` | `15` | Validade do access token em minutos. |
 | `JWT_PRIVATE_KEY_PATH` | `/run/secrets/jwt_private_key.pem` | Caminho da chave privada RSA local. |
 | `JWT_PUBLIC_KEY_PATH` | `/run/secrets/jwt_public_key.pem` | Caminho da chave pública RSA local. |
@@ -259,7 +259,7 @@ Quando o `.env` não existe, o script o cria com:
 - Conexão local pela porta `13306` com o usuário `user_service`
 - Mensageria via RabbitMQ em `127.0.0.1:5672`
 - Fila de notificações chamada `notifications-queue`
-- Emissor JWT `user-service` e audiência `oci-pizza`
+- Emissor JWT `user-service` e audiência `ocipizza`
 
 <!-- TODO: Adicionar ao .env as configurações locais necessárias para selecionar
 e conectar o provider de persistência OCI NoSQL. -->

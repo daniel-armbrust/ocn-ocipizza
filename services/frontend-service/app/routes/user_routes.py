@@ -14,7 +14,11 @@ from starlette_wtf import csrf_protect
 
 from app.dependencies.authentication import get_authenticated_session
 from app.forms.user_auth_forms import UserRegisterForm
-from app.forms.user_forms import UserAddressForm, UserWhatsappUpdateForm
+from app.forms.user_forms import (
+    UserAddressForm,
+    UserPasswordResetRequestForm,
+    UserWhatsappUpdateForm
+)
 
 from app.dependencies.templates import templates
 
@@ -47,6 +51,30 @@ async def show_register_page(request: Request) -> HTMLResponse:
         request=request,
         name='users/register.html',
         context={'form': UserRegisterForm()}
+    )
+
+#
+# GET: /users/password-reset
+#
+@router.get(
+    '/users/password-reset',
+    response_class=HTMLResponse
+)
+async def show_password_reset_page(request: Request) -> HTMLResponse:
+    """
+    Exibe a página utilizada para solicitar a redefinição de senha.
+
+    Args:
+        request: Requisição HTTP recebida pelo frontend-service.
+
+    Returns:
+        Página HTML contendo o formulário de solicitação.
+    """
+
+    return templates.TemplateResponse(
+        request=request,
+        name='users/password_reset.html',
+        context={'form': UserPasswordResetRequestForm()}
     )
 
 #

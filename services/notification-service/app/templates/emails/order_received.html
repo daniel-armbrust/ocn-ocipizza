@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recebemos seu pedido</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f7f3ee; color: #2f241f; font-family: Arial, sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f7f3ee; padding: 24px 12px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 640px; background-color: #ffffff; border-radius: 16px; overflow: hidden;">
+                    <tr>
+                        <td style="background-color: #a52a2a; padding: 28px 32px; color: #ffffff;">
+                            <p style="margin: 0 0 8px; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">OCI Pizza</p>
+                            <h1 style="margin: 0; font-size: 28px; line-height: 1.2;">Recebemos seu pedido!</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 32px;">
+                            <p style="margin: 0 0 16px; font-size: 18px;">Olá, {{ full_name }}!</p>
+                            <p style="margin: 0 0 24px; line-height: 1.6;">
+                                Seu pedido foi recebido com sucesso. Já vamos começar o preparo das suas pizzas e avisaremos quando elas saírem para entrega.
+                            </p>
+
+                            <p style="margin: 0 0 20px; color: #6b5b53;">
+                                Pedido <strong style="color: #2f241f;">#{{ order_id }}</strong>
+                            </p>
+
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse; margin-bottom: 24px;">
+                                <thead>
+                                    <tr style="background-color: #f4ebe4;">
+                                        <th align="left" style="padding: 12px; border-bottom: 1px solid #e3d5cb;">Pizza</th>
+                                        <th align="center" style="padding: 12px; border-bottom: 1px solid #e3d5cb;">Qtd.</th>
+                                        <th align="right" style="padding: 12px; border-bottom: 1px solid #e3d5cb;">Unitário</th>
+                                        <th align="right" style="padding: 12px; border-bottom: 1px solid #e3d5cb;">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in items %}
+                                    <tr>
+                                        <td style="padding: 12px; border-bottom: 1px solid #eee5df;">{{ item.name }}</td>
+                                        <td align="center" style="padding: 12px; border-bottom: 1px solid #eee5df;">{{ item.quantity }}</td>
+                                        <td align="right" style="padding: 12px; border-bottom: 1px solid #eee5df;">R$ {{ item.unit_price }}</td>
+                                        <td align="right" style="padding: 12px; border-bottom: 1px solid #eee5df;">R$ {{ item.total }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 6px 0; color: #6b5b53;">Subtotal</td>
+                                    <td align="right" style="padding: 6px 0;">R$ {{ subtotal }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px 0; color: #6b5b53;">Taxa de entrega</td>
+                                    <td align="right" style="padding: 6px 0;">R$ {{ delivery_fee }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 14px 0 6px; border-top: 2px solid #e3d5cb; font-size: 18px; font-weight: bold;">Total</td>
+                                    <td align="right" style="padding: 14px 0 6px; border-top: 2px solid #e3d5cb; color: #a52a2a; font-size: 18px; font-weight: bold;">R$ {{ total }}</td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 28px 0 0; color: #6b5b53; line-height: 1.6;">
+                                Obrigado por escolher a OCI Pizza. Bom apetite!
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

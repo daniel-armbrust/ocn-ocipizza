@@ -12,8 +12,15 @@ export NOSQL_TABLE_NAME="orders"
 export NOSQL_ENDPOINT="http://localhost:18080"
 
 export JWT_ISSUER="user-service"
-export JWT_AUDIENCE="oci-pizza"
+export JWT_AUDIENCE="ocipizza"
 export JWT_JWKS_URL="http://localhost:8002/.well-known/jwks.json"
+
+export MESSAGING_PROVIDER="rabbitmq"
+export RABBITMQ_HOST="localhost"
+export RABBITMQ_PORT="5672"
+export RABBITMQ_USERNAME="oci_pizza"
+export RABBITMQ_PASSWORD="oci_pizza"
+export QUEUE_NAME="notifications-queue"
 
 # ----------------------------------
 # Ambiente virtual

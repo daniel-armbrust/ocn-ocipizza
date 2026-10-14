@@ -17,7 +17,7 @@ export OBJECTSTORAGE_ACCESS_KEY="minioadmin"
 export OBJECTSTORAGE_SECRET_KEY="minioadmin"
 
 export JWT_ISSUER="user-service"
-export JWT_AUDIENCE="oci-pizza"
+export JWT_AUDIENCE="ocipizza"
 export JWT_JWKS_URL="http://localhost:8002/.well-known/jwks.json"
 
 # ----------------------------------

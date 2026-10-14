@@ -2,6 +2,8 @@
 # services/order_service.py
 #
 
+import logging
+
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from fastapi import Depends
@@ -11,7 +13,8 @@ from app.exceptions.order_exceptions import (
     OrderIdempotencyConflictError,
     OrderNotFoundError,
     OrderQueryError,
-    OrderUpdateError
+    OrderUpdateError,
+    OrderEmailPublishError
 )
 
 from app.models.order import (
@@ -21,6 +24,11 @@ from app.models.order import (
     OrderItem,
     OrderStatus,
     PaymentStatus
+)
+
+from app.services.order_email_service import (
+    OrderEmailService, 
+    get_order_email_service
 )
 
 from app.repositories.order_repository import OrderRepository
@@ -44,7 +52,8 @@ class OrderService:
 
     def __init__(self,
                  order_repository: OrderRepository,
-                 unit_of_work: UnitOfWork) -> None:
+                 unit_of_work: UnitOfWork,
+                 order_email_service: OrderEmailService) -> None:
         """
         Inicializa o serviço de pedidos.
 
@@ -53,6 +62,8 @@ class OrderService:
                 persistir pedidos.
             unit_of_work: Unidade de trabalho responsável por confirmar ou
                 reverter alterações.
+            order_email_service: Serviço responsável pela publicação das 
+                notificações por e-mail relacionadas aos pedidos.
 
         Returns:
             None.
@@ -60,6 +71,7 @@ class OrderService:
 
         self.order_repository = order_repository
         self.unit_of_work = unit_of_work
+        self.order_email_service = order_email_service
 
     def get_by_user_id(self,
                        user_id: UUID,
@@ -312,12 +324,11 @@ class OrderService:
         try:
             created_order = self.order_repository.create(order)
             self.unit_of_work.commit()
-            return created_order
         except Exception as ex:
             self.unit_of_work.rollback()
 
             # Outra requisição pode ter persistido a mesma chave primária entre
-            # a primeira consulta e o create. A leitura direta pelo id evita
+            # a primeira consulta e o create. A leitura direta pelo ID evita
             # depender da atualização assíncrona do índice secundário.
             try:
                 concurrent_order = self.order_repository.get_by_id(
@@ -328,6 +339,8 @@ class OrderService:
                 raise OrderCreationError('Error creating order.') from ex
 
             if concurrent_order is not None:
+                # Retorna o pedido já criado pela requisição concorrente sem
+                # publicar uma nova notificação, evitando e-mails duplicados.
                 return self._resolve_idempotent_order(
                     order=concurrent_order,
                     user_id=user_id,
@@ -335,6 +348,18 @@ class OrderService:
                 )
 
             raise OrderCreationError('Error creating order.') from ex
+
+        # Publica a notificação somente depois que o pedido foi persistido
+        # e sua transação confirmada com sucesso.
+        try:
+            self.order_email_service.send_order_received(created_order)
+        except OrderEmailPublishError:
+            logging.exception(
+                'Não foi possível publicar a notificação do pedido %s.',
+                created_order.id
+            )
+
+        return created_order
 
     @staticmethod
     def _resolve_idempotent_order(order: Order,
@@ -376,7 +401,8 @@ class OrderService:
 
 def get_order_service(
     order_repository: OrderRepository = Depends(get_order_repository),
-    unit_of_work: UnitOfWork = Depends(get_unit_of_work)
+    unit_of_work: UnitOfWork = Depends(get_unit_of_work),
+    order_email_service: OrderEmailService = Depends(get_order_email_service)
 ) -> OrderService:
     """
     Fornece o serviço configurado para os casos de uso de pedidos.
@@ -391,5 +417,6 @@ def get_order_service(
 
     return OrderService(
         order_repository=order_repository,
-        unit_of_work=unit_of_work
+        unit_of_work=unit_of_work,
+        order_email_service=order_email_service
     )

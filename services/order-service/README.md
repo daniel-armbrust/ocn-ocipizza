@@ -13,6 +13,7 @@ Suas principais responsabilidades são:
 - Listar e consultar os pedidos do próprio usuário
 - Disponibilizar o acompanhamento administrativo de todos os pedidos
 - Atualizar administrativamente o status de processamento e entrega
+- Publicar solicitações de notificação após a criação do pedido
 - Persistir pedidos e seus estados no Oracle NoSQL
 - Validar access tokens JWT por meio do JWKS publicado pelo `user-service`
 - Expor respostas HTTP no padrão JSend
@@ -28,6 +29,7 @@ que os dados originais sejam modificados posteriormente.
 | --- | --- |
 | Oracle NoSQL | Provider primário e atualmente implementado para persistência dos pedidos. |
 | `user-service` | Publica o JWKS utilizado para validar access tokens JWT. |
+| RabbitMQ ou OCI Queue | Publica mensagens destinadas ao `notification-service`. |
 
 O Oracle NoSQL é o provider padrão. O projeto contém a estrutura básica para
 SQLAlchemy, mas o repositório relacional de pedidos não está disponível para
@@ -47,7 +49,8 @@ As bibliotecas são instaladas a partir do arquivo `requirements.txt`:
 | Alembic | 1.16.5 | Versionamento previsto para o schema relacional. |
 | PyMySQL | 1.1.2 | Driver previsto para uma conexão MySQL. |
 | PyJWT com extra `crypto` | `>=2.10,<3` | Validação de access tokens JWT assinados com RS256. |
-| OCI SDK | 2.160.3 | Envio de logs ao OCI Logging. |
+| pika | 1.3.2 | Publicação de mensagens no RabbitMQ. |
+| OCI SDK | 2.160.3 | Integração com OCI Queue e OCI Logging. |
 | borneo | 5.4.3 | Acesso ao Oracle NoSQL Database. |
 
 O ambiente de execução utiliza Python 3.11.
@@ -130,11 +133,18 @@ O `.env` criado pelo bootstrap utiliza:
 - Tabela `orders`
 - Oracle NoSQL em `http://localhost:18080`
 - Emissor JWT `user-service`
-- Audiência JWT `oci-pizza`
+- Audiência JWT `ocipizza`
 - JWKS em `http://localhost:8002/.well-known/jwks.json`
 - Logging com nível `INFO`
 
 Se o `.env` já existir, seu conteúdo será preservado.
+
+<!-- TODO: O bootstrap.sh ainda não inclui MESSAGING_PROVIDER e as variáveis
+do provider selecionado no .env que ele cria. Como MESSAGING_PROVIDER é
+obrigatório, um bootstrap iniciado sem .env não conclui a etapa Python. Até o
+script ser alinhado, crie previamente o .env a partir de .env.example; o
+bootstrap preservará esse arquivo. O startdev.sh também depende dessas
+configurações no .env ou no ambiente. -->
 
 ## Reconstruir a imagem Docker
 
@@ -195,6 +205,70 @@ implementação é `NosqlNoOpUnitOfWork`, pois cada operação utilizada pelo
 serviço é confirmada pelo próprio banco e não possui `commit` transacional
 equivalente ao SQLAlchemy. A camada de serviço continua chamando `commit()` e
 `rollback()` sem conhecer o provider configurado.
+
+## Mensageria e notificações
+
+Depois de persistir e confirmar a criação de um pedido, o serviço publica uma
+solicitação de notificação na fila configurada. A mensagem utiliza o tipo
+`ORDER_RECEIVED` e contém:
+
+- E-mail e nome do cliente
+- Identificador do pedido
+- Itens, quantidades, preços unitários e totais
+- Subtotal, taxa de entrega e total
+
+Exemplo do contrato publicado:
+
+```json
+{
+  "type": "ORDER_RECEIVED",
+  "recipient": "ana.laura@example.com",
+  "full_name": "Ana Laura",
+  "order_id": "93da1548-90ba-4b69-83e2-dfe4d42bcdb4",
+  "items": [
+    {
+      "name": "Margherita",
+      "quantity": 2,
+      "unit_price": "45.00",
+      "total": "90.00"
+    }
+  ],
+  "subtotal": "90.00",
+  "delivery_fee": "10.00",
+  "total": "100.00"
+}
+```
+
+Os campos monetários `unit_price`, `items[].total`, `subtotal`,
+`delivery_fee` e `total` são serializados como strings decimais com exatamente
+duas casas. Esse formato evita perda de precisão no JSON e impede que valores
+como `Decimal('1E+1')` sejam apresentados em notação científica no e-mail.
+
+A publicação ocorre somente depois do `commit` do pedido. Se ela falhar, o
+erro é registrado, mas o pedido permanece criado e a API continua retornando o
+pedido com sucesso. Não existe outbox nem nova tentativa automática no
+`order-service`. Requisições idempotentes que retornam um pedido criado por uma
+requisição concorrente não publicam uma segunda mensagem.
+
+### RabbitMQ
+
+Com `MESSAGING_PROVIDER=rabbitmq`, o publicador declara `QUEUE_NAME` como fila
+durável, publica JSON persistente pelo exchange padrão e aguarda a confirmação
+do broker. Host, porta, usuário e senha são obrigatórios.
+
+### OCI Queue
+
+Com `MESSAGING_PROVIDER=oci_queue`, o publicador envia o JSON ao
+`OCI_QUEUE_MESSAGES_ENDPOINT` da fila identificada por `OCI_QUEUE_ID`. A
+autenticação utiliza Instance Principal; a instância deve pertencer a um
+Dynamic Group autorizado por uma IAM Policy a publicar mensagens na fila.
+
+O endpoint configurado deve ser o `messagesEndpoint` específico da fila, e não
+o endpoint administrativo do serviço OCI Queue.
+
+<!-- TODO: Implementar um mecanismo transacional de outbox ou retry persistente
+para evitar a perda da notificação quando a fila estiver indisponível depois do
+commit do pedido. -->
 
 ## Logging
 
@@ -599,6 +673,14 @@ Os handlers globais utilizam códigos com o prefixo `ORDER_SERVICE_`:
 | `NOSQL_COMPARTMENT_ID` | — | OCID do compartment relacionado ao NoSQL. |
 | `OCI_REGION` | — | Região Oracle NoSQL obrigatória fora de desenvolvimento. |
 | `DATABASE_URL` | — | URL reservada para o provider SQLAlchemy. |
+| `MESSAGING_PROVIDER` | Obrigatório | Provider de mensageria: `rabbitmq` ou `oci_queue`. |
+| `QUEUE_NAME` | `notifications-queue` | Nome lógico da fila de notificações. |
+| `RABBITMQ_HOST` | — | Host obrigatório para RabbitMQ. |
+| `RABBITMQ_PORT` | — | Porta obrigatória para RabbitMQ. |
+| `RABBITMQ_USERNAME` | — | Usuário obrigatório para RabbitMQ. |
+| `RABBITMQ_PASSWORD` | — | Senha obrigatória para RabbitMQ. |
+| `OCI_QUEUE_ID` | — | OCID obrigatório para OCI Queue. |
+| `OCI_QUEUE_MESSAGES_ENDPOINT` | — | Endpoint de mensagens obrigatório para OCI Queue. |
 | `HTTP_CLIENT_TIMEOUT` | `10.0` | Timeout da consulta HTTP ao JWKS, em segundos. |
 | `JWT_ISSUER` | `user-service` | Emissor esperado no access token. |
 | `JWT_AUDIENCE` | `ocipizza` | Audiência esperada no access token. |
@@ -606,14 +688,10 @@ Os handlers globais utilizam códigos com o prefixo `ORDER_SERVICE_`:
 | `LOG_LEVEL` | `INFO` | Nível de logging da aplicação. |
 | `OCI_LOG_ID` | — | OCID do Custom Log obrigatório fora de desenvolvimento. |
 
-Os valores refletem os padrões definidos em `app/config/settings.py`. Os scripts
-locais `startdev.sh` e `bootstrap.sh` sobrescrevem `JWT_AUDIENCE` com
-`oci-pizza`, acompanhando a configuração local do `user-service`. Em execução
-local fora do Docker, ajuste também `JWT_JWKS_URL` para
-`http://localhost:8002/.well-known/jwks.json`.
-
-<!-- TODO: Unificar o valor de JWT_AUDIENCE entre settings, Docker Compose,
-arquivos de exemplo e scripts de desenvolvimento de todos os serviços. -->
+Os valores refletem os padrões definidos em `app/config/settings.py`. Em
+execução local fora do Docker, ajuste `JWT_JWKS_URL` para
+`http://localhost:8002/.well-known/jwks.json`. A audiência JWT permanece
+`ocipizza` em todos os modos de execução.
 
 ## Documentação interativa
 

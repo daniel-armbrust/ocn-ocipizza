@@ -136,7 +136,7 @@ O `.env` criado pelo bootstrap utiliza:
 - Tabela `delivery_areas`
 - Oracle NoSQL em `http://localhost:18080`
 - Emissor JWT `user-service`
-- Audiência JWT `oci-pizza`
+- Audiência JWT `ocipizza`
 - JWKS em `http://localhost:8002/.well-known/jwks.json`
 - Logging com nível `INFO`
 
@@ -374,7 +374,7 @@ Os handlers globais utilizam códigos com o prefixo `DELIVERY_SERVICE_`:
 | `DATABASE_URL` | — | URL reservada para o provider SQLAlchemy. |
 | `HTTP_CLIENT_TIMEOUT` | `10.0` | Timeout da consulta HTTP ao JWKS, em segundos. |
 | `JWT_ISSUER` | `user-service` | Emissor esperado no access token. |
-| `JWT_AUDIENCE` | `oci-pizza` | Audiência esperada no access token. |
+| `JWT_AUDIENCE` | `ocipizza` | Audiência esperada no access token. |
 | `JWT_JWKS_URL` | `http://user-service:8000/.well-known/jwks.json` | Endpoint das chaves públicas JWT. |
 | `LOG_LEVEL` | `INFO` | Nível de logging da aplicação. |
 | `OCI_LOG_ID` | — | OCID do Custom Log obrigatório fora de desenvolvimento. |

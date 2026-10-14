@@ -114,7 +114,7 @@ OBJECTSTORAGE_SECRET_KEY=minioadmin
 
 # JWT
 JWT_ISSUER=user-service
-JWT_AUDIENCE=oci-pizza
+JWT_AUDIENCE=ocipizza
 JWT_JWKS_URL=http://localhost:8002/.well-known/jwks.json
 EOF
 

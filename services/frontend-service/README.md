@@ -155,6 +155,7 @@ de itens armazenados no `localStorage`.
 | `GET` | `/users/confirm` | Público | Confirma o e-mail pelo token e redireciona para o login. |
 | `GET` | `/users/login` | Público | Exibe o formulário de autenticação. |
 | `POST` | `/users/login` | Público | Autentica o usuário e cria uma sessão opaca no BFF. |
+| `GET` | `/users/password-reset` | Público | Exibe o formulário de solicitação de redefinição de senha. |
 | `POST` | `/users/logout` | Autenticado | Revoga a sessão remota, remove a sessão local e apaga o cookie. |
 
 Após um cadastro bem-sucedido, o usuário é redirecionado para o login com a

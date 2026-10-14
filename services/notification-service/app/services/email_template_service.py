@@ -31,6 +31,7 @@ class EmailTemplateService:
         # preparar os dados específicos utilizados na renderização.
         self._data_preparers = {
             'USER_CONFIRMATION': self._prepare_user_confirmation_data,
+            'ORDER_RECEIVED': self._prepare_order_received_data,
             'USER_PASSWORD_RESET': self._prepare_user_password_reset_data,
             'USER_ORDER_SENT': self._prepare_user_order_sent_data
         }
@@ -141,6 +142,60 @@ class EmailTemplateService:
             f'{settings.site_url}/users/confirm'
             f'?token={token}'
         )
+
+        return data
+
+    def _prepare_order_received_data(self, data: dict) -> dict:
+        """
+        Valida os dados utilizados no e-mail de pedido recebido.
+
+        Args:
+            data: Dados do pedido publicados pelo order-service.
+
+        Returns:
+            Dados validados para renderização do template.
+
+        Raises:
+            ValueError: Quando um campo obrigatório está ausente ou inválido.
+        """
+
+        required_fields = (
+            'full_name',
+            'order_id',
+            'items',
+            'subtotal',
+            'delivery_fee',
+            'total'
+        )
+
+        missing_fields = [
+            field
+            for field in required_fields
+            if data.get(field) in (None, '')
+        ]
+
+        if missing_fields:
+            raise ValueError(
+                'Missing ORDER_RECEIVED fields: '
+                f'{", ".join(missing_fields)}.'
+            )
+
+        if not isinstance(data['items'], list) or not data['items']:
+            raise ValueError(
+                'ORDER_RECEIVED items must be a non-empty list.'
+            )
+
+        required_item_fields = ('name', 'quantity', 'unit_price', 'total')
+
+        for item in data['items']:
+            if not isinstance(item, dict) or any(
+                item.get(field) in (None, '')
+                for field in required_item_fields
+            ):
+                raise ValueError(
+                    'Each ORDER_RECEIVED item must contain name, quantity, '
+                    'unit_price and total.'
+                )
 
         return data
 

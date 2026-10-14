@@ -12,7 +12,7 @@ export NOSQL_TABLE_NAME="delivery_areas"
 export NOSQL_ENDPOINT="http://localhost:18080"
 
 export JWT_ISSUER="user-service"
-export JWT_AUDIENCE="oci-pizza"
+export JWT_AUDIENCE="ocipizza"
 export JWT_JWKS_URL="http://localhost:8002/.well-known/jwks.json"
 
 # ----------------------------------

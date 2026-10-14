@@ -133,7 +133,7 @@ O `.env` criado pelo bootstrap utiliza:
 - Bucket `pizza-images`
 - Credenciais locais do MinIO `minioadmin`/`minioadmin`
 - Emissor JWT `user-service`
-- Audiência JWT `oci-pizza`
+- Audiência JWT `ocipizza`
 - JWKS em `http://localhost:8002/.well-known/jwks.json`
 
 Se o `.env` já existir, seu conteúdo é preservado. Nesse caso, confira se ele
@@ -469,7 +469,7 @@ expõem detalhes internos e retornam `INTERNAL_SERVER_ERROR`.
 | `DATABASE_URL` | — | URL de conexão utilizada pelo SQLAlchemy. |
 | `OCI_REGION` | — | Região do Oracle NoSQL acessado pela instância; obrigatória fora de desenvolvimento. |
 | `JWT_ISSUER` | `user-service` | Emissor esperado no JWT. |
-| `JWT_AUDIENCE` | `oci-pizza` | Audiência esperada no JWT. |
+| `JWT_AUDIENCE` | `ocipizza` | Audiência esperada no JWT. |
 | `JWT_JWKS_URL` | `http://user-service:8000/.well-known/jwks.json` | URL das chaves públicas JWT. |
 | `OBJECTSTORAGE_ENDPOINT` | `http://object-storage:9000` | Endpoint opcional do MinIO, utilizado somente em desenvolvimento. |
 | `OBJECTSTORAGE_NAMESPACE` | — | Namespace do OCI Object Storage fora de desenvolvimento. |

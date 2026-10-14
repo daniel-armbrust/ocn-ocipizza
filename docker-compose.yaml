@@ -54,7 +54,7 @@ services:
       PERSISTENCE_PROVIDER: sqlalchemy
       DATABASE_URL: mysql+pymysql://user_service:user_service@mysql:3306/users
 
-      # Provider de mensageria utilizado pelo MessagePublisher.
+      # Mensageria
       MESSAGING_PROVIDER: rabbitmq
       QUEUE_NAME: notifications-queue
 
@@ -133,12 +133,24 @@ services:
       NOSQL_ENDPOINT: http://nosql:8080
       NOSQL_TABLE_NAME: orders
 
+      # Mensageria
+      MESSAGING_PROVIDER: rabbitmq
+      QUEUE_NAME: notifications-queue
+
+      # Configurações de conexão com o RabbitMQ.
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: oci_pizza
+      RABBITMQ_PASSWORD: oci_pizza
+
       JWT_ISSUER: user-service
       JWT_AUDIENCE: ocipizza
       JWT_JWKS_URL: http://user-service:8000/.well-known/jwks.json
     depends_on:
       nosql:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
 
   # Worker responsável por consumir notificações do RabbitMQ e enviar
   # mensagens de e-mail pelo servidor SMTP configurado.
