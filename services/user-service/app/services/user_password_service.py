@@ -44,6 +44,9 @@ from app.exceptions.user_password_exceptions import (
     UserInvalidPasswordResetTokenError
 )
 
+from app.messaging.message_publisher import MessagePublisher
+from app.dependencies.messaging import get_message_publisher
+
 
 class UserPasswordService:
     """
@@ -319,11 +322,19 @@ class UserPasswordService:
             UserNotConfirmedError: Caso o usuário exista, mas ainda não
                 tenha confirmado seu endereço de e-mail.
             UserPasswordResetError: Caso ocorra uma falha durante a
-                persistência do token ou publicação da mensagem.
+                consulta do usuário, persistência do token ou publicação
+                da mensagem.
         """
 
-        # Localiza o usuário através do endereço de e-mail informado.
-        user = self.user_repository.get_by_email(normalize_email(email))
+        try:
+            # A consulta faz parte do caso de uso, mas não inicia uma escrita.
+            # Falhas técnicas são traduzidas sem executar rollback, pois ainda
+            # não existe alteração pendente na unidade de trabalho.
+            user = self.user_repository.get_by_email(normalize_email(email))
+        except Exception as ex:
+            raise UserPasswordResetError(
+                'Error retrieving user for password reset.'
+            ) from ex
 
         # Não informa ao consumidor da API se o endereço de e-mail
         # está ou não cadastrado, evitando enumeração de usuários.
@@ -355,7 +366,9 @@ class UserPasswordService:
 
         try:
             # Persiste o token de recuperação dentro da transação atual.
-            self.user_password_reset_token_repository.create(password_reset_token)
+            self.user_password_reset_token_repository.create(
+                password_reset_token
+            )
 
             # Publica a solicitação para que o notification-service
             # realize o envio do e-mail de recuperação de senha.

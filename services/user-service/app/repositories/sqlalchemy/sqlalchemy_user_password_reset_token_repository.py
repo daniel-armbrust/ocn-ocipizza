@@ -13,7 +13,7 @@ from app.models.user_password_reset_token import UserPasswordResetToken
 from app.repositories.orm.user_password_reset_token_orm import UserPasswordResetTokenORM
 from app.repositories.user_password_reset_token_repository import UserPasswordResetTokenRepository
 
-from app.utils.utils import bin_to_uuid, uuid_to_bin
+from app.utils.utils import bin_to_uuid, ensure_utc, now_utc, uuid_to_bin
 
 
 class SqlAlchemyUserPasswordResetTokenRepository(UserPasswordResetTokenRepository):
@@ -124,7 +124,7 @@ class SqlAlchemyUserPasswordResetTokenRepository(UserPasswordResetTokenRepositor
             SQLAlchemyError: Caso ocorra uma falha durante a consulta.
         """
 
-        now = datetime.now().astimezone()
+        now = now_utc()
 
         orm_token = self.session.scalar(
             select(UserPasswordResetTokenORM)
@@ -212,8 +212,16 @@ class SqlAlchemyUserPasswordResetTokenRepository(UserPasswordResetTokenRepositor
             id=orm_token.id,
             user_id=bin_to_uuid(orm_token.user_id),
             token_hash=orm_token.token_hash,
-            created_at=orm_token.created_at,
-            expires_at=orm_token.expires_at,
-            used_at=orm_token.used_at,
-            revoked_at=orm_token.revoked_at
+            created_at=ensure_utc(orm_token.created_at),
+            expires_at=ensure_utc(orm_token.expires_at),
+            used_at=(
+                ensure_utc(orm_token.used_at)
+                if orm_token.used_at is not None
+                else None
+            ),
+            revoked_at=(
+                ensure_utc(orm_token.revoked_at)
+                if orm_token.revoked_at is not None
+                else None
+            )
         )

@@ -16,7 +16,6 @@ from app.dependencies.authentication import get_authenticated_session
 from app.forms.user_auth_forms import UserRegisterForm
 from app.forms.user_forms import (
     UserAddressForm,
-    UserPasswordResetRequestForm,
     UserWhatsappUpdateForm
 )
 
@@ -26,6 +25,7 @@ from app.messages.user_service_messages import USER_MESSAGES
 from app.messages.cart_messages import CART_MESSAGES
 from app.services.order_service import OrderService, get_order_service
 from app.services.user_service import UserService, get_user_service
+from app.utils.http_utils import get_jsend_error_code
 
 router = APIRouter()
 
@@ -36,45 +36,31 @@ router = APIRouter()
     '/users/register',
     response_class=HTMLResponse
 )
-async def show_register_page(request: Request) -> HTMLResponse:
+async def show_register_page(
+    request: Request,
+    code: str | None = None
+) -> HTMLResponse:
     """
     Renderiza a página utilizada para cadastro de usuários.
 
     Args:
         request: Requisição HTTP recebida pelo frontend-service.
+        code: Código funcional opcional associado à mensagem apresentada.
 
     Returns:
         Página HTML contendo o formulário de cadastro.
     """
 
+    message = USER_MESSAGES.get(code) if code else None
+
     return templates.TemplateResponse(
         request=request,
         name='users/register.html',
-        context={'form': UserRegisterForm()}
-    )
-
-#
-# GET: /users/password-reset
-#
-@router.get(
-    '/users/password-reset',
-    response_class=HTMLResponse
-)
-async def show_password_reset_page(request: Request) -> HTMLResponse:
-    """
-    Exibe a página utilizada para solicitar a redefinição de senha.
-
-    Args:
-        request: Requisição HTTP recebida pelo frontend-service.
-
-    Returns:
-        Página HTML contendo o formulário de solicitação.
-    """
-
-    return templates.TemplateResponse(
-        request=request,
-        name='users/password_reset.html',
-        context={'form': UserPasswordResetRequestForm()}
+        context={
+            'form': UserRegisterForm(),
+            'message': message['message'] if message else None,
+            'type': message['type'] if message else None
+        }
     )
 
 #
@@ -102,19 +88,11 @@ async def confirm_user_email(
     try:
         await user_service.confirm_email(token=token)
     except httpx.HTTPStatusError as ex:
-        code = 'USER_CONFIRMATION_ERROR'
-
-        try:
-            payload = ex.response.json()
-            response_code = payload.get('data', {}).get('code')
-
-            # Encaminha somente códigos funcionais conhecidos pelo frontend,
-            # evitando propagar valores inesperados para a URL de destino.
-            if response_code in USER_MESSAGES:
-                code = response_code
-        except ValueError:
-            # Mantém a mensagem genérica quando a resposta não contém JSON.
-            pass
+        code = get_jsend_error_code(
+            ex=ex,
+            supported_codes=USER_MESSAGES,
+            fallback='USER_CONFIRMATION_ERROR'
+        )
 
         return RedirectResponse(
             url=f'/users/login?code={code}',
@@ -134,15 +112,12 @@ async def confirm_user_email(
 #
 # POST: /users/register
 #
-@router.post(
-    '/users/register',
-    response_class=HTMLResponse
-)
+@router.post('/users/register')
 @csrf_protect
 async def register_user(
     request: Request,
     user_service: UserService = Depends(get_user_service)
-) -> Response:
+) -> RedirectResponse:
     """
     Processa o cadastro de um novo usuário.
 
@@ -151,8 +126,8 @@ async def register_user(
         user_service: Serviço responsável pelo cadastro do usuário.
 
     Returns:
-        Redirecionamento para a página de login em caso de sucesso
-        ou página de cadastro contendo a mensagem de erro.
+        Redirecionamento para o login em caso de sucesso ou para o cadastro
+        com o código correspondente em caso de erro.
     """
 
     form_data = await request.form()
@@ -160,11 +135,9 @@ async def register_user(
     form = UserRegisterForm(form_data)
 
     if not form.validate():
-        return templates.TemplateResponse(
-            request=request,
-            name='users/register.html',
-            context={'form': form},
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT
+        return RedirectResponse(
+            url='/users/register?code=USER_REGISTRATION_INVALID',
+            status_code=status.HTTP_303_SEE_OTHER
         )
 
     try:
@@ -175,43 +148,22 @@ async def register_user(
             password=form.password.data
         )
     except httpx.HTTPStatusError as ex:
-        payload = ex.response.json()
-
-        message = USER_MESSAGES.get(
-            payload.get('data', {}).get('code'),
-            {
-                'message': 'Não foi possível realizar o cadastro.',
-                'type': 'error'
-            }
+        code = get_jsend_error_code(
+            ex=ex,
+            supported_codes=USER_MESSAGES,
+            fallback='USER_REGISTRATION_ERROR'
         )
 
-        return templates.TemplateResponse(
-            request=request,
-            name='users/register.html',
-            context={
-                'message': message['message'],
-                'type': message['type'],
-                'form': form
-            },
-            status_code=ex.response.status_code
+        return RedirectResponse(
+            url=f'/users/register?code={code}',
+            status_code=status.HTTP_303_SEE_OTHER
         )
     except httpx.RequestError:
-        return templates.TemplateResponse(
-            request=request,
-            name='users/register.html',
-            context={
-                'message': (
-                    'O serviço de usuários está temporariamente indisponível.'
-                ),
-                'type': 'error',
-                'form': form
-            },
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE
+        return RedirectResponse(
+            url='/users/register?code=USER_REGISTRATION_ERROR',
+            status_code=status.HTTP_303_SEE_OTHER
         )
 
-    # Após o cadastro bem-sucedido, redireciona o usuário
-    # para a página de autenticação com o indicador que apresenta
-    # as orientações de confirmação do cadastro.
     return RedirectResponse(
         url='/users/login?code=USER_CONFIRMATION_SENT',
         status_code=status.HTTP_303_SEE_OTHER
@@ -313,6 +265,7 @@ async def show_addresses_page(
         httpx.RequestError: Caso o user-service esteja indisponível.
     """
 
+    # Falhas HTTP e de comunicação são tratadas pelos handlers globais.
     profile = await user_service.get_profile(
         access_token=session.get('access_token')
     )
@@ -369,6 +322,7 @@ async def show_orders_page(
 
     access_token = session.get('access_token')
 
+    # Falhas HTTP e de comunicação são tratadas pelos handlers globais.
     # Conta e pedidos são recursos independentes e podem ser consultados em
     # paralelo para reduzir o tempo de montagem do painel.
     user, orders = await asyncio.gather(
@@ -416,6 +370,7 @@ async def show_orders_page(
 )
 async def show_new_address_page(
     request: Request,
+    code: str | None = None,
     session=Depends(get_authenticated_session)
 ) -> HTMLResponse:
     """
@@ -423,6 +378,7 @@ async def show_new_address_page(
 
     Args:
         request: Requisição HTTP utilizada para renderizar a página.
+        code: Código funcional opcional associado à mensagem apresentada.
         session: Sessão autenticada do usuário.
 
     Returns:
@@ -432,26 +388,28 @@ async def show_new_address_page(
     # Cria o formulário vazio com as regras de renderização e validação
     # definidas em `forms/user_forms.py`.
     form = UserAddressForm()
+    message = USER_MESSAGES.get(code) if code else None
 
     return templates.TemplateResponse(
         request=request,
         name='users/address_new.html',
-        context={'form': form}
+        context={
+            'form': form,
+            'message': message['message'] if message else None,
+            'type': message['type'] if message else None
+        }
     )
 
 #
 # POST: /users/profile/addresses/new
 #
-@router.post(
-    '/users/profile/addresses/new',
-    response_class=HTMLResponse
-)
+@router.post('/users/profile/addresses/new')
 @csrf_protect
 async def create_new_address(
     request: Request,
     session=Depends(get_authenticated_session),
     user_service: UserService = Depends(get_user_service)
-) -> Response:
+) -> RedirectResponse:
     """
     Processa o cadastro de um endereço do usuário autenticado.
 
@@ -461,18 +419,16 @@ async def create_new_address(
         user_service: Serviço responsável por cadastrar o endereço.
 
     Returns:
-        Redirecionamento para o perfil em caso de sucesso ou página do
-        formulário contendo os erros encontrados.
+        Redirecionamento para a lista de endereços em caso de sucesso ou para
+        o formulário com o código correspondente em caso de erro.
     """
 
     form = UserAddressForm(await request.form())
 
     if not form.validate():
-        return templates.TemplateResponse(
-            request=request,
-            name='users/address_new.html',
-            context={'form': form},
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT
+        return RedirectResponse(
+            url='/users/profile/addresses/new?code=USER_ADDRESS_INVALID',
+            status_code=status.HTTP_303_SEE_OTHER
         )
 
     try:
@@ -495,38 +451,23 @@ async def create_new_address(
                 status_code=status.HTTP_303_SEE_OTHER
             )
 
-        payload = ex.response.json()
-
-        message = USER_MESSAGES.get(
-            payload.get('data', {}).get('code'),
-            {
-                'message': 'Não foi possível cadastrar o endereço.',
-                'type': 'error'
-            }
+        code = get_jsend_error_code(
+            ex=ex,
+            supported_codes=USER_MESSAGES,
+            fallback='USER_ADDRESS_CREATE_ERROR'
         )
 
-        return templates.TemplateResponse(
-            request=request,
-            name='users/address_new.html',
-            context={
-                'form': form,
-                'message': message['message'],
-                'type': message['type']
-            },
-            status_code=ex.response.status_code
+        return RedirectResponse(
+            url=f'/users/profile/addresses/new?code={code}',
+            status_code=status.HTTP_303_SEE_OTHER
         )
     except httpx.RequestError:
-        return templates.TemplateResponse(
-            request=request,
-            name='users/address_new.html',
-            context={
-                'form': form,
-                'message': (
-                    'O serviço de usuários está temporariamente indisponível.'
-                ),
-                'type': 'error'
-            },
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE
+        return RedirectResponse(
+            url=(
+                '/users/profile/addresses/new'
+                '?code=USER_ADDRESS_CREATE_ERROR'
+            ),
+            status_code=status.HTTP_303_SEE_OTHER
         )
 
     return RedirectResponse(
@@ -546,7 +487,7 @@ async def update_whatsapp(
     payload: dict,
     session=Depends(get_authenticated_session),
     user_service: UserService = Depends(get_user_service)
-) -> Response:
+) -> RedirectResponse:
     """
     Atualiza o número de WhatsApp do usuário autenticado.
 
@@ -580,8 +521,14 @@ async def update_whatsapp(
                 status_code=status.HTTP_303_SEE_OTHER
             )
 
+        code = get_jsend_error_code(
+            ex=ex,
+            supported_codes=USER_MESSAGES,
+            fallback='USER_UPDATE_ERROR'
+        )
+
         return RedirectResponse(
-            url=f'/users/profile?code=USER_UPDATE_ERROR',
+            url=f'/users/profile?code={code}',
             status_code=status.HTTP_303_SEE_OTHER
         )
     except httpx.RequestError:
@@ -627,17 +574,20 @@ async def delete_user_address(
             address_id=address_id
         )
     except httpx.HTTPStatusError as ex:
-        # Redireciona para o login quando o access token não for mais válido.
         if ex.response.status_code == status.HTTP_401_UNAUTHORIZED:
             return RedirectResponse(
                 url='/users/login?code=USER_LOGIN_REQUIRED',
                 status_code=status.HTTP_303_SEE_OTHER
             )
 
-        # Redireciona para o perfil informando que não foi possível
-        # remover o endereço.
+        code = get_jsend_error_code(
+            ex=ex,
+            supported_codes=USER_MESSAGES,
+            fallback='USER_ADDRESS_DELETE_ERROR'
+        )
+
         return RedirectResponse(
-            url='/users/profile/addresses?code=USER_ADDRESS_DELETE_ERROR',
+            url=f'/users/profile/addresses?code={code}',
             status_code=status.HTTP_303_SEE_OTHER
         )
     except httpx.RequestError:

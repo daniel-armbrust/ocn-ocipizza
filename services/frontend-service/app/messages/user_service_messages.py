@@ -66,6 +66,10 @@ USER_MESSAGES = {
         'message': 'Não foi possível realizar a autenticação.',
         'type': 'error'
     },
+    'USER_AUTHENTICATION_INVALID': {
+        'message': 'Informe um e-mail e uma senha válidos.',
+        'type': 'error'
+    },
     'USER_LOGIN_REQUIRED': {
         'message': 'É necessário realizar login para continuar.',
         'type': 'warning'
@@ -86,8 +90,20 @@ USER_MESSAGES = {
         'message': 'Não foi possível consultar os dados do usuário.',
         'type': 'error'
     },
+    'USER_ADDRESS_INVALID': {
+        'message': 'Verifique os dados do endereço e tente novamente.',
+        'type': 'error'
+    },
+    'USER_ADDRESS_CREATE_ERROR': {
+        'message': 'Não foi possível cadastrar o endereço.',
+        'type': 'error'
+    },
     'USER_ADDRESS_LIMIT_EXCEEDED': {
         'message': 'Você atingiu o limite de endereços cadastrados.',
+        'type': 'warning'
+    },
+    'USER_ADDRESS_NOT_FOUND': {
+        'message': 'Endereço não encontrado.',
         'type': 'warning'
     },
     'USER_ADDRESS_SUCCESSFULLY_DELETED': {
@@ -96,6 +112,39 @@ USER_MESSAGES = {
     },
     'USER_ADDRESS_DELETE_ERROR': {
         'message': 'Não foi possível remover o endereço.',
+        'type': 'error'
+    },
+    'USER_PASSWORD_RESET_INVALID': {
+        'message': 'Informe um endereço de e-mail válido.',
+        'type': 'error'
+    },
+    'USER_PASSWORD_RESET_ERROR': {
+        'message': 'Não foi possível redefinir a senha.',
+        'type': 'error'
+    },
+    'USER_PASSWORD_RESET_CONFIRM_INVALID': {
+        'message': (
+            'Verifique a nova senha e sua confirmação antes de continuar.'
+        ),
+        'type': 'error'
+    },
+    'USER_PASSWORD_RESET_SUCCESS': {
+        'message': 'Senha redefinida com sucesso. Você já pode entrar.',
+        'type': 'success'
+    },
+    'USER_PASSWORD_RESET_REQUESTED': {
+        'message': (
+            'Se existir uma conta associada a este e-mail, '
+            'você receberá as instruções para redefinir sua senha.'
+        ),
+        'type': 'success'
+    },
+    'USER_REGISTRATION_INVALID': {
+        'message': 'Verifique os dados informados e tente novamente.',
+        'type': 'error'
+    },
+    'USER_REGISTRATION_ERROR': {
+        'message': 'Não foi possível concluir o cadastro do usuário.',
         'type': 'error'
     }
 }

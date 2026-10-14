@@ -2,15 +2,12 @@
 # routes/pizza_routes.py
 #
 
-import httpx
-
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
 
 from app.dependencies.templates import templates
 
 from app.messages.cart_messages import CART_MESSAGES
-from app.messages.pizza_service_messages import PIZZA_MESSAGES
 from app.messages.user_service_messages import USER_MESSAGES
 
 from app.services.pizza_service import PizzaService, get_pizza_service
@@ -74,38 +71,14 @@ async def list_all_pizzas(
         available
     )
 
-    try:
-        pizzas = await pizza_service.get_all(
-            category=normalized_category,
-            available=normalized_available,
-            limit=limit,
-            offset=offset
-        )
-    except httpx.HTTPStatusError as ex:
-        payload = ex.response.json()
+    # Falhas HTTP e de comunicação são tratadas pelos handlers globais.
+    pizzas = await pizza_service.get_all(
+        category=normalized_category,
+        available=normalized_available,
+        limit=limit,
+        offset=offset
+    )
 
-        message = PIZZA_MESSAGES.get(
-            payload.get('data', {}).get('code'),
-            {
-                'message': 'Não foi possível processar a solicitação da pizza.',
-                'type': 'error'
-            }
-        )
-
-        return templates.TemplateResponse(
-            request=request,
-            name='pizzas/list.html',
-            context={
-                'message': message['message'],
-                'type': message['type'],
-                'pizzas': {},
-                'category': normalized_category,
-                'available': normalized_available,
-                'limit': limit,
-                'offset': offset
-            },
-            status_code=ex.response.status_code
-        )
     return templates.TemplateResponse(
         request=request,
         name='pizzas/list.html',

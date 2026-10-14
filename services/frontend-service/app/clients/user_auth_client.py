@@ -95,6 +95,69 @@ class UserAuthClient:
         # camada de rota possa decidir como tratar a falha.
         response.raise_for_status()
 
+    async def request_password_reset(self, email: str) -> None:
+        """
+        Solicita a redefinição de senha através do user-service.
+
+        Args:
+            email: Endereço de e-mail associado à conta do usuário.
+
+        Returns:
+            None.
+
+        Raises:
+            httpx.HTTPStatusError: Caso o user-service rejeite a solicitação.
+            httpx.RequestError: Caso ocorra uma falha de comunicação com o
+                user-service.
+        """
+
+        async with httpx.AsyncClient(
+            timeout=settings.http_client_timeout
+        ) as client:
+            response = await client.post(
+                f'{self.base_url}/users/password-reset/request',
+                json={'email': email}
+            )
+
+        response.raise_for_status()
+
+    async def confirm_password_reset(
+        self,
+        token: str,
+        new_password: str,
+        confirm_new_password: str
+    ) -> None:
+        """
+        Confirma a redefinição de senha através do user-service.
+
+        Args:
+            token: Token recebido no link enviado por e-mail.
+            new_password: Nova senha escolhida pelo usuário.
+            confirm_new_password: Confirmação da nova senha.
+
+        Returns:
+            None.
+
+        Raises:
+            httpx.HTTPStatusError: Caso o user-service rejeite a redefinição.
+            httpx.RequestError: Caso ocorra uma falha de comunicação com o
+                user-service.
+        """
+
+        async with httpx.AsyncClient(
+            timeout=settings.http_client_timeout
+        ) as client:
+            response = await client.post(
+                f'{self.base_url}/users/password-reset/confirm',
+                json={
+                    'token': token,
+                    'new_password': new_password,
+                    'confirm_new_password': confirm_new_password
+                }
+            )
+
+        response.raise_for_status()
+
 
 def get_user_auth_client() -> UserAuthClient:
     """

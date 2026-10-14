@@ -4,14 +4,18 @@
 
 import httpx
 
-from fastapi import APIRouter, Depends, Request, status, Response
+from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from starlette_wtf import csrf_protect
 
 from app.config.settings import settings
 
-from app.forms.user_auth_forms import UserLoginForm
+from app.forms.user_auth_forms import (
+    UserLoginForm,
+    UserPasswordResetConfirmForm,
+    UserPasswordResetRequestForm
+)
 
 from app.dependencies.templates import templates
 
@@ -22,6 +26,7 @@ from app.services.user_auth_service import (
 )
 
 from app.messages.user_service_messages import USER_MESSAGES
+from app.utils.http_utils import get_jsend_error_code
 
 router = APIRouter()
 
@@ -91,7 +96,7 @@ async def login_user(
     session_service: SessionService = Depends(
         get_session_service
     )
-) -> Response:
+) -> RedirectResponse:
     """
     Processa a autenticação do usuário.
 
@@ -105,24 +110,18 @@ async def login_user(
         session_service: Serviço responsável por criar a sessão local do BFF.
 
     Returns:
-        Redirecionamento após a autenticação ou página contendo os erros de
-        validação do formulário.
+        Redirecionamento após a autenticação ou para o login com o código
+        correspondente em caso de erro.
     """
 
-    form = UserLoginForm(
-        await request.form()
-    )
+    form = UserLoginForm(await request.form())
 
     # Interrompe o fluxo antes da chamada ao user-service caso
     # os dados informados não atendam às regras do formulário.
     if not form.validate():
-        return templates.TemplateResponse(
-            request=request,
-            name='users/login.html',
-            context={
-                'form': form
-            },
-            status_code=status.HTTP_400_BAD_REQUEST
+        return RedirectResponse(
+            url='/users/login?code=USER_AUTHENTICATION_INVALID',
+            status_code=status.HTTP_303_SEE_OTHER
         )
 
     try:
@@ -143,13 +142,10 @@ async def login_user(
             expires_in=authentication['expires_in']
         )
     except httpx.HTTPStatusError as ex:
-        payload = ex.response.json()
-
-        # Utiliza USER_AUTHENTICATION_ERROR como fallback caso o código
-        # retornado pelo user-service não esteja cadastrado em USER_MESSAGES.
-        code = payload.get('data', {}).get(
-            'code',
-            'USER_AUTHENTICATION_ERROR'
+        code = get_jsend_error_code(
+            ex=ex,
+            supported_codes=USER_MESSAGES,
+            fallback='USER_AUTHENTICATION_ERROR'
         )
 
         # Insere o código na URL e redireciona para a página de login,
@@ -266,3 +262,195 @@ async def logout_user(
     )
 
     return response
+
+#
+# GET: /users/password-reset
+#
+@router.get(
+    '/users/password-reset',
+    response_class=HTMLResponse
+)
+async def show_password_reset_page(
+    request: Request,
+    code: str | None = None
+) -> HTMLResponse:
+    """
+    Exibe a página utilizada para solicitar a redefinição de senha.
+
+    Args:
+        request: Requisição HTTP recebida pelo frontend-service.
+        code: Código funcional opcional associado à mensagem apresentada.
+
+    Returns:
+        Página HTML contendo o formulário de solicitação.
+    """
+
+    message = USER_MESSAGES.get(code) if code else None
+
+    return templates.TemplateResponse(
+        request=request,
+        name='users/password_reset.html',
+        context={
+            'form': UserPasswordResetRequestForm(),
+            'message': message['message'] if message else None,
+            'type': message['type'] if message else None
+        }
+    )
+
+#
+# POST: /users/password-reset
+#
+@router.post('/users/password-reset')
+@csrf_protect
+async def request_password_reset(
+    request: Request,
+    user_auth_service: UserAuthService = Depends(
+        get_user_auth_service
+    )
+) -> RedirectResponse:
+    """
+    Solicita a redefinição da senha do usuário.
+
+    Args:
+        request: Requisição HTTP recebida pelo frontend-service.
+        user_auth_service: Serviço responsável pelas operações relacionadas
+            à autenticação dos usuários.
+
+    Returns:
+        Redirecionamento para a página de solicitação de redefinição
+        de senha com o resultado da operação.
+    """
+
+    form = UserPasswordResetRequestForm(await request.form())
+
+    if not form.validate():
+        return RedirectResponse(
+            url='/users/login?code=USER_PASSWORD_RESET_INVALID',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    try:
+        await user_auth_service.request_password_reset(
+            email=form.email.data
+        )
+    except httpx.HTTPStatusError as ex:
+        code = get_jsend_error_code(
+            ex=ex,
+            supported_codes=USER_MESSAGES,
+            fallback='USER_PASSWORD_RESET_ERROR'
+        )
+
+        return RedirectResponse(
+            url=f'/users/login?code={code}',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+    except httpx.RequestError:
+        return RedirectResponse(
+            url='/users/login?code=USER_PASSWORD_RESET_ERROR',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    # Retorna uma mensagem genérica independentemente da existência
+    # da conta associada ao endereço de e-mail informado.
+    return RedirectResponse(
+        url='/users/login?code=USER_PASSWORD_RESET_REQUESTED',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+
+#
+# GET: /users/password-reset/confirm
+#
+@router.get(
+    '/users/password-reset/confirm',
+    response_class=HTMLResponse
+)
+async def show_password_reset_confirm_page(
+    request: Request,
+    token: str = Query(..., min_length=20, max_length=4096)
+) -> HTMLResponse:
+    """
+    Exibe a página utilizada para definir uma nova senha.
+
+    Args:
+        request: Requisição HTTP recebida pelo frontend-service.
+        token: Token recebido no link enviado por e-mail.
+
+    Returns:
+        Página HTML contendo o formulário de redefinição de senha.
+    """
+
+    return templates.TemplateResponse(
+        request=request,
+        name='users/password_reset_confirm.html',
+        context={
+            'form': UserPasswordResetConfirmForm(
+                data={'token': token}
+            )
+        }
+    )
+
+#
+# POST: /users/password-reset/confirm
+#
+@router.post('/users/password-reset/confirm')
+@csrf_protect
+async def confirm_password_reset(
+    request: Request,
+    user_auth_service: UserAuthService = Depends(
+        get_user_auth_service
+    )
+) -> RedirectResponse:
+    """
+    Confirma a redefinição de senha utilizando o token recebido por e-mail.
+
+    Args:
+        request: Requisição HTTP contendo o token e as novas senhas.
+        user_auth_service: Serviço responsável pelas operações relacionadas
+            à autenticação dos usuários.
+
+    Returns:
+        Redirecionamento para o login com o código correspondente ao resultado
+        da operação.
+    """
+
+    form = UserPasswordResetConfirmForm(await request.form())
+
+    if not form.validate():
+        code = (
+            'USER_INVALID_PASSWORD_RESET_TOKEN'
+            if form.token.errors
+            else 'USER_PASSWORD_RESET_CONFIRM_INVALID'
+        )
+
+        return RedirectResponse(
+            url=f'/users/login?code={code}',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    try:
+        await user_auth_service.confirm_password_reset(
+            token=form.token.data,
+            new_password=form.new_password.data,
+            confirm_new_password=form.confirm_new_password.data
+        )
+    except httpx.HTTPStatusError as ex:
+        code = get_jsend_error_code(
+            ex=ex,
+            supported_codes=USER_MESSAGES,
+            fallback='USER_PASSWORD_RESET_ERROR'
+        )
+
+        return RedirectResponse(
+            url=f'/users/login?code={code}',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+    except httpx.RequestError:
+        return RedirectResponse(
+            url='/users/login?code=USER_PASSWORD_RESET_ERROR',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    return RedirectResponse(
+        url='/users/login?code=USER_PASSWORD_RESET_SUCCESS',
+        status_code=status.HTTP_303_SEE_OTHER
+    )

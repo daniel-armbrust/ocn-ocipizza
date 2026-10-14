@@ -202,8 +202,34 @@ class EmailTemplateService:
     def _prepare_user_order_sent_data(self):
         pass
 
-    def _prepare_user_password_reset_data(self):
-        pass
+    def _prepare_user_password_reset_data(self, data: dict) -> dict:
+        """
+        Prepara os dados utilizados no e-mail de redefinição de senha.
+
+        Args:
+            data: Dados recebidos na mensagem de redefinição de senha.
+
+        Returns:
+            Dados preparados para renderização do template.
+
+        Raises:
+            ValueError: Quando faltam dados obrigatórios para a notificação.
+        """
+
+        full_name = data.get('full_name')
+        token = data.get('token')
+
+        if not full_name or not token:
+            raise ValueError(
+                'Full name and token are required for USER_PASSWORD_RESET.'
+            )
+
+        data['password_reset_url'] = (
+            f'{settings.site_url}/users/password-reset/confirm'
+            f'?token={token}'
+        )
+
+        return data
 
 
 def get_email_template_service() -> EmailTemplateService:

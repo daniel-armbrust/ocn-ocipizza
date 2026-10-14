@@ -832,8 +832,9 @@ Quando a conta existe, o e-mail precisa estar confirmado para que o fluxo seja
 iniciado.
 
 O serviço gera um token temporário com validade de uma hora, persiste somente
-seu hash e publica uma mensagem para que o `notification-service` envie o token
-ao e-mail associado à conta. O token original não é armazenado no banco de dados.
+seu hash e publica uma mensagem `USER_PASSWORD_RESET` com `recipient`,
+`full_name` e `token` para que o `notification-service` envie o link ao e-mail
+associado à conta. O token original não é armazenado no banco de dados.
 
 Por segurança, a API não informa se um e-mail inexistente está ou não cadastrado.
 Tanto para uma solicitação iniciada quanto para um e-mail inexistente, a resposta

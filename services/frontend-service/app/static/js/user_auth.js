@@ -53,6 +53,54 @@
         });
     }
 
+    const passwordResetForm = document.querySelector(
+        '[data-password-reset-form]'
+    );
+
+    passwordResetForm?.addEventListener('submit', (event) => {
+        if (!passwordResetForm.checkValidity()) {
+            event.preventDefault();
+            passwordResetForm.reportValidity();
+        }
+    });
+
+    const passwordResetConfirmForm = document.querySelector(
+        '[data-password-reset-confirm-form]'
+    );
+    const newPasswordInput = passwordResetConfirmForm?.querySelector(
+        '[name="new_password"]'
+    );
+    const confirmNewPasswordInput = passwordResetConfirmForm?.querySelector(
+        '[name="confirm_new_password"]'
+    );
+
+    if (
+        passwordResetConfirmForm
+        && newPasswordInput
+        && confirmNewPasswordInput
+    ) {
+        passwordResetConfirmForm.addEventListener('submit', (event) => {
+            confirmNewPasswordInput.setCustomValidity(
+                newPasswordInput.value === confirmNewPasswordInput.value
+                    ? ''
+                    : 'A confirmação deve ser igual à nova senha.'
+            );
+
+            if (!passwordResetConfirmForm.checkValidity()) {
+                event.preventDefault();
+                passwordResetConfirmForm.reportValidity();
+            }
+        });
+
+        confirmNewPasswordInput.addEventListener('input', () => {
+            confirmNewPasswordInput.setCustomValidity(
+                newPasswordInput.value === confirmNewPasswordInput.value
+                    ? ''
+                    : 'A confirmação deve ser igual à nova senha.'
+            );
+        });
+    }
+
     const currentUrl = new URL(window.location.href);
     const authenticationSucceeded = (
         currentUrl.searchParams.get('code') === 'USER_AUTHENTICATION_SUCCESS'

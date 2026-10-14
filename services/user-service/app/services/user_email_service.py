@@ -116,7 +116,6 @@ class UserEmailService:
         # do UnitOfWork.
         self.user_email_confirmation_token_repository.create(confirmation_token)
 
-        # TODO: documentar USER_CONFIRMATION
         payload = {
             'type': 'USER_CONFIRMATION',
             'recipient': user.email,
@@ -148,15 +147,13 @@ class UserEmailService:
         Returns: 
             None.
 
-        Raises: 
+        Raises:
             UserEmailPublishError: Caso não seja possível publicar a mensagem
                 na fila de notificações.
-
-            SQLAlchemyError: Caso ocorra uma falha ao persistir o token.
         """
 
         payload = {
-            'type': 'PASSWORD_RESET',
+            'type': 'USER_PASSWORD_RESET',
             'recipient': user.email,
             'full_name': user.full_name,
             'token': token

@@ -61,10 +61,15 @@ encaminhados ao preparador e ao template do tipo selecionado.
 | Tipo | Estado | Dados específicos |
 | --- | --- | --- |
 | `USER_CONFIRMATION` | Implementado | `full_name` e `token`. |
+| `USER_PASSWORD_RESET` | Implementado | `full_name` e `token`. |
 | `ORDER_RECEIVED` | Implementado | Dados do cliente, pedido, itens e valores. |
 
 Para `USER_CONFIRMATION`, o link enviado por e-mail é construído como
 `{SITE_URL}/users/confirm?token=...`.
+
+Para `USER_PASSWORD_RESET`, o link enviado por e-mail é construído como
+`{SITE_URL}/users/password-reset/confirm?token=...`. O preparador exige
+`full_name` e `token`; mensagens sem esses campos não são processadas.
 
 Para `ORDER_RECEIVED`, o e-mail informa que o pedido foi recebido, apresenta
 os itens e o resumo financeiro e avisa que o cliente será notificado quando as
@@ -98,9 +103,8 @@ O contrato esperado para esse tipo é:
 exatamente duas casas e renderizados no e-mail com o prefixo `R$`.
 
 <!-- TODO: Implementar e alinhar os identificadores, preparadores e templates
-de redefinição de senha e de pedido enviado. Atualmente USER_PASSWORD_RESET,
-USER_ORDER_SENT e ORDER_SENT não formam fluxos completos e não devem ser
-publicados em produção. -->
+de pedido enviado. Atualmente USER_ORDER_SENT e ORDER_SENT não formam um fluxo
+completo e não devem ser publicados em produção. -->
 
 ## Mensageria
 

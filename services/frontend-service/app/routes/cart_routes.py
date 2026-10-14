@@ -2,6 +2,8 @@
 # routes/cart_routes.py
 #
 
+import httpx
+
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request, status, Response
@@ -22,6 +24,8 @@ from app.services.checkout_service import CheckoutService, get_checkout_service
 from app.dependencies.templates import templates
 
 router = APIRouter()
+
+CHECKOUT_ITEMS_SESSION_KEY = 'checkout_items'
 
 #
 # GET: /cart
@@ -66,33 +70,75 @@ async def show_cart(
     )
 
 #
-# POST: /cart/checkout
+# GET: /cart/checkout
 #
-@router.post(
-        '/cart/checkout',
-        response_class=HTMLResponse
+@router.get(
+    '/cart/checkout',
+    response_class=HTMLResponse
 )
-@csrf_protect
 async def show_checkout(
     request: Request,
     session=Depends(get_authenticated_session),
     checkout_service: CheckoutService = Depends(get_checkout_service)
 ) -> Response:
     """
-    Exibe a etapa de pagamento do pedido.
-
-    Valida novamente as pizzas e seus preços, obtém o endereço principal
-    do usuário e consulta a disponibilidade da entrega antes de apresentar
-    o formulário de pagamento.
+    Exibe o checkout preparado com os dados atuais dos microsserviços.
 
     Args:
-        request: Requisição HTTP recebida com os itens do carrinho.
+        request: Requisição HTTP recebida pelo frontend-service.
         session: Sessão autenticada mantida pelo frontend-service.
         checkout_service: Serviço responsável por preparar o checkout.
 
     Returns:
         Página HTML do checkout ou redirecionamento para o carrinho quando
-        os itens submetidos forem inválidos.
+        não existem itens válidos preparados na sessão.
+
+    Raises:
+        httpx.HTTPStatusError: Caso um microsserviço rejeite uma consulta.
+        httpx.RequestError: Caso um microsserviço esteja indisponível.
+    """
+
+    submitted_items = request.session.get(CHECKOUT_ITEMS_SESSION_KEY)
+
+    if not isinstance(submitted_items, list) or not submitted_items:
+        return RedirectResponse(
+            url='/cart?code=CART_INVALID_ITEMS',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    # Falhas HTTP e de comunicação são tratadas pelos handlers globais.
+    checkout = await checkout_service.prepare_checkout(
+        access_token=session['access_token'],
+        items=submitted_items
+    )
+
+    checkout['idempotency_key'] = str(uuid4())
+
+    return templates.TemplateResponse(
+        request=request,
+        name='cart/checkout.html',
+        context=checkout
+    )
+
+#
+# POST: /cart/checkout
+#
+@router.post('/cart/checkout')
+@csrf_protect
+async def prepare_checkout(
+    request: Request,
+    session=Depends(get_authenticated_session)
+) -> RedirectResponse:
+    """
+    Valida os itens enviados pelo carrinho e inicia a etapa de checkout.
+
+    Args:
+        request: Requisição HTTP recebida com os itens do carrinho.
+        session: Sessão autenticada mantida pelo frontend-service.
+
+    Returns:
+        Redirecionamento para o checkout ou para o carrinho quando os itens
+        submetidos forem inválidos.
     """
 
     # Valida apenas os identificadores e as quantidades enviados pelo
@@ -118,31 +164,19 @@ async def show_checkout(
         for item in form.items.entries
     ]
 
-    # A rota delega toda a orquestração e os cálculos ao serviço para que a
-    # futura confirmação possa executar exatamente as mesmas regras.
-    checkout = await checkout_service.prepare_checkout(
-        access_token=session['access_token'],
-        items=submitted_items
-    )
+    # A sessão assinada mantém somente IDs e quantidades entre o POST e o GET.
+    # Nomes, preços e disponibilidade continuam sendo consultados novamente.
+    request.session[CHECKOUT_ITEMS_SESSION_KEY] = submitted_items
 
-    # A chave nasce junto com a apresentação do checkout e será reutilizada
-    # em todas as tentativas de confirmar este mesmo formulário. O controle
-    # definitivo contra pedidos duplicados pertencerá ao order-service.
-    checkout['idempotency_key'] = str(uuid4())
-
-    return templates.TemplateResponse(
-        request=request,
-        name='cart/checkout.html',
-        context=checkout
+    return RedirectResponse(
+        url='/cart/checkout',
+        status_code=status.HTTP_303_SEE_OTHER
     )
 
 #
 # POST: /cart/checkout/confirm
 #
-@router.post(
-    '/cart/checkout/confirm',
-    response_class=HTMLResponse
-)
+@router.post('/cart/checkout/confirm')
 @csrf_protect
 async def confirm_checkout(
     request: Request,
@@ -210,6 +244,29 @@ async def confirm_checkout(
             url='/cart?code=CART_CHECKOUT_CHANGED',
             status_code=status.HTTP_303_SEE_OTHER
         )
+    except ValueError:
+        return RedirectResponse(
+            url='/cart?code=CART_CHECKOUT_CONFIRMATION_ERROR',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+    except httpx.HTTPStatusError as ex:
+        if ex.response.status_code == status.HTTP_401_UNAUTHORIZED:
+            return RedirectResponse(
+                url='/users/login?code=USER_LOGIN_REQUIRED',
+                status_code=status.HTTP_303_SEE_OTHER
+            )
+
+        return RedirectResponse(
+            url='/cart?code=CART_ORDER_CREATION_ERROR',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+    except httpx.RequestError:
+        return RedirectResponse(
+            url='/cart?code=CART_ORDER_CREATION_ERROR',
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    request.session.pop(CHECKOUT_ITEMS_SESSION_KEY, None)
 
     return RedirectResponse(
         url='/users/profile/orders?code=CART_ORDER_SUCCESSFULLY_CREATED',

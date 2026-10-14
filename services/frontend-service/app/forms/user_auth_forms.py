@@ -3,8 +3,15 @@
 #
 
 
-from wtforms import EmailField, Form, PasswordField, StringField, ValidationError
-from wtforms.validators import DataRequired, Email, Length, Regexp
+from wtforms import (
+    EmailField,
+    Form,
+    HiddenField,
+    PasswordField,
+    StringField,
+    ValidationError
+)
+from wtforms.validators import DataRequired, Email, EqualTo, Length, Regexp
 
 from app.utils.utils import normalize_whatsapp
 
@@ -141,3 +148,82 @@ class UserRegisterForm(Form):
 
         if len(field.data.split()) < 2:
             raise ValidationError('Informe o nome completo.')
+
+
+class UserPasswordResetRequestForm(Form):
+    """
+    Define e valida o campo utilizado para solicitar a redefinição de senha.
+    """
+
+    email = EmailField(
+        'E-mail',
+        validators=[
+            DataRequired(message='Informe seu e-mail.'),
+            Email(message='Informe um endereço de e-mail válido.')
+        ],
+        render_kw={
+            'autocomplete': 'email',
+            'required': True
+        }
+    )
+
+
+class UserPasswordResetConfirmForm(Form):
+    """
+    Define e valida os campos utilizados para confirmar a nova senha.
+    """
+
+    token = HiddenField(
+        validators=[
+            DataRequired(message='O token de redefinição é obrigatório.'),
+            Length(
+                min=20,
+                max=4096,
+                message='O token de redefinição é inválido.'
+            ),
+            Regexp(
+                r'^[A-Za-z0-9_-]+$',
+                message='O token de redefinição é inválido.'
+            )
+        ]
+    )
+
+    new_password = PasswordField(
+        'Nova senha',
+        validators=[
+            DataRequired(message='Informe a nova senha.'),
+            Length(
+                min=8,
+                max=20,
+                message='A senha deve conter entre 8 e 20 caracteres.'
+            )
+        ],
+        render_kw={
+            'minlength': 8,
+            'maxlength': 20,
+            'autocomplete': 'new-password',
+            'required': True
+        }
+    )
+
+    confirm_new_password = PasswordField(
+        'Confirme a nova senha',
+        validators=[
+            DataRequired(message='Confirme a nova senha.'),
+            Length(
+                min=8,
+                max=20,
+                message='A senha deve conter entre 8 e 20 caracteres.'
+            ),
+            EqualTo(
+                'new_password',
+                message='A confirmação deve ser igual à nova senha.'
+            )
+        ],
+        render_kw={
+            'minlength': 8,
+            'maxlength': 20,
+            'autocomplete': 'new-password',
+            'required': True
+        }
+    )

@@ -128,8 +128,9 @@ docker compose ps frontend-service
 | `GET` | `/` | Público | Redireciona para `/pizzas`. |
 | `GET` | `/pizzas` | Público | Renderiza o cardápio consultado no `pizza-service`. |
 | `GET` | `/cart` | Público | Renderiza o carrinho armazenado no navegador. |
-| `POST` | `/cart/checkout` | Autenticado | Prepara e exibe o checkout com dados atuais das APIs. |
-| `POST` | `/cart/checkout/confirm` | Autenticado | Revalida o checkout, cria o pedido e redireciona para o cardápio. |
+| `POST` | `/cart/checkout` | Autenticado | Valida os itens, registra IDs e quantidades na sessão e redireciona. |
+| `GET` | `/cart/checkout` | Autenticado | Prepara e exibe o checkout com dados atuais das APIs. |
+| `POST` | `/cart/checkout/confirm` | Autenticado | Revalida o checkout, cria o pedido e redireciona para o histórico. |
 | `GET` | `/health` | Público | Retorna o estado básico do frontend-service. |
 
 `GET /pizzas` aceita os parâmetros opcionais `category`, `available`, `limit`
@@ -156,6 +157,9 @@ de itens armazenados no `localStorage`.
 | `GET` | `/users/login` | Público | Exibe o formulário de autenticação. |
 | `POST` | `/users/login` | Público | Autentica o usuário e cria uma sessão opaca no BFF. |
 | `GET` | `/users/password-reset` | Público | Exibe o formulário de solicitação de redefinição de senha. |
+| `POST` | `/users/password-reset` | Público | Solicita as instruções de redefinição ao `user-service` e redireciona. |
+| `GET` | `/users/password-reset/confirm` | Público | Exibe o formulário de nova senha a partir do token recebido. |
+| `POST` | `/users/password-reset/confirm` | Público | Confirma a nova senha no `user-service` e redireciona ao login. |
 | `POST` | `/users/logout` | Autenticado | Revoga a sessão remota, remove a sessão local e apaga o cookie. |
 
 Após um cadastro bem-sucedido, o usuário é redirecionado para o login com a
@@ -165,6 +169,13 @@ redirecionado ao cardápio.
 O link de confirmação utiliza `GET /users/confirm?token=...`. O frontend envia
 o token ao `user-service` e redireciona para o login, onde o componente global
 de mensagens apresenta o resultado da confirmação.
+
+Na recuperação de senha, o frontend solicita o envio das instruções sem revelar
+se o e-mail está cadastrado. O link recebido abre
+`GET /users/password-reset/confirm?token=...`; a submissão da nova senha chama o
+endpoint correspondente do `user-service` e segue o padrão Post/Redirect/Get.
+Após a submissão, o frontend sempre redireciona para `/users/login`, apresentando
+o código correspondente ao sucesso ou à falha da operação.
 
 ### Perfil do usuário
 
@@ -195,6 +206,13 @@ componente compartilhado de mensagens.
 O formulário `UserAddressForm` centraliza atributos HTML, normalização e
 validação de identificação, CEP, logradouro, número, complemento, bairro,
 cidade, estado e indicação de endereço principal.
+
+As rotas que processam formulários e mutações seguem o padrão
+Post/Redirect/Get. Depois de um `POST`, `PUT` ou `DELETE`, o frontend responde
+com `303 See Other` tanto em caso de sucesso quanto de erro. O código do
+resultado é enviado à página GET de destino, responsável por renderizar a
+mensagem correspondente. Dados sensíveis, como senhas, não são preservados na
+URL durante o redirecionamento.
 
 O CEP é exibido no formulário com a máscara `99999-999`, mas é normalizado
 para exatamente oito dígitos antes de qualquer chamada aos microsserviços.
@@ -264,7 +282,9 @@ O conteúdo exibido em `GET /cart` é montado no navegador. Ao finalizar o
 carrinho, o JavaScript cria campos ocultos contendo somente os identificadores
 e as quantidades e submete um formulário tradicional para
 `POST /cart/checkout`. Nomes, disponibilidade e preços armazenados no
-`localStorage` não são considerados confiáveis pelo backend.
+`localStorage` não são considerados confiáveis pelo backend. Depois da
+validação, o BFF armazena temporariamente somente IDs e quantidades na sessão
+assinada e responde com `303 See Other` para `GET /cart/checkout`.
 
 O formulário limita cada item e a soma do pedido a, no máximo, 20 pizzas. O
 `CheckoutService` consulta as pizzas e os endereços em paralelo, utiliza os
@@ -303,8 +323,8 @@ desenvolvimento; o processamento efetivo pelo gateway de pagamento não faz
 parte desta implementação. Após uma revalidação bem-sucedida, o
 `CheckoutService` consulta o perfil atual, monta os snapshots do cliente,
 endereço e itens e envia o pedido ao `order-service`. Em caso de sucesso, o
-usuário é redirecionado ao cardápio, recebe a confirmação visual e o carrinho
-armazenado no `localStorage` é esvaziado.
+usuário é redirecionado ao histórico de pedidos, recebe a confirmação visual e
+o carrinho armazenado no `localStorage` é esvaziado.
 
 ## Mensagens e erros
 
