@@ -1,0 +1,24 @@
+/* Estado visual exibido enquanto o admin-service aguarda uma operação. */
+body.is-interaction-locked {
+    cursor: wait;
+}
+
+body.is-interaction-locked::after {
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    display: grid;
+    color: var(--ink-950);
+    background: rgb(235 235 235 / 68%);
+    backdrop-filter: grayscale(35%) blur(1px);
+    content: "Processando...";
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    pointer-events: all;
+    place-items: center;
+}
+
+form[data-submitting="true"] {
+    cursor: wait;
+}

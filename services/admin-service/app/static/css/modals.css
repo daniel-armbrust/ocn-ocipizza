@@ -1,0 +1,121 @@
+.message-modal {
+    width: min(620px, calc(100vw - 32px));
+    max-width: 620px;
+    max-height: calc(100dvh - 32px);
+    padding: 0;
+    overflow: auto;
+    color: var(--ink-950);
+    background: transparent;
+    border: 0;
+    border-radius: 18px;
+    box-shadow: 0 28px 80px rgba(16, 24, 32, 0.34);
+}
+
+.message-modal[open] {
+    animation: message-modal-in 180ms ease-out;
+}
+
+.message-modal::backdrop {
+    background: rgba(16, 24, 32, 0.58);
+    backdrop-filter: blur(3px);
+}
+
+.message-modal-content {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 20px;
+    padding: 28px;
+    background: var(--surface-raised);
+    border: 2px solid rgba(64, 80, 94, 0.28);
+    border-radius: 18px;
+}
+
+.message-modal-success .message-modal-content {
+    border-color: rgba(41, 122, 90, 0.46);
+}
+
+.message-modal-warning .message-modal-content {
+    border-color: rgba(227, 167, 47, 0.58);
+}
+
+.message-modal-error .message-modal-content {
+    border-color: rgba(179, 52, 45, 0.48);
+}
+
+.message-modal-icon {
+    display: grid;
+    width: 64px;
+    height: 64px;
+    place-items: center;
+    color: #ffffff;
+    background: var(--ink-700);
+    border-radius: 50%;
+    font: 800 1.9rem var(--font-display);
+}
+
+.message-modal-success .message-modal-icon {
+    background: var(--success);
+}
+
+.message-modal-warning .message-modal-icon {
+    color: var(--ink-950);
+    background: var(--accent);
+}
+
+.message-modal-error .message-modal-icon {
+    background: var(--danger);
+}
+
+.message-modal-copy .eyebrow,
+.message-modal-copy h2,
+.message-modal-copy p {
+    margin: 0;
+}
+
+.message-modal-copy h2 {
+    margin-top: 3px;
+    font: 800 clamp(1.45rem, 4vw, 1.9rem)/1.15 var(--font-display);
+    letter-spacing: -0.035em;
+}
+
+.message-modal-copy p {
+    margin-top: 9px;
+    color: var(--ink-700);
+    font-size: 1rem;
+}
+
+.message-modal-button {
+    min-width: 120px;
+    min-height: 44px;
+    margin-top: 22px;
+    padding: 0 22px;
+    color: #ffffff;
+    background: var(--ink-950);
+    border: 0;
+    border-radius: 9px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.message-modal-button:hover {
+    background: var(--brand);
+}
+
+.message-modal-button:focus-visible {
+    outline: 3px solid rgba(227, 167, 47, 0.48);
+    outline-offset: 3px;
+}
+
+@keyframes message-modal-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+

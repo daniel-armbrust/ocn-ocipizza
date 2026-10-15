@@ -20,30 +20,30 @@
 
         <nav class="sidebar-navigation">
             <p class="sidebar-label">Painel</p>
-            <a class="sidebar-link is-active" href="/admin/dashboard" aria-current="page">
+            <a class="sidebar-link is-active" data-lock-navigation href="/admin/dashboard" aria-current="page">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z"/></svg>
                 <span>Visão geral</span>
             </a>
-            <a class="sidebar-link" href="/admin/orders">
+            <a class="sidebar-link" data-lock-navigation href="/admin/orders">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v2h3v16H4V5h3V3Zm2 2h6V4H9v1ZM6 7v12h12V7H6Zm2 3h8v2H8v-2Zm0 4h6v2H8v-2Z"/></svg>
                 <span>Pedidos</span>
                 <span class="sidebar-badge">{{ pending_orders | default(0) }}</span>
             </a>
-            <a class="sidebar-link" href="/admin/pizzas">
+            <a class="sidebar-link" data-lock-navigation href="/admin/pizzas">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm6.9 7H15a14.7 14.7 0 0 0-1.2-4.6A8 8 0 0 1 18.9 9ZM12 4c.8 1 1.5 2.8 1.9 5h-3.8c.4-2.2 1.1-4 1.9-5ZM4.3 14a7.5 7.5 0 0 1 0-4h4a16.9 16.9 0 0 0 0 4h-4Zm.8 2H9a14.7 14.7 0 0 0 1.2 4.6A8 8 0 0 1 5.1 16ZM9 9H5.1a8 8 0 0 1 5.1-4.6A14.7 14.7 0 0 0 9 9Zm3 11c-.8-1-1.5-2.8-1.9-5h3.8c-.4 2.2-1.1 4-1.9 5Zm2.2-7H9.8a13.5 13.5 0 0 1 0-2h4.4a13.5 13.5 0 0 1 0 2Zm-.4 7.6A14.7 14.7 0 0 0 15 16h3.9a8 8 0 0 1-5.1 4.6ZM15.7 14a16.9 16.9 0 0 0 0-4h4a7.5 7.5 0 0 1 0 4h-4Z"/></svg>
                 <span>Cardápio</span>
             </a>
-            <a class="sidebar-link" href="/admin/users">
+            <a class="sidebar-link" data-lock-navigation href="/admin/users">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0-6a2 2 0 1 1-2 2 2 2 0 0 1 2-2ZM8 12a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm0-4a1 1 0 1 1-1 1 1 1 0 0 1 1-1Zm8 5c-3 0-6 1.5-6 4.5V21h12v-3.5C22 14.5 19 13 16 13Zm4 6h-8v-1.5c0-1.7 2.1-2.5 4-2.5s4 .8 4 2.5V19ZM8.5 14c.5 0 1 .1 1.5.2a6.4 6.4 0 0 0-1.6 1.9A3.6 3.6 0 0 0 7 16c-1.5 0-3 .7-3 2v1h4v2H2v-3c0-2.7 2.7-4 5.5-4Z"/></svg>
                 <span>Usuários</span>
             </a>
-            <a class="sidebar-link" href="/admin/deliveries">
+            <a class="sidebar-link" data-lock-navigation href="/admin/deliveries">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h11v10h2.2l1.5-4H22v6h-2a3 3 0 0 1-6 0H9a3 3 0 0 1-6 0H1V7h2V5Zm2 2v7.2a3 3 0 0 1 3.8.8H12V7H5Zm11 6-.7 2h.7a3 3 0 0 1 2.2.9H20V13h-4ZM6 16a1 1 0 1 0 1 1 1 1 0 0 0-1-1Zm11 0a1 1 0 1 0 1 1 1 1 0 0 0-1-1Z"/></svg>
                 <span>Entregas</span>
             </a>
 
             <p class="sidebar-label sidebar-label-secondary">Plataforma</p>
-            <a class="sidebar-link" href="/admin/monitoring">
+            <a class="sidebar-link" data-lock-navigation href="/admin/monitoring">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4V4Zm2 2v12h12V6H6Zm1 8h2.2l1.6-4 2.1 5.1L14.5 12H17v2h-1.3l-3 6-2-5-0.2.6H7V14Z"/></svg>
                 <span>Monitoramento</span>
             </a>
@@ -98,7 +98,7 @@
                     <h1 id="dashboard-title">Bom trabalho, {{ admin_name | default('Administrador') }}.</h1>
                     <p>Acompanhe os pontos mais importantes da OCI Pizza e acesse rapidamente cada área.</p>
                 </div>
-                <a class="dashboard-primary-action" href="/admin/orders">
+                <a class="dashboard-primary-action" data-lock-navigation href="/admin/orders">
                     Ver todos os pedidos
                     <span aria-hidden="true">→</span>
                 </a>
@@ -149,17 +149,17 @@
                     </header>
 
                     <div class="operation-links">
-                        <a href="/admin/orders">
+                        <a data-lock-navigation href="/admin/orders">
                             <span class="operation-number">01</span>
                             <span><strong>Gerenciar pedidos</strong>Consulte pedidos e acompanhe seus estados.</span>
                             <span aria-hidden="true">→</span>
                         </a>
-                        <a href="/admin/pizzas">
+                        <a data-lock-navigation href="/admin/pizzas">
                             <span class="operation-number">02</span>
                             <span><strong>Atualizar cardápio</strong>Gerencie pizzas, preços e disponibilidade.</span>
                             <span aria-hidden="true">→</span>
                         </a>
-                        <a href="/admin/users">
+                        <a data-lock-navigation href="/admin/users">
                             <span class="operation-number">03</span>
                             <span><strong>Administrar usuários</strong>Controle contas, perfis e permissões.</span>
                             <span aria-hidden="true">→</span>
@@ -173,7 +173,7 @@
                             <p class="eyebrow">Monitoramento</p>
                             <h2 id="services-title">Saúde da plataforma</h2>
                         </div>
-                        <a href="/admin/monitoring">Ver detalhes</a>
+                        <a data-lock-navigation href="/admin/monitoring">Ver detalhes</a>
                     </header>
 
                     <div class="service-list">

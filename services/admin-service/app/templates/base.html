@@ -52,7 +52,7 @@
     </dialog>
     {% endif %}
 
-    <script src="{{ url_for('static', path='js/admin.js') }}" defer></script>
+    <script type="module" src="{{ url_for('static', path='js/admin.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

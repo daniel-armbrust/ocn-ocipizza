@@ -585,10 +585,15 @@ for image_path in image_paths:
 
     content_type, _ = mimetypes.guess_type(image_path.name)
 
+    if not content_type or not content_type.startswith('image/'):
+        raise ValueError(
+            f'Tipo de conteúdo inválido para imagem: {image_path.name}'
+        )
+
     objectstorage_service.upload_object(
         object_name=object_name,
         data=image_path.read_bytes(),
-        content_type=content_type or 'application/octet-stream'
+        content_type=content_type
     )
 
     print(f'Imagem de demonstração enviada: {object_name}')

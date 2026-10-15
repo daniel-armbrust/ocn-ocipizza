@@ -48,7 +48,7 @@ router = APIRouter()
 def list_pizzas(
     category: PizzaCategory | None = None,
     available: bool | None = None,
-    limit: int = Query(default=10, ge=1, le=50),
+    limit: int = Query(default=10, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     service: PizzaService = Depends(get_pizza_service)
 ) -> JSendSuccessResponse | JSONResponse:

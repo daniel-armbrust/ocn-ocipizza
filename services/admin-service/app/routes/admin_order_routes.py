@@ -168,7 +168,9 @@ async def show_admin_order(
 #
 # POST: /admin/orders/{order_id}/status
 #
-@router.post('/admin/orders/{order_id}/status')
+@router.post(
+    '/admin/orders/{order_id}/status'
+)
 async def update_admin_order_status(
     request: Request,
     order_id: UUID,

@@ -47,7 +47,7 @@ async def get_current_user_id(
         public_key = jwt.PyJWK.from_dict(jwk).key
 
         # Valida criptograficamente o token e também os claims esperados
-        # pelo delivery-service.
+        # pelo pizza-service.
         payload = jwt.decode(
             token,
             public_key,
@@ -98,7 +98,7 @@ async def get_current_admin_id(
         public_key = jwt.PyJWK.from_dict(jwk).key
 
         # Valida a assinatura do JWT e os claims esperados
-        # pelo delivery-service.
+        # pelo pizza-service.
         payload = jwt.decode(
             token,
             public_key,
@@ -109,7 +109,7 @@ async def get_current_admin_id(
 
         # Garante que somente usuários com privilégio administrativo
         # possam acessar as rotas protegidas por esta dependência.
-        if payload.get('role') != 'admin':
+        if payload.get('is_admin') is not True:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail='Administrator access required.'

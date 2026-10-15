@@ -27,11 +27,11 @@
                 inacessível. Aguarde alguns instantes antes de tentar novamente.
             </p>
             <div class="error-actions">
-                <a class="primary-button error-button" href="{{ retry_url | default('/users/login', true) }}">
+                <a class="primary-button error-button" href="{{ retry_url | default('/admin/login', true) }}">
                     <span>Tentar novamente</span>
                     <span aria-hidden="true">↻</span>
                 </a>
-                <a class="secondary-button" href="/users/login">Voltar ao acesso</a>
+                <a class="secondary-button" href="/admin/login">Voltar ao acesso</a>
             </div>
         </div>
     </div>

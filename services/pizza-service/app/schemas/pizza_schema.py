@@ -20,7 +20,8 @@ class PizzaCreateRequest(BaseModel):
         name: Nome da pizza.
         description: Descrição da pizza.
         price: Preço da pizza.
-        image_name: Nome do arquivo de imagem associado à pizza.
+        image_name: Nome opcional do objeto no Object Storage. Quando não
+            informado, o serviço gera um nome único.
         available: Indica se a pizza está disponível para pedidos.
     """
 
@@ -30,7 +31,11 @@ class PizzaCreateRequest(BaseModel):
     description: str = Field(min_length=1, max_length=500)
     category: PizzaCategory
     price: Decimal = Field(gt=0)
-    image_name: str = Field(min_length=1, max_length=255)
+    image_name: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=255
+    )
     available: bool = True
 
 
@@ -107,4 +112,3 @@ class PizzaResponse(BaseModel):
             created_at=pizza.created_at,
             updated_at=pizza.updated_at
         )
-  

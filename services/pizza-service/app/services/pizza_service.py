@@ -141,6 +141,34 @@ class PizzaService:
 
         return pizza, image_url
 
+    @staticmethod
+    def _generate_image_name(content_type: str) -> str:
+        """
+        Gera um nome único para uma imagem armazenada no Object Storage.
+
+        Args:
+            content_type: Tipo MIME informado para a imagem recebida.
+
+        Returns:
+            Nome seguro e único para o objeto armazenado.
+        """
+
+        # A extensão é derivada do tipo MIME, e não do nome enviado pelo
+        # cliente, para evitar confiar em dados controlados externamente.
+        extensions = {
+            'image/jpeg': 'jpg',
+            'image/png': 'png',
+            'image/gif': 'gif',
+            'image/webp': 'webp',
+            'image/svg+xml': 'svg'
+        }
+
+        extension = extensions.get(content_type, 'img')
+
+        # UUID4 reduz o risco de colisão mesmo quando múltiplas instâncias
+        # do serviço recebem uploads simultaneamente.
+        return f'pizza-{uuid4().hex}.{extension}'
+
     def create(self,
                payload: PizzaCreateRequest,
                image_data: bytes,
@@ -161,17 +189,35 @@ class PizzaService:
                 da pizza.
         """
 
+        if not content_type or not content_type.startswith('image/'):
+            raise PizzaCreationError(
+                'An image content type is required for creation.'
+            )
+
+        # TODO: Integrar o OCI Vision para verificar se o conteúdo representa
+        # uma pizza antes de persistir o registro e enviar a imagem ao
+        # Object Storage. A validação deverá considerar um modelo customizado
+        # e um limiar mínimo de confiança configurável.
+
+        # Quando o consumidor não informa um nome, o próprio serviço define
+        # a chave do objeto para manter essa regra independente do cliente.
+        image_name = payload.image_name or self._generate_image_name(
+            content_type
+        )
+
         now = now_utc()
 
         # Cria o modelo da aplicação a partir dos dados recebidos
         # pela camada HTTP.
         pizza = Pizza(
             id=uuid4(),
-            name=payload.name,
-            description=payload.description,
+            # Padroniza a apresentação antes de persistir os textos do
+            # catálogo, independentemente do cliente que enviou a requisição.
+            name=payload.name.title(),
+            description=payload.description.capitalize(),
             category=payload.category,
             price=payload.price,
-            image_name=payload.image_name,
+            image_name=image_name,
             available=payload.available,
             created_at=now,
             updated_at=now
@@ -230,6 +276,13 @@ class PizzaService:
             PizzaUpdateError: Caso ocorra uma falha durante a atualização.
         """
 
+        if image_data is not None and (
+            not content_type or not content_type.startswith('image/')
+        ):
+            raise PizzaUpdateError(
+                'An image content type is required when image data is provided.'
+            )
+
         try:
             # Consulta a pizza atualmente persistida.
             pizza = self.pizza_repository.get_by_id(pizza_id)
@@ -243,6 +296,23 @@ class PizzaService:
 
             # Obtém somente os campos efetivamente enviados.
             update_data = payload.model_dump(exclude_unset=True)
+
+            # Aplica a mesma padronização da criação somente aos campos que
+            # foram enviados na atualização parcial.
+            if 'name' in update_data:
+                update_data['name'] = update_data['name'].title()
+
+            if 'description' in update_data:
+                update_data['description'] = (
+                    update_data['description'].capitalize()
+                )
+
+            if image_data is not None and 'image_name' not in update_data:
+                # Uma nova imagem recebe uma nova chave para não sobrescrever
+                # o objeto anterior quando o nome não for informado.
+                update_data['image_name'] = self._generate_image_name(
+                    content_type
+                )
 
             # Atualiza apenas os atributos informados na requisição.
             for field, value in update_data.items():

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Nova pizza | OCI Pizza Admin{% endblock %}
+{% block content %}
+<div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Navegação administrativa" data-dashboard-sidebar>
+        <div class="sidebar-brand"><img src="{{ url_for('static', path='img/admin-mark.svg') }}" alt="" width="44" height="44"><div><strong>OCI Pizza</strong><span>Administração</span></div></div>
+        <nav class="sidebar-navigation">
+            <p class="sidebar-label">Painel</p>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/dashboard"><span>Visão geral</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/orders"><span>Pedidos</span></a>
+            <a class="sidebar-link sidebar-link-plain is-active" data-lock-navigation href="/admin/pizzas"><span>Cardápio</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/users"><span>Usuários</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/deliveries"><span>Entregas</span></a>
+            <p class="sidebar-label sidebar-label-secondary">Plataforma</p>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/monitoring"><span>Monitoramento</span></a>
+        </nav>
+        <div class="sidebar-footer"><div class="sidebar-user"><span class="user-avatar" aria-hidden="true">{{ admin_initials | default('AD') }}</span><div><strong>{{ admin_name | default('Administrador') }}</strong><span>Acesso administrativo</span></div></div><form method="post" action="/admin/logout"><input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}"><button class="sidebar-logout" type="submit">Sair</button></form></div>
+    </aside>
+    <button class="sidebar-overlay" type="button" aria-label="Fechar menu" data-sidebar-overlay></button>
+    <div class="dashboard-main">
+        <header class="dashboard-topbar"><button class="sidebar-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" data-sidebar-toggle><span></span><span></span><span></span></button><div class="topbar-title"><span>Painel administrativo</span><strong>Cardápio</strong></div><div class="topbar-environment"><span class="status-dot" aria-hidden="true"></span>Operação online</div></header>
+        <main class="dashboard-content pizza-form-page">
+            <a class="order-detail-back" data-lock-navigation href="/admin/pizzas">← Voltar para o cardápio</a>
+            <section class="pizza-detail-card pizza-form-card" aria-labelledby="new-pizza-title">
+                <div class="pizza-detail-content">
+                    <p class="eyebrow">Gestão do catálogo</p>
+                    <h1 id="new-pizza-title">Nova pizza</h1>
+                    <p class="pizza-detail-description">Cadastre uma nova opção no cardápio da OCI Pizza.</p>
+                    <form class="pizza-edit-form" method="post" action="{{ form_action }}" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                        <label>Nome<input name="name" required></label>
+                        <label>Descrição<textarea name="description" required></textarea></label>
+                        <label>Categoria<select name="category" required><option value="salgada">Salgada</option><option value="vegetariana">Vegetariana</option><option value="doce">Doce</option></select></label>
+                        <label>Preço<input name="price" type="text" inputmode="decimal" data-money-input placeholder="R$ 0,00" autocomplete="off" required></label>
+                        <label>Imagem<input name="image" type="file" accept="image/*" required></label>
+                        <label class="pizza-availability"><input name="available" type="checkbox" value="true" checked> Disponível</label>
+                        <button class="order-status-submit" type="submit">Salvar pizza</button>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}

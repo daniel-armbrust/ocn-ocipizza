@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}{{ pizza.name }} | OCI Pizza Admin{% endblock %}
+
+{% block content %}
+<div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Navegação administrativa" data-dashboard-sidebar>
+        <div class="sidebar-brand">
+            <img src="{{ url_for('static', path='img/admin-mark.svg') }}" alt="" width="44" height="44">
+            <div><strong>OCI Pizza</strong><span>Administração</span></div>
+        </div>
+        <nav class="sidebar-navigation">
+            <p class="sidebar-label">Painel</p>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/dashboard"><span>Visão geral</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/orders"><span>Pedidos</span></a>
+            <a class="sidebar-link sidebar-link-plain is-active" data-lock-navigation href="/admin/pizzas" aria-current="page"><span>Cardápio</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/users"><span>Usuários</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/deliveries"><span>Entregas</span></a>
+            <p class="sidebar-label sidebar-label-secondary">Plataforma</p>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/monitoring"><span>Monitoramento</span></a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <span class="user-avatar" aria-hidden="true">{{ admin_initials | default('AD') }}</span>
+                <div><strong>{{ admin_name | default('Administrador') }}</strong><span>Acesso administrativo</span></div>
+            </div>
+            <form method="post" action="/admin/logout">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                <button class="sidebar-logout" type="submit" aria-label="Sair do painel">Sair</button>
+            </form>
+        </div>
+    </aside>
+
+    <button class="sidebar-overlay" type="button" aria-label="Fechar menu" data-sidebar-overlay></button>
+    <div class="dashboard-main">
+        <header class="dashboard-topbar">
+            <button class="sidebar-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" data-sidebar-toggle>
+                <span></span><span></span><span></span>
+            </button>
+            <div class="topbar-title"><span>Painel administrativo</span><strong>Detalhes da pizza</strong></div>
+            <div class="topbar-environment"><span class="status-dot" aria-hidden="true"></span>Operação online</div>
+        </header>
+
+        <main class="dashboard-content">
+            <a class="order-detail-back" data-lock-navigation href="/admin/pizzas">← Voltar para o cardápio</a>
+            <section class="pizza-detail-card" aria-labelledby="pizza-title">
+                {% if pizza.image_url %}<img src="{{ pizza.image_url }}" alt="{{ pizza.name }}">{% endif %}
+                <div class="pizza-detail-content">
+                    <div class="pizza-card-heading">
+                        <div><p class="eyebrow">{{ pizza.category }}</p><h1 id="pizza-title">{{ pizza.name }}</h1></div>
+                        <span class="order-status order-status-{{ 'ready' if pizza.available else 'cancelled' }}">{{ 'Disponível' if pizza.available else 'Indisponível' }}</span>
+                    </div>
+                    <p class="pizza-detail-description">{{ pizza.description }}</p>
+                    <form id="pizza-edit-form" class="pizza-edit-form" method="post" action="/admin/pizzas/{{ pizza.id }}/edit" enctype="multipart/form-data" data-update-pizza-form>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                        <label>Nome<input name="name" value="{{ pizza.name }}" required></label>
+                        <label>Descrição<textarea name="description" required>{{ pizza.description }}</textarea></label>
+                        <label>Categoria<select name="category">
+                            <option value="">Manter categoria</option>
+                            <option value="salgada">Salgada</option>
+                            <option value="vegetariana">Vegetariana</option>
+                            <option value="doce">Doce</option>
+                        </select></label>
+                        <label>Preço<input name="price" type="text" inputmode="decimal" data-money-input value="{{ pizza.price }}" autocomplete="off" required></label>
+                        <label>Nova imagem<input name="image" type="file" accept="image/*"></label>
+                        <label class="pizza-availability"><input name="available" type="checkbox" value="true"{% if pizza.available %} checked{% endif %}> Disponível</label>
+                    </form>
+                    <div class="pizza-action-row">
+                        <button class="order-status-submit" type="submit" form="pizza-edit-form">Salvar alterações</button>
+                        <form class="pizza-delete-form" method="post" action="/admin/pizzas/{{ pizza.id }}/delete" data-delete-pizza-form>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                            <button class="order-action order-action-delete" type="submit">Excluir pizza</button>
+                        </form>
+                    </div>
+                    <dl class="pizza-metadata">
+                        <div><dt>Imagem</dt><dd>{{ pizza.image_name }}</dd></div>
+                        <div><dt>Criada em</dt><dd>{{ pizza.created_at }}</dd></div>
+                        <div><dt>Atualizada em</dt><dd>{{ pizza.updated_at }}</dd></div>
+                    </dl>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<dialog
+    class="message-modal message-modal-warning"
+    aria-labelledby="update-pizza-modal-title"
+    aria-describedby="update-pizza-modal-description"
+    data-update-pizza-modal
+>
+    <div class="message-modal-content">
+        <span class="message-modal-icon" aria-hidden="true">!</span>
+        <div class="message-modal-copy">
+            <span class="eyebrow">Confirmar operação</span>
+            <h2 id="update-pizza-modal-title">Salvar alterações?</h2>
+            <p id="update-pizza-modal-description">
+                As alterações da pizza serão salvas no cardápio.
+            </p>
+            <div class="confirmation-modal-actions">
+                <button class="confirmation-modal-cancel" type="button" data-cancel-update-pizza>
+                    Voltar
+                </button>
+                <button class="message-modal-button confirmation-modal-confirm" type="button" data-confirm-update-pizza>
+                    Sim, salvar alterações
+                </button>
+            </div>
+        </div>
+    </div>
+</dialog>
+
+<dialog
+    class="message-modal message-modal-warning"
+    aria-labelledby="delete-pizza-modal-title"
+    aria-describedby="delete-pizza-modal-description"
+    data-delete-pizza-modal
+>
+    <div class="message-modal-content">
+        <span class="message-modal-icon" aria-hidden="true">!</span>
+        <div class="message-modal-copy">
+            <span class="eyebrow">Confirmar operação</span>
+            <h2 id="delete-pizza-modal-title">Excluir esta pizza?</h2>
+            <p id="delete-pizza-modal-description">
+                A pizza {{ pizza.name }} será removida permanentemente do cardápio.
+            </p>
+            <div class="confirmation-modal-actions">
+                <button class="confirmation-modal-cancel" type="button" data-cancel-delete-pizza>
+                    Voltar
+                </button>
+                <button class="message-modal-button confirmation-modal-confirm" type="button" data-confirm-delete-pizza>
+                    Sim, excluir pizza
+                </button>
+            </div>
+        </div>
+    </div>
+</dialog>
+{% endblock %}

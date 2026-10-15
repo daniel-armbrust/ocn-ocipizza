@@ -1,0 +1,136 @@
+.error-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: clamp(24px, 4vw, 56px);
+    background-color: var(--ink-950);
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+}
+
+.error-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #ffffff;
+}
+
+.error-brand img {
+    border-radius: 12px;
+}
+
+.error-brand div {
+    display: grid;
+}
+
+.error-brand strong {
+    font: 800 1rem var(--font-display);
+}
+
+.error-brand span {
+    color: #96a5b0;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.error-panel {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.75fr) minmax(320px, 1fr);
+    align-items: center;
+    width: min(1040px, 100%);
+    margin: auto;
+    overflow: hidden;
+    background: var(--surface-raised);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.3);
+}
+
+.error-code {
+    display: grid;
+    align-self: stretch;
+    min-height: 430px;
+    place-items: center;
+    color: #ffffff;
+    background: var(--brand);
+    font: 800 clamp(5.5rem, 12vw, 10rem)/1 var(--font-display);
+    letter-spacing: -0.09em;
+}
+
+.error-copy {
+    padding: clamp(32px, 6vw, 72px);
+}
+
+.error-copy h1 {
+    max-width: 14ch;
+    margin: 0;
+    font: 800 clamp(2rem, 4vw, 3.35rem)/1.05 var(--font-display);
+    letter-spacing: -0.055em;
+}
+
+.error-copy > p:not(.eyebrow) {
+    max-width: 50ch;
+    margin: 20px 0 0;
+    color: var(--ink-500);
+}
+
+.error-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 32px;
+}
+
+.error-button {
+    width: fit-content;
+    min-width: 190px;
+    margin-top: 32px;
+    gap: 28px;
+    text-decoration: none;
+}
+
+.error-actions .error-button {
+    margin-top: 0;
+}
+
+.secondary-button {
+    display: inline-flex;
+    min-height: 52px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 18px;
+    color: var(--ink-700);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.secondary-button:hover {
+    color: var(--ink-950);
+    background: var(--surface);
+    border-color: #aab3b5;
+}
+
+.error-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    margin-top: 32px;
+    color: #96a5b0;
+    font-size: 0.75rem;
+}
+
+.status-dot-warning {
+    background: var(--accent);
+    box-shadow: 0 0 0 5px rgba(227, 167, 47, 0.12);
+}
+

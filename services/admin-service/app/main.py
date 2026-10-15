@@ -27,6 +27,7 @@ from app.routes.auth_routes import router as auth_router
 
 from app.routes.admin_user_routes import router as admin_user_router
 from app.routes.admin_order_routes import router as admin_order_router
+from app.routes.admin_pizza_routes import router as admin_pizza_router
 
 from app.routes.kitchen_order_routes import router as kitchen_order_router
 
@@ -336,6 +337,7 @@ app.include_router(auth_router)
 # Rotas dos usuários Administradores.
 app.include_router(admin_user_router)
 app.include_router(admin_order_router)
+app.include_router(admin_pizza_router)
 
 # Rotas responsáveis pelo painel operacional da cozinha.
 app.include_router(kitchen_order_router)

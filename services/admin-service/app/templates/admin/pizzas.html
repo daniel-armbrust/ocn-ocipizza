@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Cardápio | OCI Pizza Admin{% endblock %}
+
+{% block content %}
+<div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Navegação administrativa" data-dashboard-sidebar>
+        <div class="sidebar-brand">
+            <img src="{{ url_for('static', path='img/admin-mark.svg') }}" alt="" width="44" height="44">
+            <div><strong>OCI Pizza</strong><span>Administração</span></div>
+        </div>
+        <nav class="sidebar-navigation">
+            <p class="sidebar-label">Painel</p>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/dashboard"><span>Visão geral</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/orders"><span>Pedidos</span></a>
+            <a class="sidebar-link sidebar-link-plain is-active" data-lock-navigation href="/admin/pizzas" aria-current="page"><span>Cardápio</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/users"><span>Usuários</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/deliveries"><span>Entregas</span></a>
+            <p class="sidebar-label sidebar-label-secondary">Plataforma</p>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/monitoring"><span>Monitoramento</span></a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <span class="user-avatar" aria-hidden="true">{{ admin_initials | default('AD') }}</span>
+                <div><strong>{{ admin_name | default('Administrador') }}</strong><span>Acesso administrativo</span></div>
+            </div>
+            <form method="post" action="/admin/logout">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                <button class="sidebar-logout" type="submit" aria-label="Sair do painel">Sair</button>
+            </form>
+        </div>
+    </aside>
+
+    <button class="sidebar-overlay" type="button" aria-label="Fechar menu" data-sidebar-overlay></button>
+    <div class="dashboard-main">
+        <header class="dashboard-topbar">
+            <button class="sidebar-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" data-sidebar-toggle>
+                <span></span><span></span><span></span>
+            </button>
+            <div class="topbar-title"><span>Painel administrativo</span><strong>Cardápio</strong></div>
+            <div class="topbar-environment"><span class="status-dot" aria-hidden="true"></span>Operação online</div>
+        </header>
+
+        <main class="dashboard-content admin-orders-content">
+            <section class="orders-page-heading" aria-labelledby="pizzas-title">
+                <div>
+                    <p class="eyebrow">Gestão do catálogo</p>
+                    <h1 id="pizzas-title">Cardápio</h1>
+                    <p>Consulte preços, categorias e disponibilidade das pizzas.</p>
+                </div>
+                <div class="pizza-heading-actions">
+                    <a class="orders-refresh pizza-create-link" data-lock-navigation href="/admin/pizzas/new">
+                        <span aria-hidden="true">+</span>
+                        Nova pizza
+                    </a>
+                    <a class="orders-refresh" data-lock-navigation href="/admin/pizzas?limit={{ limit }}&amp;offset={{ offset }}{% if category %}&amp;category={{ category }}{% endif %}{% if available is not none %}&amp;available={{ available | lower }}{% endif %}">
+                        <span aria-hidden="true">↻</span>Atualizar catálogo
+                    </a>
+                </div>
+            </section>
+
+            <section class="orders-panel" aria-labelledby="pizza-list-title">
+                <header class="orders-panel-header">
+                    <div><p class="eyebrow">Consulta</p><h2 id="pizza-list-title">Pizzas cadastradas</h2></div>
+                    <form class="orders-filters" method="get" action="/admin/pizzas">
+                        <input type="hidden" name="limit" value="{{ limit }}">
+                        <select name="category" aria-label="Filtrar por categoria">
+                            <option value="">Todas as categorias</option>
+                            <option value="salgada"{% if category == 'salgada' %} selected{% endif %}>Salgadas</option>
+                            <option value="vegetariana"{% if category == 'vegetariana' %} selected{% endif %}>Vegetarianas</option>
+                            <option value="doce"{% if category == 'doce' %} selected{% endif %}>Doces</option>
+                        </select>
+                        <select name="available" aria-label="Filtrar por disponibilidade">
+                            <option value="">Todas</option>
+                            <option value="true"{% if available is sameas true %} selected{% endif %}>Disponíveis</option>
+                            <option value="false"{% if available is sameas false %} selected{% endif %}>Indisponíveis</option>
+                        </select>
+                        <button type="submit">Filtrar</button>
+                    </form>
+                </header>
+
+                <div class="pizza-grid">
+                    {% for pizza in pizzas | default([]) %}
+                    <a class="pizza-card" data-lock-navigation href="/admin/pizzas/{{ pizza.id }}">
+                        {% if pizza.image_url %}<img src="{{ pizza.image_url }}" alt="{{ pizza.name }}">{% endif %}
+                        <div class="pizza-card-content">
+                            <div class="pizza-card-heading">
+                                <div><span class="eyebrow">{{ pizza.category }}</span><h3>{{ pizza.name }}</h3></div>
+                                <span class="order-status order-status-{{ 'ready' if pizza.available else 'cancelled' }}">{{ 'Disponível' if pizza.available else 'Indisponível' }}</span>
+                            </div>
+                            <p>{{ pizza.description }}</p>
+                            <strong class="pizza-card-price">R$ {{ '%.2f' | format(pizza.price | float) | replace('.', ',') }}</strong>
+                        </div>
+                    </a>
+                    {% else %}
+                    <div class="order-empty"><strong>Nenhuma pizza encontrada</strong><p>Ajuste os filtros e tente novamente.</p></div>
+                    {% endfor %}
+                </div>
+
+                <nav class="orders-pagination" aria-label="Paginação do cardápio">
+                    {% if has_previous_page %}<a data-lock-navigation href="/admin/pizzas?limit={{ limit }}&amp;offset={{ previous_offset }}">← Anterior</a>{% endif %}
+                    <span>Página {{ current_page }}</span>
+                    {% if has_next_page %}<a data-lock-navigation href="/admin/pizzas?limit={{ limit }}&amp;offset={{ next_offset }}">Próxima →</a>{% endif %}
+                </nav>
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}

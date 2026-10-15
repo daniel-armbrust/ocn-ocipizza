@@ -184,9 +184,11 @@ bucket. Ele também converte o valor persistido em `image_name` para a URL
 completa retornada em `image_url`.
 
 Na criação, o arquivo recebido no campo `image` é enviado ao Object Storage
-depois da persistência da pizza. Na atualização, uma nova imagem é enviada
-somente quando o campo `image` é informado; se o `image_name` também mudar, o
-objeto anterior é removido. Na exclusão, o serviço remove a pizza e sua imagem.
+depois da persistência da pizza. Quando `image_name` não é informado, o
+serviço gera uma chave única no formato `pizza-{uuid}.{extensão}`. Na
+atualização, uma nova imagem é enviada somente quando o campo `image` é
+informado; se `image_name` não for enviado, uma nova chave é gerada e o objeto
+anterior é removido. Na exclusão, o serviço remove a pizza e sua imagem.
 
 Em desenvolvimento, a URL é formada pela combinação de
 `OBJECTSTORAGE_ENDPOINT`, `OBJECTSTORAGE_BUCKET` e o nome do objeto:
@@ -214,6 +216,16 @@ Fora do ambiente de desenvolvimento, `OBJECTSTORAGE_ENDPOINT` não é utilizado.
 O serviço utiliza Instance Principal para obter automaticamente a região OCI e
 constrói a URL a partir de `OBJECTSTORAGE_NAMESPACE`, `OBJECTSTORAGE_BUCKET` e
 `image_name`.
+
+### Validação futura das imagens
+
+Atualmente, o serviço valida se o upload possui conteúdo e um `Content-Type`
+de imagem. A identificação semântica para confirmar se o arquivo representa
+uma pizza ainda não está implementada.
+
+Existe um TODO para integrar o OCI Vision com um modelo customizado e um
+limiar de confiança configurável antes da persistência da pizza e do upload no
+Object Storage.
 
 ## Logging
 
@@ -278,7 +290,7 @@ Todos os parâmetros são opcionais:
 | --- | --- |
 | `category` | Categoria da pizza: `salgada`, `vegetariana` ou `doce`. |
 | `available` | Filtra pela disponibilidade; aceita `true` ou `false`. |
-| `limit` | Quantidade máxima retornada, entre 1 e 50; o padrão é 10. |
+| `limit` | Quantidade máxima retornada, entre 1 e 100; o padrão é 10. |
 | `offset` | Quantidade de registros ignorados; o padrão é 0. |
 
 O sucesso retorna `200 OK` e uma lista em `data.pizzas`. Quando nenhum registro
@@ -311,7 +323,6 @@ curl --request POST \
   --form 'description=Molho de tomate, mussarela e manjericão.' \
   --form 'category=vegetariana' \
   --form 'price=49.90' \
-  --form 'image_name=pizza-margherita-especial.jpg' \
   --form 'available=true' \
   --form 'image=@/caminho/pizza-margherita-especial.jpg;type=image/jpeg'
 ```
@@ -326,7 +337,7 @@ Object Storage.
 | `description` | Obrigatório; entre 1 e 500 caracteres. |
 | `category` | Obrigatório; `salgada`, `vegetariana` ou `doce`. |
 | `price` | Obrigatório; deve ser maior que zero. |
-| `image_name` | Obrigatório; entre 1 e 255 caracteres. |
+| `image_name` | Opcional; entre 1 e 255 caracteres. Se omitido, é gerado pelo serviço. |
 | `image` | Obrigatório; arquivo não vazio com um `Content-Type` de imagem. |
 | `available` | Opcional; o padrão é `true`. |
 
@@ -347,15 +358,14 @@ curl --request PUT \
   --header 'Accept: application/json' \
   --form 'price=54.90' \
   --form 'available=true' \
-  --form 'image_name=pizza-margherita-atualizada.jpg' \
   --form 'image=@/caminho/pizza-margherita-atualizada.jpg;type=image/jpeg'
 ```
 
 A requisição utiliza `multipart/form-data`. Todos os campos da pizza são
 opcionais. O arquivo `image` também é opcional; quando enviado, deve ser não
-vazio e possuir um `Content-Type` de imagem. Se `image_name` for alterado junto
-com o arquivo, a nova imagem é armazenada com esse nome e a imagem anterior é
-removida do Object Storage.
+vazio e possuir um `Content-Type` de imagem. Se `image_name` for informado
+junto com o arquivo, a nova imagem é armazenada com esse nome. Caso contrário,
+o serviço gera uma nova chave e remove a imagem anterior do Object Storage.
 
 Quando informado, `price` deve ser maior que zero e possuir no máximo duas
 casas decimais. O sucesso retorna `200 OK`; pizza inexistente resulta em `404

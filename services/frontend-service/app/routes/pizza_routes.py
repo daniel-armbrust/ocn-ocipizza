@@ -21,7 +21,7 @@ router = APIRouter()
 #
 @router.get(
     '/pizzas',
-    response_class=HTMLResponse,
+    response_class=HTMLResponse
 )
 async def list_all_pizzas(
     request: Request,
