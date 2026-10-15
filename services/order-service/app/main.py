@@ -13,6 +13,7 @@ from app.config.logging import configure_logging
 from app.config.settings import settings
 
 from app.clients.jwks_client import jwks_client
+
 from app.exceptions.order_exceptions import (
     OrderCreationError,
     OrderIdempotencyConflictError,

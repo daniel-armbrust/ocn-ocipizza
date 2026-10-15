@@ -177,6 +177,7 @@ async def login_user(
             if settings.app_env == 'development'
             else 'strict'
         ),
+        max_age=settings.session_ttl,
         path='/'
     )
 

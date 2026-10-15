@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     session_secret_key: str
     csrf_secret_key: str
 
+    # Persistência
+    persistence_provider: str = 'redis'
+
     # Redis
     redis_endpoint: str
     redis_user: str | None = None

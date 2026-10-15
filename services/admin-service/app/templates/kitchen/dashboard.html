@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Fila da cozinha | OCI Pizza{% endblock %}
+
+{% block content %}
+<div class="dashboard-shell kitchen-shell">
+    <aside class="dashboard-sidebar kitchen-sidebar" aria-label="Navegação da cozinha" data-dashboard-sidebar>
+        <div class="sidebar-brand">
+            <img
+                src="{{ url_for('static', path='img/admin-mark.svg') }}"
+                alt=""
+                width="44"
+                height="44"
+            >
+            <div>
+                <strong>OCI Pizza</strong>
+                <span>Operação da cozinha</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-navigation">
+            <p class="sidebar-label">Produção</p>
+            <a class="sidebar-link is-active" href="/kitchen/dashboard" aria-current="page">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4V4Zm2 2v12h12V6H6Zm2 2h8v2H8V8Zm0 4h8v2H8v-2Zm0 4h5v1H8v-1Z"/></svg>
+                <span>Fila de pedidos</span>
+                <span class="sidebar-badge">{{ kitchen_total | default(0) }}</span>
+            </a>
+            <a class="sidebar-link" href="/kitchen/dashboard?status=received">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm1 11h5v-2h-4V6h-2v7h1Zm-1 7a8 8 0 1 1 8-8 8 8 0 0 1-8 8Z"/></svg>
+                <span>Novos</span>
+                <span class="sidebar-badge">{{ received_count | default(0) }}</span>
+            </a>
+            <a class="sidebar-link" href="/kitchen/dashboard?status=preparing">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8v2h2a3 3 0 0 1 3 3v11H3V8a3 3 0 0 1 3-3h2V3Zm2 2h4V4h-4v1ZM5 17h14V8a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v9Zm3-7h8v2H8v-2Z"/></svg>
+                <span>Em preparo</span>
+                <span class="sidebar-badge">{{ preparing_count | default(0) }}</span>
+            </a>
+            <a class="sidebar-link" href="/kitchen/dashboard?status=ready">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.2 16.6-4.3-4.3 1.4-1.4 2.9 2.9 8.5-8.5 1.4 1.4-9.9 9.9ZM4 20h16v2H4v-2Z"/></svg>
+                <span>Prontos</span>
+                <span class="sidebar-badge">{{ ready_count | default(0) }}</span>
+            </a>
+
+            <p class="sidebar-label sidebar-label-secondary">Consulta</p>
+            <a class="sidebar-link" href="/kitchen/orders/history">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3a9 9 0 1 1-8.5 6H2l3.5-4L9 9H6.6A7 7 0 1 0 13 5V3Zm-1 4h2v5.2l3 1.8-1 1.7-4-2.4V7Z"/></svg>
+                <span>Histórico</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <span class="user-avatar kitchen-avatar" aria-hidden="true">{{ kitchen_initials | default('CZ') }}</span>
+                <div>
+                    <strong>{{ kitchen_user_name | default('Equipe da cozinha') }}</strong>
+                    <span>Produção</span>
+                </div>
+            </div>
+            <form method="post" action="/kitchen/logout">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                <button class="sidebar-logout" type="submit" aria-label="Sair do painel">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3H4v18h6v-2H6V5h4V3Zm5.6 4.6L14.2 9l2 2H9v2h7.2l-2 2 1.4 1.4L20 12l-4.4-4.4Z"/></svg>
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <button class="sidebar-overlay" type="button" aria-label="Fechar menu" data-sidebar-overlay></button>
+
+    <div class="dashboard-main">
+        <header class="dashboard-topbar kitchen-topbar">
+            <button
+                class="sidebar-toggle"
+                type="button"
+                aria-label="Abrir menu"
+                aria-expanded="false"
+                data-sidebar-toggle
+            >
+                <span></span><span></span><span></span>
+            </button>
+            <div class="topbar-title">
+                <span>Painel da cozinha</span>
+                <strong>Fila de produção</strong>
+            </div>
+            <div class="topbar-environment">
+                <span class="status-dot" aria-hidden="true"></span>
+                Recebendo pedidos
+            </div>
+        </header>
+
+        <main class="dashboard-content kitchen-content">
+            <section class="kitchen-heading" aria-labelledby="kitchen-title">
+                <div>
+                    <p class="eyebrow">Produção em tempo real</p>
+                    <h1 id="kitchen-title">Pedidos da cozinha</h1>
+                    <p>Prepare os pedidos na ordem de chegada e atualize cada etapa da produção.</p>
+                </div>
+                <a class="kitchen-refresh" href="/kitchen/dashboard">
+                    <span aria-hidden="true">↻</span>
+                    Atualizar fila
+                </a>
+            </section>
+
+            <section class="kitchen-summary" aria-label="Resumo da fila">
+                <article>
+                    <span class="queue-dot queue-dot-new" aria-hidden="true"></span>
+                    <div><strong>{{ received_count | default(0) }}</strong><span>Novos pedidos</span></div>
+                </article>
+                <article>
+                    <span class="queue-dot queue-dot-preparing" aria-hidden="true"></span>
+                    <div><strong>{{ preparing_count | default(0) }}</strong><span>Em preparo</span></div>
+                </article>
+                <article>
+                    <span class="queue-dot queue-dot-ready" aria-hidden="true"></span>
+                    <div><strong>{{ ready_count | default(0) }}</strong><span>Prontos</span></div>
+                </article>
+            </section>
+
+            <section class="kitchen-board" aria-label="Pedidos por estado">
+                <div class="order-column order-column-new">
+                    <header class="order-column-header">
+                        <div><span class="queue-dot queue-dot-new" aria-hidden="true"></span><h2>Novos</h2></div>
+                        <strong>{{ received_count | default(0) }}</strong>
+                    </header>
+                    <div class="order-column-body">
+                        {% for order in received_orders | default([]) %}
+                        <article class="kitchen-order-card">
+                            <header>
+                                <div><span>Pedido</span><strong>#{{ order.number | default(order.id) }}</strong></div>
+                                <time>{{ order.received_at | default('—') }}</time>
+                            </header>
+                            <ul class="order-items">
+                                {% for item in order['items'] %}
+                                <li><strong>{{ item.quantity }}×</strong><span>{{ item.name }}</span></li>
+                                {% endfor %}
+                            </ul>
+                            {% if order.notes %}<p class="order-note"><strong>Observação:</strong> {{ order.notes }}</p>{% endif %}
+                            <form method="post" action="/kitchen/orders/{{ order.id }}/status">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                                <input type="hidden" name="status" value="preparing">
+                                <button class="order-action order-action-start" type="submit">Iniciar preparo <span aria-hidden="true">→</span></button>
+                            </form>
+                        </article>
+                        {% else %}
+                        <div class="order-empty"><span aria-hidden="true">✓</span><strong>Nenhum pedido novo</strong><p>Os novos pedidos aparecerão aqui.</p></div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="order-column order-column-preparing">
+                    <header class="order-column-header">
+                        <div><span class="queue-dot queue-dot-preparing" aria-hidden="true"></span><h2>Em preparo</h2></div>
+                        <strong>{{ preparing_count | default(0) }}</strong>
+                    </header>
+                    <div class="order-column-body">
+                        {% for order in preparing_orders | default([]) %}
+                        <article class="kitchen-order-card">
+                            <header>
+                                <div><span>Pedido</span><strong>#{{ order.number | default(order.id) }}</strong></div>
+                                <time>{{ order.started_at | default('—') }}</time>
+                            </header>
+                            <ul class="order-items">
+                                {% for item in order['items'] %}
+                                <li><strong>{{ item.quantity }}×</strong><span>{{ item.name }}</span></li>
+                                {% endfor %}
+                            </ul>
+                            {% if order.notes %}<p class="order-note"><strong>Observação:</strong> {{ order.notes }}</p>{% endif %}
+                            <form method="post" action="/kitchen/orders/{{ order.id }}/status">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                                <input type="hidden" name="status" value="ready">
+                                <button class="order-action order-action-ready" type="submit">Marcar como pronto <span aria-hidden="true">✓</span></button>
+                            </form>
+                        </article>
+                        {% else %}
+                        <div class="order-empty"><span aria-hidden="true">—</span><strong>Nada em preparo</strong><p>Inicie um pedido novo para movê-lo para esta etapa.</p></div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="order-column order-column-ready">
+                    <header class="order-column-header">
+                        <div><span class="queue-dot queue-dot-ready" aria-hidden="true"></span><h2>Prontos</h2></div>
+                        <strong>{{ ready_count | default(0) }}</strong>
+                    </header>
+                    <div class="order-column-body">
+                        {% for order in ready_orders | default([]) %}
+                        <article class="kitchen-order-card kitchen-order-ready">
+                            <header>
+                                <div><span>Pedido</span><strong>#{{ order.number | default(order.id) }}</strong></div>
+                                <time>{{ order.ready_at | default('—') }}</time>
+                            </header>
+                            <ul class="order-items">
+                                {% for item in order['items'] %}
+                                <li><strong>{{ item.quantity }}×</strong><span>{{ item.name }}</span></li>
+                                {% endfor %}
+                            </ul>
+                            <p class="ready-notice"><span aria-hidden="true">✓</span>Aguardando retirada para entrega</p>
+                        </article>
+                        {% else %}
+                        <div class="order-empty"><span aria-hidden="true">—</span><strong>Nenhum pedido pronto</strong><p>Pedidos finalizados pela cozinha aparecerão aqui.</p></div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}

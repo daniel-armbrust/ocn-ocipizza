@@ -2,11 +2,15 @@
 # services/admin_auth_service.py
 #
 
+import jwt
 from uuid import UUID
 
-import jwt
+from fastapi import Depends
 
-from app.clients.user_auth_client import UserAuthClient
+from app.clients.user_auth_client import (
+    UserAuthClient,
+    get_user_auth_client
+)
 
 from app.config.settings import settings
 
@@ -56,7 +60,7 @@ class AdminAuthService:
         try:
             # Delega ao user-service a validação das credenciais
             # e a geração dos tokens utilizados pela aplicação.
-            authentication = await self.user_auth_client.login(
+            response = await self.user_auth_client.login(
                 email=email,
                 password=password
             )
@@ -65,12 +69,22 @@ class AdminAuthService:
                 'Unable to authenticate administrative user.'
             ) from ex
 
+        try:
+            # O user-service utiliza o padrão JSend e encapsula os dados
+            # de autenticação no atributo `data` da resposta.
+            authentication = response['data']
+        except (KeyError, TypeError) as ex:
+            raise AdminAuthenticationError(
+                'Invalid authentication response returned by user-service.'
+            ) from ex
+
         access_token = authentication.get('access_token')
         refresh_token = authentication.get('refresh_token')
+        expires_in = authentication.get('expires_in')
 
-        if not access_token:
+        if not access_token or not refresh_token or not expires_in:
             raise AdminAuthenticationError(
-                'Access token was not returned by user-service.'
+                'Required authentication data was not returned by user-service.'
             )
 
         try:
@@ -105,25 +119,28 @@ class AdminAuthService:
             ) from ex
 
         user_id = payload.get('sub')
-        role = payload.get('role')
+        is_admin = payload.get('is_admin')
+        is_kitchen = payload.get('is_kitchen')
 
-        if not user_id or not role:
+        if (
+            not user_id
+            or not isinstance(is_admin, bool)
+            or not isinstance(is_kitchen, bool)
+        ):
             raise AdminAuthenticationError(
                 'Required claims were not returned in access token.'
             )
 
         # Somente administradores e usuários da cozinha podem
         # acessar as funcionalidades disponibilizadas pelo admin-service.
-        if role not in ('ADMIN', 'KITCHEN'):
+        if not is_admin and not is_kitchen:
             raise AdminAccessDeniedError(
                 'User is not authorized to access admin-service.'
             )
 
         # Valida também o formato do identificador recebido no claim sub.
         try:
-            user_id = str(
-                UUID(user_id)
-            )
+            user_id = str(UUID(user_id))
         except ValueError as ex:
             raise AdminAuthenticationError(
                 'Invalid user identifier returned in access token.'
@@ -133,7 +150,51 @@ class AdminAuthService:
         # da sessão administrativa no Redis.
         return {
             'user_id': user_id,
-            'role': role,
+            'is_admin': is_admin,
+            'is_kitchen': is_kitchen,
             'access_token': access_token,
-            'refresh_token': refresh_token
+            'refresh_token': refresh_token,
+            'expires_in': expires_in
         }
+
+    async def logout(self, refresh_token: str) -> None:
+        """
+        Solicita a revogação da sessão no user-service.
+
+        Args:
+            refresh_token: Token utilizado para identificar a sessão que será
+                revogada pelo user-service.
+
+        Returns:
+            None.
+
+        Raises:
+            httpx.HTTPStatusError: Quando o user-service rejeita a operação.
+            httpx.RequestError: Quando ocorre uma falha de comunicação com o
+                user-service.
+        """
+
+        await self.user_auth_client.logout(
+            refresh_token=refresh_token
+        )
+
+
+def get_admin_auth_service(
+        user_auth_client: UserAuthClient = Depends(
+            get_user_auth_client
+        )
+) -> AdminAuthService:
+    """
+    Retorna o serviço responsável pela autenticação dos usuários
+    autorizados a acessar o admin-service.
+
+    Args:
+        user_auth_client: Cliente responsável pela comunicação
+            com o user-service.
+
+    Returns:
+        Serviço responsável pela autenticação administrativa.
+    """
+    return AdminAuthService(
+        user_auth_client=user_auth_client
+    )

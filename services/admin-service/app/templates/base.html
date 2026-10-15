@@ -22,6 +22,36 @@
         {% block content %}{% endblock %}
     </main>
 
+    {% if message %}
+    {% set message_types = ['error', 'warning', 'success', 'info'] %}
+    {% set message_type = type if type in message_types else 'info' %}
+    {% set message_title = {
+        'error': 'Não foi possível concluir',
+        'warning': 'Atenção',
+        'success': 'Sucesso',
+        'info': 'Informação'
+    }[message_type] %}
+    <dialog
+        class="message-modal message-modal-{{ message_type }}"
+        aria-labelledby="message-modal-title"
+        aria-describedby="message-modal-content"
+        data-message-modal
+        data-modal-clean-url
+    >
+        <div class="message-modal-content">
+            <span class="message-modal-icon" aria-hidden="true">
+                {% if message_type == 'success' %}✓{% elif message_type == 'info' %}i{% else %}!{% endif %}
+            </span>
+            <div class="message-modal-copy">
+                <span class="eyebrow">{{ message_title }}</span>
+                <h2 id="message-modal-title">{{ message_title }}</h2>
+                <p id="message-modal-content">{{ message }}</p>
+                <button class="message-modal-button" type="button" data-modal-close>OK</button>
+            </div>
+        </div>
+    </dialog>
+    {% endif %}
+
     <script src="{{ url_for('static', path='js/admin.js') }}" defer></script>
     {% block scripts %}{% endblock %}
 </body>

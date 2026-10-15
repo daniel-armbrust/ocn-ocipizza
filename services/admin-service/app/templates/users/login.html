@@ -56,14 +56,7 @@
                 <p>Entre com sua conta administrativa ou da equipe de cozinha.</p>
             </div>
 
-            {% if message %}
-            <div class="alert alert-{{ type | default('error', true) }}" role="alert">
-                <span aria-hidden="true">!</span>
-                <p>{{ message }}</p>
-            </div>
-            {% endif %}
-
-            <form method="post" action="/users/login" class="auth-form" data-login-form novalidate>
+            <form method="post" action="/admin/login" class="auth-form" data-login-form novalidate>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
 
                 <div class="field-group">

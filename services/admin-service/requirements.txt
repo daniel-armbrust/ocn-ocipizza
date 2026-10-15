@@ -9,4 +9,8 @@ python-multipart==0.0.32
 
 oci==2.160.3
 
+PyJWT[crypto]>=2.10,<3
+passlib[bcrypt]==1.7.4
+bcrypt==4.3.0
+
 redis==7.0.1

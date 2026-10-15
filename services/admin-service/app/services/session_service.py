@@ -38,6 +38,9 @@ class SessionService:
         self.session_repository = session_repository
 
     async def create(self,
+                     user_id: str,
+                     is_admin: bool,
+                     is_kitchen: bool,
                      access_token: str,
                      refresh_token: str,
                      expires_in: int) -> str:
@@ -45,6 +48,10 @@ class SessionService:
         Cria uma nova sessão para um usuário autenticado.
 
         Args:
+            user_id: Identificador do usuário autenticado.
+            is_admin: Indica se o usuário possui acesso administrativo.
+            is_kitchen: Indica se o usuário possui acesso às funcionalidades
+                da cozinha.
             access_token: Token utilizado para autenticação junto
                 aos microserviços.
             refresh_token: Token utilizado para renovação do
@@ -60,6 +67,9 @@ class SessionService:
         session_id = token_urlsafe(32)
 
         session_data: dict[str, Any] = {
+            'user_id': user_id,
+            'is_admin': is_admin,
+            'is_kitchen': is_kitchen,
             'access_token': access_token,
             'refresh_token': refresh_token,
             'access_token_expires_in': expires_in,

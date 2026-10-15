@@ -2,11 +2,11 @@
 # main.py
 #
 
-import logging
-
 import httpx
+import logging
+from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Request, status
+from fastapi import FastAPI, Request, status
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
@@ -16,18 +16,32 @@ from starlette_wtf import CSRFError, CSRFProtectMiddleware
 from app.config.logging import configure_logging
 from app.config.settings import settings
 
+from app.clients.jwks_client import jwks_client
+
 from app.dependencies.templates import templates
+
 from app.exceptions.auth_exceptions import AuthenticationRequiredError
+from app.exceptions.admin_auth_exceptions import AdminAccessDeniedError
 
 from app.routes.auth_routes import router as auth_router
+from app.routes.admin_user_routes import router as admin_user_router
+from app.routes.kitchen_user_routes import router as kitchen_user_router
 
 
 configure_logging()
 logger = logging.getLogger(__name__)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Tenta antecipar o carregamento das chaves públicas utilizadas
+    # para validação dos tokens JWT.
+    await jwks_client.warm_up()
+    yield
+
 app = FastAPI(
     title='OCI Pizza - Admin Service',
     version='1.0.0',
+    lifespan=lifespan,
     docs_url='/docs' if settings.app_env == 'development' else None,
     redoc_url='/redoc' if settings.app_env == 'development' else None,
     openapi_url='/openapi.json' if settings.app_env == 'development' else None
@@ -72,6 +86,45 @@ async def authentication_required_handler(
 
     return RedirectResponse(
         url='/admin/login?code=USER_LOGIN_REQUIRED',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+
+
+@app.exception_handler(AdminAccessDeniedError)
+async def access_denied_handler(
+    request: Request,
+    ex: AdminAccessDeniedError
+) -> RedirectResponse:
+    """
+    Redireciona usuários autenticados para o painel permitido pelo perfil.
+
+    Args:
+        request: Requisição feita a uma página sem a permissão necessária.
+        ex: Exceção que indica a ausência da permissão exigida.
+
+    Returns:
+        Redirecionamento para o painel compatível com a sessão ou para o
+        login quando a sessão não possuir um perfil reconhecido.
+    """
+
+    logger.warning(
+        'Access denied while processing %s %s: %s',
+        request.method,
+        request.url.path,
+        ex
+    )
+
+    session = getattr(request.state, 'authenticated_session', None)
+
+    if session and session.get('is_admin') is True:
+        redirect_url = '/admin/dashboard'
+    elif session and session.get('is_kitchen') is True:
+        redirect_url = '/kitchen/dashboard'
+    else:
+        redirect_url = '/admin/login?code=USER_LOGIN_REQUIRED'
+
+    return RedirectResponse(
+        url=redirect_url,
         status_code=status.HTTP_303_SEE_OTHER
     )
 
@@ -276,3 +329,9 @@ def health_check() -> dict:
 
 # Rotas responsáveis pelos fluxos de autenticação dos usuários.
 app.include_router(auth_router)
+
+# Rotas responsáveis pelo painel administrativo.
+app.include_router(admin_user_router)
+
+# Rotas responsáveis pelo painel operacional da cozinha.
+app.include_router(kitchen_user_router)

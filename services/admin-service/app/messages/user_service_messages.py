@@ -7,6 +7,10 @@ USER_MESSAGES = {
         'message': 'Usuário autenticado com sucesso.',
         'type': 'success'
     },
+    'USER_LOGOUT_SUCCESS': {
+        'message': 'Sessão encerrada com sucesso.',
+        'type': 'success'
+    },
     'USER_NOT_FOUND': {
         'message': 'Usuário não encontrado.',
         'type': 'warning'

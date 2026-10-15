@@ -53,7 +53,7 @@ async def list_all_pizzas(
         Página HTML contendo as pizzas retornadas pelo pizza-service.
     """
 
-    page_message = (
+    message = (
         USER_MESSAGES.get(code) or CART_MESSAGES.get(code)
         if code
         else None
@@ -85,8 +85,8 @@ async def list_all_pizzas(
         context={
             'pizzas': pizzas,
             'code': code,
-            'message': page_message['message'] if page_message else None,
-            'type': page_message['type'] if page_message else None,
+            'message': message['message'] if message else None,
+            'type': message['type'] if message else None,
             'category': normalized_category,
             'available': normalized_available,
             'limit': limit,
