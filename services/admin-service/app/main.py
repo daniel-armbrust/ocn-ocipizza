@@ -24,8 +24,11 @@ from app.exceptions.auth_exceptions import AuthenticationRequiredError
 from app.exceptions.admin_auth_exceptions import AdminAccessDeniedError
 
 from app.routes.auth_routes import router as auth_router
+
 from app.routes.admin_user_routes import router as admin_user_router
-from app.routes.kitchen_user_routes import router as kitchen_user_router
+from app.routes.admin_order_routes import router as admin_order_router
+
+from app.routes.kitchen_order_routes import router as kitchen_order_router
 
 
 configure_logging()
@@ -119,7 +122,7 @@ async def access_denied_handler(
     if session and session.get('is_admin') is True:
         redirect_url = '/admin/dashboard'
     elif session and session.get('is_kitchen') is True:
-        redirect_url = '/kitchen/dashboard'
+        redirect_url = '/kitchen/orders'
     else:
         redirect_url = '/admin/login?code=USER_LOGIN_REQUIRED'
 
@@ -330,8 +333,9 @@ def health_check() -> dict:
 # Rotas responsáveis pelos fluxos de autenticação dos usuários.
 app.include_router(auth_router)
 
-# Rotas responsáveis pelo painel administrativo.
+# Rotas dos usuários Administradores.
 app.include_router(admin_user_router)
+app.include_router(admin_order_router)
 
 # Rotas responsáveis pelo painel operacional da cozinha.
-app.include_router(kitchen_user_router)
+app.include_router(kitchen_order_router)

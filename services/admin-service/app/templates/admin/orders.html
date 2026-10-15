@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Pedidos | OCI Pizza Admin{% endblock %}
+
+{% block content %}
+<div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Navegação administrativa" data-dashboard-sidebar>
+        <div class="sidebar-brand">
+            <img
+                src="{{ url_for('static', path='img/admin-mark.svg') }}"
+                alt=""
+                width="44"
+                height="44"
+            >
+            <div>
+                <strong>OCI Pizza</strong>
+                <span>Administração</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-navigation">
+            <p class="sidebar-label">Painel</p>
+            <a class="sidebar-link" href="/admin/dashboard">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z"/></svg>
+                <span>Visão geral</span>
+            </a>
+            <a class="sidebar-link is-active" href="/admin/orders" aria-current="page">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v2h3v16H4V5h3V3Zm2 2h6V4H9v1ZM6 7v12h12V7H6Zm2 3h8v2H8v-2Zm0 4h6v2H8v-2Z"/></svg>
+                <span>Pedidos</span>
+                <span class="sidebar-badge">{{ pending_orders | default(0) }}</span>
+            </a>
+            <a class="sidebar-link" href="/admin/pizzas">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm6.9 7H15a14.7 14.7 0 0 0-1.2-4.6A8 8 0 0 1 18.9 9ZM12 4c.8 1 1.5 2.8 1.9 5h-3.8c.4-2.2 1.1-4 1.9-5ZM4.3 14a7.5 7.5 0 0 1 0-4h4a16.9 16.9 0 0 0 0 4h-4Zm.8 2H9a14.7 14.7 0 0 0 1.2 4.6A8 8 0 0 1 5.1 16ZM9 9H5.1a8 8 0 0 1 5.1-4.6A14.7 14.7 0 0 0 9 9Zm3 11c-.8-1-1.5-2.8-1.9-5h3.8c-.4 2.2-1.1 4-1.9 5Zm2.2-7H9.8a13.5 13.5 0 0 1 0-2h4.4a13.5 13.5 0 0 1 0 2Zm-.4 7.6A14.7 14.7 0 0 0 15 16h3.9a8 8 0 0 1-5.1 4.6ZM15.7 14a16.9 16.9 0 0 0 0-4h4a7.5 7.5 0 0 1 0 4h-4Z"/></svg>
+                <span>Cardápio</span>
+            </a>
+            <a class="sidebar-link" href="/admin/users">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0-6a2 2 0 1 1-2 2 2 2 0 0 1 2-2ZM8 12a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm0-4a1 1 0 1 1-1 1 1 1 0 0 1 1-1Zm8 5c-3 0-6 1.5-6 4.5V21h12v-3.5C22 14.5 19 13 16 13Zm4 6h-8v-1.5c0-1.7 2.1-2.5 4-2.5s4 .8 4 2.5V19ZM8.5 14c.5 0 1 .1 1.5.2a6.4 6.4 0 0 0-1.6 1.9A3.6 3.6 0 0 0 7 16c-1.5 0-3 .7-3 2v1h4v2H2v-3c0-2.7 2.7-4 5.5-4Z"/></svg>
+                <span>Usuários</span>
+            </a>
+            <a class="sidebar-link" href="/admin/deliveries">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h11v10h2.2l1.5-4H22v6h-2a3 3 0 0 1-6 0H9a3 3 0 0 1-6 0H1V7h2V5Zm2 2v7.2a3 3 0 0 1 3.8.8H12V7H5Zm11 6-.7 2h.7a3 3 0 0 1 2.2.9H20V13h-4ZM6 16a1 1 0 1 0 1 1 1 1 0 0 0-1-1Zm11 0a1 1 0 1 0 1 1 1 1 0 0 0-1-1Z"/></svg>
+                <span>Entregas</span>
+            </a>
+
+            <p class="sidebar-label sidebar-label-secondary">Plataforma</p>
+            <a class="sidebar-link" href="/admin/monitoring">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4V4Zm2 2v12h12V6H6Zm1 8h2.2l1.6-4 2.1 5.1L14.5 12H17v2h-1.3l-3 6-2-5-0.2.6H7V14Z"/></svg>
+                <span>Monitoramento</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <span class="user-avatar" aria-hidden="true">{{ admin_initials | default('AD') }}</span>
+                <div>
+                    <strong>{{ admin_name | default('Administrador') }}</strong>
+                    <span>Acesso administrativo</span>
+                </div>
+            </div>
+            <form method="post" action="/admin/logout">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                <button class="sidebar-logout" type="submit" aria-label="Sair do painel">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3H4v18h6v-2H6V5h4V3Zm5.6 4.6L14.2 9l2 2H9v2h7.2l-2 2 1.4 1.4L20 12l-4.4-4.4Z"/></svg>
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <button class="sidebar-overlay" type="button" aria-label="Fechar menu" data-sidebar-overlay></button>
+
+    <div class="dashboard-main">
+        <header class="dashboard-topbar">
+            <button
+                class="sidebar-toggle"
+                type="button"
+                aria-label="Abrir menu"
+                aria-expanded="false"
+                data-sidebar-toggle
+            >
+                <span></span><span></span><span></span>
+            </button>
+            <div class="topbar-title">
+                <span>Painel administrativo</span>
+                <strong>Pedidos</strong>
+            </div>
+            <div class="topbar-environment">
+                <span class="status-dot" aria-hidden="true"></span>
+                Operação online
+            </div>
+        </header>
+
+        <main class="dashboard-content admin-orders-content">
+            <section class="orders-page-heading" aria-labelledby="orders-title">
+                <div>
+                    <p class="eyebrow">Gestão da operação</p>
+                    <h1 id="orders-title">Pedidos</h1>
+                    <p>Consulte pedidos, acompanhe o andamento e acesse os detalhes de cada compra.</p>
+                </div>
+                <a class="orders-refresh" href="/admin/orders?limit={{ limit }}&amp;offset={{ offset }}{% if selected_status %}&amp;status={{ selected_status }}{% endif %}">
+                    <span aria-hidden="true">↻</span>
+                    Atualizar pedidos
+                </a>
+            </section>
+
+            <section class="orders-summary" aria-label="Resumo dos pedidos">
+                <article>
+                    <span>Pedidos nesta página</span>
+                    <strong>{{ total_orders | default(0) }}</strong>
+                </article>
+                <article>
+                    <span>Recebidos nesta página</span>
+                    <strong>{{ received_count | default(0) }}</strong>
+                </article>
+                <article>
+                    <span>Em preparo nesta página</span>
+                    <strong>{{ preparing_count | default(0) }}</strong>
+                </article>
+                <article>
+                    <span>Prontos nesta página</span>
+                    <strong>{{ ready_count | default(0) }}</strong>
+                </article>
+            </section>
+
+            <section class="orders-panel" aria-labelledby="orders-list-title">
+                <header class="orders-panel-header">
+                    <div>
+                        <p class="eyebrow">Consulta</p>
+                        <h2 id="orders-list-title">Todos os pedidos</h2>
+                    </div>
+                    <form class="orders-filters" method="get" action="/admin/orders">
+                        <input type="hidden" name="limit" value="{{ limit }}">
+                        <label>
+                            <span class="sr-only">Filtrar por status</span>
+                            <select name="status">
+                                <option value="">Todos os status</option>
+                                <option value="received"{% if selected_status == 'received' %} selected{% endif %}>Recebido</option>
+                                <option value="preparing"{% if selected_status == 'preparing' %} selected{% endif %}>Em preparo</option>
+                                <option value="ready"{% if selected_status == 'ready' %} selected{% endif %}>Pronto</option>
+                                <option value="out_for_delivery"{% if selected_status == 'out_for_delivery' %} selected{% endif %}>Em entrega</option>
+                                <option value="delivered"{% if selected_status == 'delivered' %} selected{% endif %}>Entregue</option>
+                                <option value="cancelled"{% if selected_status == 'cancelled' %} selected{% endif %}>Cancelado</option>
+                            </select>
+                        </label>
+                        <button type="submit">Filtrar</button>
+                        {% if selected_status %}
+                        <a href="/admin/orders">Limpar</a>
+                        {% endif %}
+                    </form>
+                </header>
+
+                <div class="orders-table-wrapper">
+                    <table class="orders-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Pedido</th>
+                                <th scope="col">Cliente</th>
+                                <th scope="col">Data</th>
+                                <th scope="col">Itens</th>
+                                <th scope="col">Total</th>
+                                <th scope="col">Status</th>
+                                <th scope="col"><span class="sr-only">Ações</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders | default([]) %}
+                            <tr>
+                                <td data-label="Pedido">
+                                    <strong class="order-number">#{{ order.number | default(order.id) }}</strong>
+                                    <span class="order-id">{{ order.id }}</span>
+                                </td>
+                                <td data-label="Cliente">
+                                    <strong>{{ order.customer.name | default('Cliente não informado') }}</strong>
+                                    <span>{{ order.customer.email | default('—') }}</span>
+                                </td>
+                                <td data-label="Data">
+                                    <strong>{{ order.created_at | default('—') }}</strong>
+                                </td>
+                                <td data-label="Itens">{{ order.items_count | default(order['items'] | default([]) | length) }}</td>
+                                <td data-label="Total">
+                                    <strong>R$ {{ '%.2f' | format(order.total | float) | replace('.', ',') }}</strong>
+                                </td>
+                                <td data-label="Status">
+                                    {% set order_status = order.status | default('received') %}
+                                    <span class="order-status order-status-{{ order_status | lower }}">
+                                        <span aria-hidden="true"></span>
+                                        {{ order.status_label | default({
+                                            'RECEIVED': 'Recebido',
+                                            'PREPARING': 'Em preparo',
+                                            'READY': 'Pronto',
+                                            'OUT_FOR_DELIVERY': 'Em entrega',
+                                            'DELIVERED': 'Entregue',
+                                            'CANCELLED': 'Cancelado'
+                                        }.get(order_status, order_status)) }}
+                                    </span>
+                                </td>
+                                <td class="orders-table-action">
+                                    <a href="/admin/orders/{{ order.id }}" aria-label="Ver pedido {{ order.number | default(order.id) }}">
+                                        Ver detalhes <span aria-hidden="true">→</span>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td class="orders-table-empty" colspan="7">
+                                    <span aria-hidden="true">⌕</span>
+                                    <strong>Nenhum pedido encontrado</strong>
+                                    <p>Ajuste os filtros ou atualize a página para consultar novos pedidos.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if has_previous_page or has_next_page %}
+                <nav class="orders-pagination" aria-label="Paginação dos pedidos">
+                    {% if has_previous_page %}
+                    <a href="/admin/orders?limit={{ limit }}&amp;offset={{ previous_offset }}{% if selected_status %}&amp;status={{ selected_status }}{% endif %}" rel="prev">← Anterior</a>
+                    {% else %}
+                    <span aria-disabled="true">← Anterior</span>
+                    {% endif %}
+                    <p>Página <strong>{{ current_page }}</strong></p>
+                    {% if has_next_page %}
+                    <a href="/admin/orders?limit={{ limit }}&amp;offset={{ next_offset }}{% if selected_status %}&amp;status={{ selected_status }}{% endif %}" rel="next">Próxima →</a>
+                    {% else %}
+                    <span aria-disabled="true">Próxima →</span>
+                    {% endif %}
+                </nav>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}

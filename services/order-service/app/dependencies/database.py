@@ -73,7 +73,12 @@ def get_order_repository(
     if settings.persistence_provider == 'nosql':
         return NosqlOrderRepository(
             handle=_require_nosql_handle(handle),
-            table_name=settings.nosql_table_name
+            table_name=settings.nosql_table_name,
+
+            # Contorna a ordenação global incompatível com o 
+            # NoSQL local em ambiente de desenvolvimento 
+            # (ghcr.io/oracle/nosql:latest-ce).
+            use_client_side_sort=settings.app_env == 'development'
         )
 
     if settings.persistence_provider == 'sqlalchemy':

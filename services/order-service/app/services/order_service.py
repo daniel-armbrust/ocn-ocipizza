@@ -14,6 +14,7 @@ from app.exceptions.order_exceptions import (
     OrderNotFoundError,
     OrderQueryError,
     OrderUpdateError,
+    OrderDeleteError,
     OrderEmailPublishError
 )
 
@@ -201,6 +202,35 @@ class OrderService:
 
         return order
 
+    def get_summary(self) -> dict[str, int]:
+        """
+        Retorna os indicadores de pedidos do painel administrativo.
+
+        Returns:
+            Quantidades de pedidos de hoje e dos estados operacionais.
+
+        Raises:
+            OrderQueryError: Quando o repositório não conseguir concluir as
+                consultas agregadas.
+        """
+
+        # Define o início do dia em UTC usado no indicador orders_today.
+        today_start = now_utc().replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0
+        )
+
+        try:
+            return self.order_repository.get_summary(
+                created_since=today_start
+            )
+        except Exception as ex:
+            raise OrderQueryError(
+                'Error retrieving order summary.'
+            ) from ex
+
     def update_status_for_admin(self,
                                 order_id: UUID,
                                 order_status: OrderStatus) -> Order:
@@ -227,10 +257,47 @@ class OrderService:
         try:
             updated_order = self.order_repository.update(order)
             self.unit_of_work.commit()
-            return updated_order
         except Exception as ex:
             self.unit_of_work.rollback()
             raise OrderUpdateError('Error updating order status.') from ex
+
+        # Publica a notificação somente depois que a alteração foi
+        # persistida e sua transação confirmada com sucesso.
+        try:
+            if updated_order.status == OrderStatus.OUT_FOR_DELIVERY:
+                self.order_email_service.send_order_sent(updated_order)
+            elif updated_order.status == OrderStatus.DELIVERED:
+                self.order_email_service.send_order_delivered(updated_order)
+            else:
+                self.order_email_service.send_order_updated(updated_order)
+        except OrderEmailPublishError:
+            logging.exception(
+                'Não foi possível publicar a atualização do pedido %s.',
+                updated_order.id
+            )
+
+        return updated_order
+
+    def delete_for_admin(self, order_id: UUID) -> None:
+        """
+        Remove administrativamente um pedido persistido.
+
+        Args:
+            order_id: Identificador do pedido que será removido.
+
+        Raises:
+            OrderNotFoundError: Quando o pedido não existir.
+            OrderDeleteError: Quando não for possível removê-lo.
+        """
+
+        order = self.get_by_id_for_admin(order_id=order_id)
+
+        try:
+            self.order_repository.delete(order)
+            self.unit_of_work.commit()
+        except Exception as ex:
+            self.unit_of_work.rollback()
+            raise OrderDeleteError('Error deleting order.') from ex
 
     def create(self,
                user_id: UUID,

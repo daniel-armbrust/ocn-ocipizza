@@ -428,7 +428,7 @@ DEMO_USERS = [
         'confirmed': True,
         'is_admin': False,
         'is_kitchen': False,
-        'whatsapp': '+5511999999999',
+        'whatsapp': '11999999999',
         'password': 'DemoPassword123!'
     },
     {
@@ -440,7 +440,7 @@ DEMO_USERS = [
         'confirmed': False,
         'is_admin': False,
         'is_kitchen': False,
-        'whatsapp': '+5511988888888',
+        'whatsapp': '11988888888',
         'password': 'DemoPassword123!'
     },
     {
@@ -452,7 +452,7 @@ DEMO_USERS = [
         'confirmed': True,
         'is_admin': False,
         'is_kitchen': False,
-        'whatsapp': '+5511977777777',
+        'whatsapp': '11977777777',
         'password': 'DemoPassword123!'
     }
 ]
@@ -464,7 +464,7 @@ ADMIN_USER = {
     'confirmed': True,
     'is_kitchen': False,
     'is_admin': True,
-    'whatsapp': '+5511900000000',
+    'whatsapp': '11900030000',
     'password': 'AdminPassword123!'
 }
 
@@ -476,7 +476,7 @@ KITCHEN_USERS = [
         'confirmed': True,
         'is_admin': False,
         'is_kitchen': True,
-        'whatsapp': '+5511900000100',
+        'whatsapp': '11910000100',
         'password': 'KitchenPassword123!'
     },
     {
@@ -486,7 +486,7 @@ KITCHEN_USERS = [
         'confirmed': False,
         'is_admin': False,
         'is_kitchen': True,
-        'whatsapp': '+5511902000000',
+        'whatsapp': '11902000700',
         'password': 'KitchenPassword123!'        
     },
     {
@@ -496,7 +496,7 @@ KITCHEN_USERS = [
         'confirmed': True,
         'is_admin': False,
         'is_kitchen': True,
-        'whatsapp': '+5511902006000',
+        'whatsapp': '11902026000',
         'password': 'KitchenPassword123!'        
     }
 ]

@@ -38,7 +38,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 #
-# GET  /admin/login
+# GET: /admin/login
 #
 @router.get(
     '/admin/login',
@@ -168,7 +168,7 @@ async def login_user(
     if authentication['is_admin']:
         redirect_url = '/admin/dashboard?code=USER_AUTHENTICATION_SUCCESS'
     else:
-        redirect_url = '/kitchen/dashboard?code=USER_AUTHENTICATION_SUCCESS'
+        redirect_url = '/kitchen/orders?code=USER_AUTHENTICATION_SUCCESS'
 
     response = RedirectResponse(
         url=redirect_url,

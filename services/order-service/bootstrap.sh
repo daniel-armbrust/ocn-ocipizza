@@ -98,6 +98,16 @@ PERSISTENCE_PROVIDER=nosql
 NOSQL_TABLE_NAME=orders
 NOSQL_ENDPOINT=http://localhost:18080
 
+# Mensageria
+MESSAGING_PROVIDER=rabbitmq
+QUEUE_NAME=notifications-queue
+
+# RabbitMQ
+RABBITMQ_HOST=localhost
+RABBITMQ_PORT=5672
+RABBITMQ_USERNAME=oci_pizza
+RABBITMQ_PASSWORD=oci_pizza
+
 # JWT
 JWT_ISSUER=user-service
 JWT_AUDIENCE=ocipizza
@@ -109,8 +119,28 @@ OCI_LOG_ID=
 EOF
 
 else
-    echo 'Arquivo .env já existe. Nenhuma alteração será realizada.'
+    echo 'Arquivo .env já existe. Os valores atuais serão preservados.'
 fi
+
+# Versões anteriores do bootstrap criavam o .env sem as configurações de
+# mensageria. Acrescenta somente valores ausentes para manter configurações
+# existentes definidas pelo desenvolvedor.
+ensure_env_variable() {
+    local name="$1"
+    local value="$2"
+
+    if ! grep -q "^${name}=" "$ENV_FILE"; then
+        printf '%s=%s\n' "$name" "$value" >> "$ENV_FILE"
+        echo "Configuração ${name} adicionada ao arquivo .env."
+    fi
+}
+
+ensure_env_variable 'MESSAGING_PROVIDER' 'rabbitmq'
+ensure_env_variable 'QUEUE_NAME' 'notifications-queue'
+ensure_env_variable 'RABBITMQ_HOST' 'localhost'
+ensure_env_variable 'RABBITMQ_PORT' '5672'
+ensure_env_variable 'RABBITMQ_USERNAME' 'oci_pizza'
+ensure_env_variable 'RABBITMQ_PASSWORD' 'oci_pizza'
 
 # Exporta as configurações para que o módulo Settings e o cliente Oracle
 # NoSQL compartilhem exatamente os mesmos valores durante o bootstrap.

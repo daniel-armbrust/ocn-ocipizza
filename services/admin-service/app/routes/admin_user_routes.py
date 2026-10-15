@@ -10,6 +10,8 @@ from app.messages.user_service_messages import USER_MESSAGES
 from app.dependencies.authentication import get_admin_authenticated_session
 from app.dependencies.templates import templates
 
+from app.services.order_service import OrderService, get_order_service
+
 router = APIRouter()
 
 #
@@ -22,7 +24,8 @@ router = APIRouter()
 async def show_admin_dashboard(
     request: Request,
     code: str | None = None,
-    session: dict = Depends(get_admin_authenticated_session)
+    session: dict = Depends(get_admin_authenticated_session),
+    order_service: OrderService = Depends(get_order_service)
 ) -> Response:
     """
     Exibe a página principal do painel administrativo.
@@ -34,6 +37,7 @@ async def show_admin_dashboard(
         request: Requisição HTTP recebida pelo admin-service.
         code: Código opcional da mensagem que será exibida na página.
         session: Sessão administrativa validada pela dependência da rota.
+        order_service: Serviço responsável pelas operações de pedidos.
 
     Returns:
         Página HTML com a visão geral do painel administrativo.
@@ -41,11 +45,19 @@ async def show_admin_dashboard(
 
     message = USER_MESSAGES.get(code) if code else None
 
+    order_summary = await order_service.get_summary(
+        access_token=session['access_token']
+    )
+
     return templates.TemplateResponse(
         request=request,
         name='admin/dashboard.html',
         context={
             'message': message['message'] if message else None,
-            'type': message['type'] if message else None
+            'type': message['type'] if message else None,
+            'orders_today': order_summary['orders_today'],
+            'orders_preparing': order_summary['orders_preparing'],
+            'orders_ready': order_summary['orders_ready'],
+            'pending_orders': order_summary['pending_orders']
         }
     )

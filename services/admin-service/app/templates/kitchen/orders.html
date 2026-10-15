@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}Pedidos da cozinha | OCI Pizza{% endblock %}
+
+{% block content %}
+<div class="dashboard-shell kitchen-shell">
+    <aside class="dashboard-sidebar kitchen-sidebar" aria-label="Navegação da cozinha" data-dashboard-sidebar>
+        <div class="sidebar-brand">
+            <img
+                src="{{ url_for('static', path='img/admin-mark.svg') }}"
+                alt=""
+                width="44"
+                height="44"
+            >
+            <div>
+                <strong>OCI Pizza</strong>
+                <span>Operação da cozinha</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-navigation">
+            <p class="sidebar-label">Produção</p>
+            <a class="sidebar-link is-active" href="/kitchen/orders" aria-current="page">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4V4Zm2 2v12h12V6H6Zm2 2h8v2H8V8Zm0 4h8v2H8v-2Zm0 4h5v1H8v-1Z"/></svg>
+                <span>Fila de pedidos</span>
+                <span class="sidebar-badge">{{ kitchen_total | default(0) }}</span>
+            </a>
+            <a class="sidebar-link" href="/kitchen/orders?status=received">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm1 11h5v-2h-4V6h-2v7h1Zm-1 7a8 8 0 1 1 8-8 8 8 0 0 1-8 8Z"/></svg>
+                <span>Novos</span>
+                <span class="sidebar-badge">{{ received_count | default(0) }}</span>
+            </a>
+            <a class="sidebar-link" href="/kitchen/orders?status=preparing">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8v2h2a3 3 0 0 1 3 3v11H3V8a3 3 0 0 1 3-3h2V3Zm2 2h4V4h-4v1ZM5 17h14V8a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v9Zm3-7h8v2H8v-2Z"/></svg>
+                <span>Em preparo</span>
+                <span class="sidebar-badge">{{ preparing_count | default(0) }}</span>
+            </a>
+            <a class="sidebar-link" href="/kitchen/orders?status=ready">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.2 16.6-4.3-4.3 1.4-1.4 2.9 2.9 8.5-8.5 1.4 1.4-9.9 9.9ZM4 20h16v2H4v-2Z"/></svg>
+                <span>Prontos</span>
+                <span class="sidebar-badge">{{ ready_count | default(0) }}</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <span class="user-avatar kitchen-avatar" aria-hidden="true">{{ kitchen_initials | default('CZ') }}</span>
+                <div>
+                    <strong>{{ kitchen_user_name | default('Equipe da cozinha') }}</strong>
+                    <span>Produção</span>
+                </div>
+            </div>
+            <form method="post" action="/kitchen/logout">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                <button class="sidebar-logout" type="submit" aria-label="Sair do painel">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3H4v18h6v-2H6V5h4V3Zm5.6 4.6L14.2 9l2 2H9v2h7.2l-2 2 1.4 1.4L20 12l-4.4-4.4Z"/></svg>
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <button class="sidebar-overlay" type="button" aria-label="Fechar menu" data-sidebar-overlay></button>
+
+    <div class="dashboard-main">
+        <header class="dashboard-topbar kitchen-topbar">
+            <button
+                class="sidebar-toggle"
+                type="button"
+                aria-label="Abrir menu"
+                aria-expanded="false"
+                data-sidebar-toggle
+            >
+                <span></span><span></span><span></span>
+            </button>
+            <div class="topbar-title">
+                <span>Painel da cozinha</span>
+                <strong>Pedidos</strong>
+            </div>
+            <div class="topbar-environment">
+                <span class="status-dot" aria-hidden="true"></span>
+                Recebendo pedidos
+            </div>
+        </header>
+
+        <main class="dashboard-content admin-orders-content kitchen-orders-content">
+            <section class="orders-page-heading" aria-labelledby="kitchen-orders-title">
+                <div>
+                    <p class="eyebrow">Histórico de produção</p>
+                    <h1 id="kitchen-orders-title">Pedidos da cozinha</h1>
+                    <p>Consulte a produção atual e encontre pedidos processados pela equipe.</p>
+                </div>
+                <a class="orders-refresh" href="/kitchen/orders?limit={{ limit }}&amp;offset={{ offset }}{% if selected_status %}&amp;status={{ selected_status }}{% endif %}{% if search %}&amp;search={{ search }}{% endif %}">
+                    <span aria-hidden="true">↻</span>
+                    Atualizar pedidos
+                </a>
+            </section>
+
+            <section class="orders-summary" aria-label="Resumo da produção">
+                <article>
+                    <span>Pedidos nesta página</span>
+                    <strong>{{ total_orders | default(0) }}</strong>
+                </article>
+                <article>
+                    <span>Novos nesta página</span>
+                    <strong>{{ received_count | default(0) }}</strong>
+                </article>
+                <article>
+                    <span>Em preparo nesta página</span>
+                    <strong>{{ preparing_count | default(0) }}</strong>
+                </article>
+                <article>
+                    <span>Prontos nesta página</span>
+                    <strong>{{ ready_count | default(0) }}</strong>
+                </article>
+            </section>
+
+            <section class="orders-panel" aria-labelledby="kitchen-orders-list-title">
+                <header class="orders-panel-header">
+                    <div>
+                        <p class="eyebrow">Consulta</p>
+                        <h2 id="kitchen-orders-list-title">Histórico de pedidos</h2>
+                    </div>
+                    <form class="orders-filters" method="get" action="/kitchen/orders">
+                        <input type="hidden" name="limit" value="{{ limit }}">
+                        <label class="orders-search">
+                            <span class="sr-only">Buscar pedido</span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m20 18.6-4.4-4.4a7 7 0 1 0-1.4 1.4l4.4 4.4 1.4-1.4ZM5 10a5 5 0 1 1 5 5 5 5 0 0 1-5-5Z"/></svg>
+                            <input
+                                type="search"
+                                name="search"
+                                value="{{ search | default('', true) }}"
+                                placeholder="Número do pedido"
+                            >
+                        </label>
+                        <label>
+                            <span class="sr-only">Filtrar por status</span>
+                            <select name="status">
+                                <option value="">Todos os status</option>
+                                <option value="received"{% if selected_status == 'received' %} selected{% endif %}>Novo</option>
+                                <option value="preparing"{% if selected_status == 'preparing' %} selected{% endif %}>Em preparo</option>
+                                <option value="ready"{% if selected_status == 'ready' %} selected{% endif %}>Pronto</option>
+                                <option value="delivered"{% if selected_status == 'delivered' %} selected{% endif %}>Finalizado</option>
+                                <option value="cancelled"{% if selected_status == 'cancelled' %} selected{% endif %}>Cancelado</option>
+                            </select>
+                        </label>
+                        <button type="submit">Filtrar</button>
+                        {% if search or selected_status %}
+                        <a href="/kitchen/orders">Limpar</a>
+                        {% endif %}
+                    </form>
+                </header>
+
+                <div class="orders-table-wrapper">
+                    <table class="orders-table kitchen-orders-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Pedido</th>
+                                <th scope="col">Entrada</th>
+                                <th scope="col">Itens</th>
+                                <th scope="col">Observação</th>
+                                <th scope="col">Status</th>
+                                <th scope="col"><span class="sr-only">Ações</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders | default([]) %}
+                            <tr>
+                                <td data-label="Pedido">
+                                    <strong class="order-number">#{{ order.number | default(order.id) }}</strong>
+                                    <span class="order-id">{{ order.id }}</span>
+                                </td>
+                                <td data-label="Entrada">
+                                    <strong>{{ order.created_date | default(order.created_at | default('—')) }}</strong>
+                                    <span>{{ order.created_time | default('') }}</span>
+                                </td>
+                                <td data-label="Itens">
+                                    <ul class="kitchen-items-preview">
+                                        {% for item in order['items'] | default([]) %}
+                                        <li><strong>{{ item.quantity }}×</strong> {{ item.name }}</li>
+                                        {% else %}
+                                        <li>Itens não informados</li>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                                <td data-label="Observação">
+                                    <span class="kitchen-order-note">{{ order.notes | default('Sem observações', true) }}</span>
+                                </td>
+                                <td data-label="Status">
+                                    {% set order_status = order.status | default('received') %}
+                                    <span class="order-status order-status-{{ order_status | lower }}">
+                                        <span aria-hidden="true"></span>
+                                        {{ order.status_label | default({
+                                            'RECEIVED': 'Novo',
+                                            'PREPARING': 'Em preparo',
+                                            'READY': 'Pronto',
+                                            'OUT_FOR_DELIVERY': 'Em entrega',
+                                            'DELIVERED': 'Finalizado',
+                                            'CANCELLED': 'Cancelado'
+                                        }.get(order_status, order_status)) }}
+                                    </span>
+                                </td>
+                                <td class="orders-table-action">
+                                    <a href="/kitchen/orders/{{ order.id }}" aria-label="Ver pedido {{ order.number | default(order.id) }}">
+                                        Abrir pedido <span aria-hidden="true">→</span>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td class="orders-table-empty" colspan="6">
+                                    <span aria-hidden="true">⌕</span>
+                                    <strong>Nenhum pedido encontrado</strong>
+                                    <p>Ajuste os filtros ou atualize a página para consultar a produção.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if has_previous_page or has_next_page %}
+                <nav class="orders-pagination" aria-label="Paginação dos pedidos">
+                    {% if has_previous_page %}
+                    <a href="/kitchen/orders?limit={{ limit }}&amp;offset={{ previous_offset }}{% if selected_status %}&amp;status={{ selected_status }}{% endif %}{% if search %}&amp;search={{ search }}{% endif %}" rel="prev">← Anterior</a>
+                    {% else %}
+                    <span aria-disabled="true">← Anterior</span>
+                    {% endif %}
+                    <p>Página <strong>{{ current_page }}</strong></p>
+                    {% if has_next_page %}
+                    <a href="/kitchen/orders?limit={{ limit }}&amp;offset={{ next_offset }}{% if selected_status %}&amp;status={{ selected_status }}{% endif %}{% if search %}&amp;search={{ search }}{% endif %}" rel="next">Próxima →</a>
+                    {% else %}
+                    <span aria-disabled="true">Próxima →</span>
+                    {% endif %}
+                </nav>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}

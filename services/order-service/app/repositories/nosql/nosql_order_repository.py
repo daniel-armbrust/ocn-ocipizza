@@ -4,10 +4,12 @@
 
 import re
 
+from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 
 from borneo import (
+    DeleteRequest,
     GetRequest,
     NoSQLHandle,
     PutOption,
@@ -40,13 +42,16 @@ class NosqlOrderRepository(OrderRepository):
 
     def __init__(self,
                  handle: NoSQLHandle,
-                 table_name: str = 'orders') -> None:
+                 table_name: str = 'orders',
+                 use_client_side_sort: bool = False) -> None:
         """
         Inicializa o repositório de pedidos.
 
         Args:
             handle: Handle utilizado para comunicação com o Oracle NoSQL.
             table_name: Nome da tabela que armazena os pedidos.
+            use_client_side_sort: Indica se consultas administrativas devem
+                ser ordenadas e paginadas localmente.
 
         Returns:
             None.
@@ -61,6 +66,7 @@ class NosqlOrderRepository(OrderRepository):
 
         self.handle = handle
         self.table_name = table_name
+        self.use_client_side_sort = use_client_side_sort
 
     def create(self, order: Order) -> Order:
         """
@@ -248,9 +254,24 @@ class NosqlOrderRepository(OrderRepository):
         if filters:
             statement += ' WHERE ' + ' AND '.join(filters)
 
-        # Uma ordenação explícita torna LIMIT/OFFSET determinísticos e exibe
-        # primeiro os pedidos criados mais recentemente. O bootstrap mantém
-        # índices compatíveis com cada combinação possível de filtros.
+        # O proxy da edição Community usada no desenvolvimento local não
+        # fornece a topologia exigida pelo SDK para ordenar consultas entre
+        # todos os shards. Nesse ambiente, recupera os registros antes de
+        # ordenar e paginar, preservando o comportamento da API.
+        if self.use_client_side_sort:
+            orders = [
+                self._to_model(row)
+                for row in self._query(statement)
+            ]
+            orders.sort(
+                key=lambda order: order.created_at,
+                reverse=True
+            )
+
+            return orders[offset:offset + limit]
+
+        # Em OCI, a ordenação utiliza os índices criados pelo bootstrap para
+        # manter a paginação determinística e processada pelo banco de dados.
         statement += (
             ' ORDER BY created_at DESC'
             f' LIMIT {limit}'
@@ -258,6 +279,103 @@ class NosqlOrderRepository(OrderRepository):
         )
 
         return [self._to_model(row) for row in self._query(statement)]
+
+    def get_summary(self, created_since: datetime) -> dict[str, int]:
+        """
+        Retorna indicadores agregados para o painel administrativo.
+
+        Args:
+            created_since: Início do período considerado no indicador de
+                pedidos recebidos.
+
+        Returns:
+            Quantidades de pedidos do período e dos estados operacionais.
+
+        Raises:
+            ValueError: Quando a data recebida não possuir timezone.
+        """
+
+        if created_since.tzinfo is None:
+            raise ValueError('Summary start datetime must include timezone.')
+
+        created_since_utc = created_since.astimezone(timezone.utc)
+
+        # O proxy Community não fornece a topologia exigida pelo SDK para
+        # agregar todos os shards. No desenvolvimento, somente os campos
+        # necessários são lidos e agregados localmente.
+        if self.use_client_side_sort:
+            rows = self._query(f'''
+                SELECT status, created_at
+                    FROM {self.table_name}
+            ''')
+
+            totals_by_status: dict[str, int] = {}
+            orders_today = 0
+
+            for row in rows:
+                status = row['status']
+
+                totals_by_status[status] = (
+                    totals_by_status.get(status, 0) + 1
+                )
+
+                created_at = row['created_at']
+
+                if created_at.tzinfo is None:
+                    created_at = created_at.replace(tzinfo=timezone.utc)
+
+                if created_at.astimezone(timezone.utc) >= created_since_utc:
+                    orders_today += 1
+
+            return {
+                'orders_today': orders_today,
+                'orders_preparing': totals_by_status.get('PREPARING', 0),
+                'orders_ready': totals_by_status.get('READY', 0),
+                'pending_orders': sum(
+                    total
+                    for status, total in totals_by_status.items()
+                    if status not in ('DELIVERED', 'CANCELLED')
+                )
+            }
+
+        created_since_value = (
+            created_since_utc.isoformat(timespec='milliseconds')
+            .replace('+00:00', 'Z')
+        )
+
+        status_rows = self._query(f'''
+            SELECT status, count(*) AS total
+                FROM {self.table_name}
+            GROUP BY status
+        ''')
+        
+        period_rows = self._query(f'''
+            SELECT count(*) AS total
+                FROM {self.table_name}
+            WHERE created_at >= CAST(
+                "{created_since_value}" AS TIMESTAMP(3)
+            )
+        ''')
+
+        totals_by_status = {
+            row['status']: int(row['total'])
+            for row in status_rows
+        }
+
+        return {
+            'orders_today': (
+                int(period_rows[0]['total'])
+                if period_rows
+                else 0
+            ),
+            'orders_preparing': totals_by_status.get('PREPARING', 0),
+            'orders_ready': totals_by_status.get('READY', 0),
+            'pending_orders': sum(
+                total
+                for status, total in totals_by_status.items()
+                if status not in ('DELIVERED', 'CANCELLED')
+            )
+        }
 
     def update(self, order: Order) -> Order:
         """
@@ -287,6 +405,36 @@ class NosqlOrderRepository(OrderRepository):
             raise RuntimeError('Error updating order in Oracle NoSQL.')
 
         return order
+
+    def delete(self, order: Order) -> None:
+        """
+        Remove um pedido usando sua chave primária composta.
+
+        Args:
+            order: Pedido que será removido.
+
+        Returns:
+            None.
+
+        Raises:
+            RuntimeError: Quando o pedido não existir ou não for removido.
+        """
+
+        request = (
+            DeleteRequest()
+            .set_table_name(self.table_name)
+            .set_key({
+                'user_id': str(order.user_id),
+                'id': str(order.id)
+            })
+        )
+
+        result = self.handle.delete(request)
+
+        # get_success() retorna False quando nenhum registro correspondente
+        # à chave foi removido.
+        if not result.get_success():
+            raise RuntimeError('Error deleting order in Oracle NoSQL.')
 
     def _query(self, statement: str) -> list[dict]:
         """

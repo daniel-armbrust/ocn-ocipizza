@@ -132,19 +132,16 @@ O `.env` criado pelo bootstrap utiliza:
 - `PERSISTENCE_PROVIDER=nosql`
 - Tabela `orders`
 - Oracle NoSQL em `http://localhost:18080`
+- Mensageria com RabbitMQ
+- Fila `notifications-queue`
 - Emissor JWT `user-service`
 - Audiência JWT `ocipizza`
 - JWKS em `http://localhost:8002/.well-known/jwks.json`
 - Logging com nível `INFO`
 
-Se o `.env` já existir, seu conteúdo será preservado.
-
-<!-- TODO: O bootstrap.sh ainda não inclui MESSAGING_PROVIDER e as variáveis
-do provider selecionado no .env que ele cria. Como MESSAGING_PROVIDER é
-obrigatório, um bootstrap iniciado sem .env não conclui a etapa Python. Até o
-script ser alinhado, crie previamente o .env a partir de .env.example; o
-bootstrap preservará esse arquivo. O startdev.sh também depende dessas
-configurações no .env ou no ambiente. -->
+Se o `.env` já existir, seus valores serão preservados. Configurações locais
+obrigatórias de mensageria que ainda não existirem serão acrescentadas pelo
+bootstrap sem sobrescrever as definições existentes.
 
 ## Reconstruir a imagem Docker
 
@@ -250,6 +247,10 @@ pedido com sucesso. Não existe outbox nem nova tentativa automática no
 `order-service`. Requisições idempotentes que retornam um pedido criado por uma
 requisição concorrente não publicam uma segunda mensagem.
 
+Após a atualização administrativa do status, o serviço publica uma notificação
+específica para `OUT_FOR_DELIVERY` (`ORDER_SENT`) e `DELIVERED`
+(`ORDER_DELIVERED`). Os demais estados utilizam `ORDER_UPDATED`.
+
 ### RabbitMQ
 
 Com `MESSAGING_PROVIDER=rabbitmq`, o publicador declara `QUEUE_NAME` como fila
@@ -300,8 +301,10 @@ As respostas seguem o padrão JSend.
 | Listar meus pedidos | `GET` | `/orders` | Usuário autenticado. |
 | Consultar meu pedido | `GET` | `/orders/{order_id}` | Proprietário autenticado. |
 | Listar todos os pedidos | `GET` | `/admin/orders` | Administrador autenticado. |
+| Resumir indicadores dos pedidos | `GET` | `/admin/orders/summary` | Administrador autenticado. |
 | Consultar qualquer pedido | `GET` | `/admin/orders/{order_id}` | Administrador autenticado. |
 | Atualizar status do pedido | `PATCH` | `/admin/orders/{order_id}/status` | Administrador autenticado. |
+| Excluir pedido | `DELETE` | `/admin/orders/{order_id}` | Administrador autenticado. |
 | Health check | `GET` | `/health` | Público. |
 
 ## Autenticação e autorização
@@ -321,17 +324,17 @@ do `user-service`. A validação verifica:
 - Prazo de validade do token
 - Claim `sub` contendo um UUID de usuário válido
 
-As rotas sob `/admin/orders` atualmente exigem o claim:
+As rotas de consulta e atualização sob `/admin/orders` exigem um dos claims:
 
 ```json
 {
-  "role": "admin"
+  "is_admin": true
 }
 ```
 
-<!-- TODO: Alinhar a autorização administrativa ao claim `is_admin` emitido
-pelo user-service. Enquanto essa integração não for ajustada, tokens emitidos
-pelo user-service não autorizam as rotas administrativas do order-service. -->
+Usuários com `is_kitchen: true` também podem consultar pedidos e atualizar seus
+status. A exclusão em `DELETE /admin/orders/{order_id}` exige exclusivamente
+`is_admin: true`.
 
 O serviço tenta aquecer o cache de chaves públicas durante a inicialização.
 Quando o `kid` solicitado não está no cache, o JWKS é consultado novamente.
@@ -532,6 +535,35 @@ curl --request GET \
   --header 'Accept: application/json'
 ```
 
+### GET `/admin/orders/summary` — Resumir indicadores dos pedidos
+
+Retorna as quantidades utilizadas pelos painéis administrativo e da cozinha.
+O indicador `orders_today` considera o início do dia em UTC. Pedidos pendentes
+são aqueles cujo status ainda não é `DELIVERED` nem `CANCELLED`.
+
+```bash
+curl --request GET \
+  --url http://localhost:8004/admin/orders/summary \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Accept: application/json'
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "status": "success",
+  "data": {
+    "summary": {
+      "orders_today": 12,
+      "orders_preparing": 4,
+      "orders_ready": 2,
+      "pending_orders": 8
+    }
+  }
+}
+```
+
 ### GET `/admin/orders/{order_id}` — Consultar qualquer pedido
 
 ```bash
@@ -554,6 +586,16 @@ curl --request PATCH \
   --data '{
     "status": "PREPARING"
   }'
+```
+
+### DELETE `/admin/orders/{order_id}` — Excluir pedido
+
+Remove permanentemente um pedido após a autorização administrativa.
+
+```bash
+curl --request DELETE \
+  --url http://localhost:8004/admin/orders/ORDER_UUID \
+  --header "Authorization: Bearer ACCESS_TOKEN"
 ```
 
 A operação modifica o status e atualiza `updated_at`. Os estados aceitos são:
@@ -658,6 +700,7 @@ Os handlers globais utilizam códigos com o prefixo `ORDER_SERVICE_`:
 | `ORDER_SERVICE_CREATION_ERROR` | Falha interna ao criar um pedido. |
 | `ORDER_SERVICE_QUERY_ERROR` | Falha interna ao consultar pedidos. |
 | `ORDER_SERVICE_UPDATE_ERROR` | Falha interna ao atualizar um pedido. |
+| `ORDER_SERVICE_DELETE_ERROR` | Falha interna ao excluir um pedido. |
 | `ORDER_SERVICE_INTERNAL_SERVER_ERROR` | Falha interna inesperada. |
 
 ## Configurações

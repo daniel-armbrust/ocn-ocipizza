@@ -15,8 +15,16 @@ EMAIL_TEMPLATES = {
         'subject': 'Recebemos seu pedido!',
         'html': 'order_received.html'
     },
+    'ORDER_UPDATED': {
+        'subject': 'Atualização do seu pedido',
+        'html': 'order_updated.html'
+    },
     'ORDER_SENT': {
         'subject': 'Seu pedido saiu para entrega',
         'html': 'order_sent.html'
+    },
+    'ORDER_DELIVERED': {
+        'subject': 'Seu pedido foi entregue',
+        'html': 'order_delivered.html'
     }
 }

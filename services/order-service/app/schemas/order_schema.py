@@ -246,3 +246,20 @@ class OrderResponse(BaseModel):
         """
 
         return cls.model_validate(order)
+
+
+class OrderSummaryResponse(BaseModel):
+    """
+    Representa os indicadores agregados do painel de pedidos.
+
+    Attributes:
+        orders_today: Pedidos criados desde o início do dia em UTC.
+        orders_preparing: Pedidos que estão em preparação.
+        orders_ready: Pedidos que estão prontos para entrega.
+        pending_orders: Pedidos que ainda não foram entregues ou cancelados.
+    """
+
+    orders_today: int = Field(ge=0)
+    orders_preparing: int = Field(ge=0)
+    orders_ready: int = Field(ge=0)
+    pending_orders: int = Field(ge=0)

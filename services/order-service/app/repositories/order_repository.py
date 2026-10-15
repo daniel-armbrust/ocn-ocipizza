@@ -3,6 +3,7 @@
 #
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from uuid import UUID
 
 from app.models.order import Order, OrderStatus, PaymentStatus
@@ -106,6 +107,20 @@ class OrderRepository(ABC):
         pass
 
     @abstractmethod
+    def get_summary(self, created_since: datetime) -> dict[str, int]:
+        """
+        Retorna os indicadores agregados dos pedidos administrativos.
+
+        Args:
+            created_since: Início do período considerado no indicador de
+                pedidos recebidos.
+
+        Returns:
+            Quantidades de pedidos do período e dos estados operacionais.
+        """
+        pass
+
+    @abstractmethod
     def update(self, order: Order) -> Order:
         """
         Persiste as alterações realizadas em um pedido.
@@ -115,5 +130,18 @@ class OrderRepository(ABC):
 
         Returns:
             Pedido atualizado.
+        """
+        pass
+
+    @abstractmethod
+    def delete(self, order: Order) -> None:
+        """
+        Remove um pedido persistido.
+
+        Args:
+            order: Pedido que será removido.
+
+        Returns:
+            None.
         """
         pass

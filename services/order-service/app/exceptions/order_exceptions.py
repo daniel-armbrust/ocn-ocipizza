@@ -37,6 +37,14 @@ class OrderUpdateError(Exception):
     """
     pass
 
+
+class OrderDeleteError(Exception):
+    """
+    Indica que não foi possível remover um pedido.
+    """
+    pass
+
+
 class OrderEmailPublishError(Exception):
     """
     Exceção lançada quando não é possível publicar uma notificação 

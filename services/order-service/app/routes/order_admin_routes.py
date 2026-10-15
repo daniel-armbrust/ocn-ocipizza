@@ -6,12 +6,19 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.dependencies.authentication import get_current_admin_id
+from app.dependencies.authentication import (
+    get_current_admin_id,
+    get_current_order_operator_id
+)
 
 from app.models.order import OrderStatus, PaymentStatus
 
 from app.schemas.jsend_schema import JSendSuccessResponse
-from app.schemas.order_schema import OrderResponse, OrderStatusUpdateRequest
+from app.schemas.order_schema import (
+    OrderResponse,
+    OrderStatusUpdateRequest,
+    OrderSummaryResponse
+)
 
 from app.responses.jsend import success_response
 
@@ -32,7 +39,7 @@ def get_orders(
     payment_status: PaymentStatus | None = Query(default=None),
     limit: int = Query(default=10, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
-    _: UUID = Depends(get_current_admin_id),
+    _: UUID = Depends(get_current_order_operator_id),
     service: OrderService = Depends(get_order_service)
 ) -> JSendSuccessResponse:
     """
@@ -43,8 +50,7 @@ def get_orders(
         payment_status: Estado do pagamento utilizado como filtro opcional.
         limit: Quantidade máxima de pedidos retornados, limitada a 100.
         offset: Quantidade de pedidos ignorados antes do retorno.
-        _: Dependência que valida a autenticação e o privilégio
-            administrativo.
+        _: Dependência que valida a autenticação de um operador de pedidos.
         service: Serviço responsável por consultar os pedidos.
 
     Returns:
@@ -69,6 +75,37 @@ def get_orders(
         ]
     })
 
+#
+# GET: /admin/orders/summary
+#
+@router.get(
+    '/admin/orders/summary',
+    status_code=status.HTTP_200_OK,
+    response_model=JSendSuccessResponse
+)
+def get_order_summary(
+    _: UUID = Depends(get_current_order_operator_id),
+    service: OrderService = Depends(get_order_service)
+) -> JSendSuccessResponse:
+    """
+    Retorna os indicadores agregados do painel de pedidos.
+
+    Args:
+        _: Dependência que valida a autenticação de um operador de pedidos.
+        service: Serviço responsável por consultar os indicadores.
+
+    Returns:
+        Resposta JSend contendo o resumo administrativo dos pedidos.
+
+    Raises:
+        OrderQueryError: Quando ocorrer uma falha durante as agregações.
+    """
+
+    summary = OrderSummaryResponse(**service.get_summary())
+
+    return success_response({
+        'summary': summary.model_dump(mode='json')
+    })
 
 #
 # GET: /admin/orders/{order_id}
@@ -80,7 +117,7 @@ def get_orders(
 )
 def get_order(
     order_id: UUID,
-    _: UUID = Depends(get_current_admin_id),
+    _: UUID = Depends(get_current_order_operator_id),
     service: OrderService = Depends(get_order_service)
 ) -> JSendSuccessResponse:
     """
@@ -88,8 +125,7 @@ def get_order(
 
     Args:
         order_id: Identificador do pedido solicitado.
-        _: Dependência que valida a autenticação e o privilégio
-            administrativo.
+        _: Dependência que valida a autenticação de um operador de pedidos.
         service: Serviço responsável por consultar o pedido.
 
     Returns:
@@ -118,7 +154,7 @@ def get_order(
 def update_order_status(
     order_id: UUID,
     payload: OrderStatusUpdateRequest,
-    _: UUID = Depends(get_current_admin_id),
+    _: UUID = Depends(get_current_order_operator_id),
     service: OrderService = Depends(get_order_service)
 ) -> JSendSuccessResponse:
     """
@@ -127,8 +163,7 @@ def update_order_status(
     Args:
         order_id: Identificador do pedido que será atualizado.
         payload: Novo status validado para o pedido.
-        _: Dependência que valida a autenticação e o privilégio
-            administrativo.
+        _: Dependência que valida a autenticação de um operador de pedidos.
         service: Serviço responsável por atualizar o pedido.
 
     Returns:
@@ -147,4 +182,34 @@ def update_order_status(
 
     return success_response({
         'order': OrderResponse.from_model(order).model_dump(mode='json')
+    })
+
+
+# DELETE: /admin/orders/{order_id}
+@router.delete(
+    '/admin/orders/{order_id}',
+    status_code=status.HTTP_200_OK,
+    response_model=JSendSuccessResponse
+)
+def delete_order(
+    order_id: UUID,
+    _: UUID = Depends(get_current_admin_id),
+    service: OrderService = Depends(get_order_service)
+) -> JSendSuccessResponse:
+    """
+    Remove administrativamente um pedido.
+
+    Args:
+        order_id: Identificador do pedido que será removido.
+        _: Dependência que valida a autenticação e o privilégio administrativo.
+        service: Serviço responsável por remover o pedido.
+
+    Returns:
+        Resposta JSend confirmando a remoção.
+    """
+
+    service.delete_for_admin(order_id=order_id)
+
+    return success_response({
+        'order_id': str(order_id)
     })

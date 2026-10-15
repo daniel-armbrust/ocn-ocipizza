@@ -63,6 +63,23 @@ encaminhados ao preparador e ao template do tipo selecionado.
 | `USER_CONFIRMATION` | Implementado | `full_name` e `token`. |
 | `USER_PASSWORD_RESET` | Implementado | `full_name` e `token`. |
 | `ORDER_RECEIVED` | Implementado | Dados do cliente, pedido, itens e valores. |
+| `ORDER_UPDATED` | Implementado | Cliente, pedido, novo status e data da atualização. |
+| `ORDER_SENT` | Implementado | Pedido enviado para entrega, status e data da atualização. |
+| `ORDER_DELIVERED` | Implementado | Pedido entregue, status e data da atualização. |
+
+### Preparação dos templates
+
+O `EmailTemplateService` coordena a renderização e delega a preparação dos
+dados para serviços separados por domínio:
+
+- `UserEmailTemplateService`: confirmações de conta e redefinição de senha.
+- `OrderEmailTemplateService`: pedido recebido e notificações de atualização,
+  envio e entrega.
+
+Essa separação mantém as validações específicas de usuários e pedidos fora do
+renderizador central. Antes de carregar o template Jinja2, os preparadores
+validam os campos obrigatórios e complementam os dados necessários, como o
+rótulo amigável do status do pedido.
 
 Para `USER_CONFIRMATION`, o link enviado por e-mail é construído como
 `{SITE_URL}/users/confirm?token=...`.
@@ -102,9 +119,19 @@ O contrato esperado para esse tipo é:
 `subtotal`, `delivery_fee` e `total` são recebidos como strings decimais com
 exatamente duas casas e renderizados no e-mail com o prefixo `R$`.
 
-<!-- TODO: Implementar e alinhar os identificadores, preparadores e templates
-de pedido enviado. Atualmente USER_ORDER_SENT e ORDER_SENT não formam um fluxo
-completo e não devem ser publicados em produção. -->
+Para `ORDER_UPDATED`, o e-mail informa o novo status do pedido ao cliente. O
+contrato esperado é:
+
+```json
+{
+  "type": "ORDER_UPDATED",
+  "recipient": "ana.laura@example.com",
+  "full_name": "Ana Laura",
+  "order_id": "93da1548-90ba-4b69-83e2-dfe4d42bcdb4",
+  "status": "PREPARING",
+  "updated_at": "2026-10-15T13:28:56.806000+00:00"
+}
+```
 
 ## Mensageria
 

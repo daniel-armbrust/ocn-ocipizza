@@ -19,7 +19,8 @@ from app.exceptions.order_exceptions import (
     OrderIdempotencyConflictError,
     OrderNotFoundError,
     OrderQueryError,
-    OrderUpdateError
+    OrderUpdateError,
+    OrderDeleteError
 )
 
 from app.routes.order_routes import router as order_router
@@ -189,6 +190,35 @@ async def order_update_error_handler(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         code='ORDER_SERVICE_UPDATE_ERROR',
         message='Unable to update order.'
+    )
+
+
+@app.exception_handler(OrderDeleteError)
+async def order_delete_error_handler(
+    request: Request,
+    ex: OrderDeleteError
+) -> JSONResponse:
+    """
+    Oculta detalhes internos de uma falha ao remover um pedido.
+
+    Args:
+        request: Requisição de remoção que não pôde ser concluída.
+        ex: Exceção gerada pela camada de serviço.
+
+    Returns:
+        Resposta JSend genérica com HTTP 500.
+    """
+
+    logger.exception(
+        'Order deletion failed while processing %s %s',
+        request.method,
+        request.url.path
+    )
+
+    return fail_response(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        code='ORDER_SERVICE_DELETE_ERROR',
+        message='Unable to delete order.'
     )
 
 
