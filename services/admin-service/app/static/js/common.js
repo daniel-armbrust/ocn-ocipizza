@@ -11,6 +11,27 @@ if (currentYear) {
     currentYear.textContent = new Date().getFullYear().toString();
 }
 
+// Converte timestamps ISO retornados pelas APIs para o padrão brasileiro.
+const dateTimeFormatter = new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+});
+
+document.querySelectorAll('[data-datetime]').forEach((element) => {
+    const value = element.dataset.datetime;
+    const date = new Date(value);
+
+    if (!value || Number.isNaN(date.getTime())) {
+        return;
+    }
+
+    element.textContent = dateTimeFormatter.format(date);
+    element.setAttribute('datetime', date.toISOString());
+});
+
 // Controla a navegação lateral em telas menores.
 const dashboardSidebar = document.querySelector(
     '[data-dashboard-sidebar]'

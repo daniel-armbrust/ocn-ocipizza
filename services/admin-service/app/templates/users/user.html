@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% set editing = user is defined and user %}
+{% block title %}{{ 'Editar usuário' if editing else 'Novo usuário' }} | OCI Pizza Admin{% endblock %}
+
+{% block content %}
+<div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Navegação administrativa" data-dashboard-sidebar>
+        <div class="sidebar-brand">
+            <img src="{{ url_for('static', path='img/admin-mark.svg') }}" alt="" width="44" height="44">
+            <div><strong>OCI Pizza</strong><span>Administração</span></div>
+        </div>
+        <nav class="sidebar-navigation">
+            <p class="sidebar-label">Painel</p>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/dashboard"><span>Visão geral</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/orders"><span>Pedidos</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/pizzas"><span>Cardápio</span></a>
+            <a class="sidebar-link sidebar-link-plain is-active" data-lock-navigation href="/admin/users" aria-current="page"><span>Usuários</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/deliveries"><span>Áreas de entrega</span></a>
+            <p class="sidebar-label sidebar-label-secondary">Plataforma</p>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/monitoring"><span>Monitoramento</span></a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user"><span class="user-avatar" aria-hidden="true">{{ admin_initials | default('AD') }}</span><div><strong>{{ admin_name | default('Administrador') }}</strong><span>Acesso administrativo</span></div></div>
+            <form method="post" action="/admin/logout"><input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}"><button class="sidebar-logout" type="submit" aria-label="Sair do painel">Sair</button></form>
+        </div>
+    </aside>
+    <button class="sidebar-overlay" type="button" aria-label="Fechar menu" data-sidebar-overlay></button>
+
+    <div class="dashboard-main">
+        <header class="dashboard-topbar">
+            <button class="sidebar-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" data-sidebar-toggle><span></span><span></span><span></span></button>
+            <div class="topbar-title"><span>Painel administrativo</span><strong>{{ 'Editar usuário' if editing else 'Novo usuário' }}</strong></div>
+            <div class="topbar-environment"><span class="status-dot" aria-hidden="true"></span>Operação online</div>
+        </header>
+
+        <main class="dashboard-content users-page-content">
+            <a class="order-detail-back" data-lock-navigation href="/admin/users">← Voltar para usuários</a>
+            <section class="user-form-card" aria-labelledby="user-form-title">
+                <p class="eyebrow">{{ 'Atualização de cadastro' if editing else 'Cadastro de acesso' }}</p>
+                <h1 id="user-form-title">{{ 'Editar usuário' if editing else 'Novo usuário' }}</h1>
+                <p>Defina os dados de acesso e o perfil que determina as permissões no sistema.</p>
+
+                <form id="user-form" method="post" action="{{ '/admin/users/' ~ user.id if editing else '/admin/users' }}" data-user-form>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                    {% if editing %}
+                    <input type="hidden" name="_method" value="PUT">
+                    {% endif %}
+                    <div class="user-form-grid">
+                        <div class="user-form-field user-form-field-full"><label for="user-full-name">Nome completo</label><input id="user-full-name" name="full_name" type="text" value="{{ user.full_name | default('') if editing else '' }}" autocomplete="name" required></div>
+                        <div class="user-form-field"><label for="user-email">E-mail</label><input id="user-email" name="email" type="email" value="{{ user.email | default('') if editing else '' }}" autocomplete="email" required></div>
+                        <div class="user-form-field"><label for="user-whatsapp">WhatsApp</label><input id="user-whatsapp" name="whatsapp" type="tel" value="{{ user.whatsapp | default('') if editing else '' }}" autocomplete="tel" placeholder="(11) 99999-9999" maxlength="15" minlength="14" data-whatsapp-mask required></div>
+                        {% if not editing %}<div class="user-form-field"><label for="user-password">Senha inicial</label><input id="user-password" name="password" type="password" autocomplete="new-password" required></div>{% endif %}
+                        <div class="user-form-field user-form-field-full"><span class="user-form-legend">Perfil de acesso</span><div class="user-role-options">
+                            <div class="user-role-option"><input id="role-regular" name="role" value="regular" type="radio"{% if not editing or (not user.is_admin and not user.is_kitchen) %} checked{% endif %}><label for="role-regular"><strong>Usuário regular</strong><span>Faz pedidos e acompanha suas compras.</span></label></div>
+                            <div class="user-role-option"><input id="role-kitchen" name="role" value="kitchen" type="radio"{% if editing and user.is_kitchen %} checked{% endif %}><label for="role-kitchen"><strong>Cozinha</strong><span>Atualiza o preparo e a entrega dos pedidos.</span></label></div>
+                            <div class="user-role-option"><input id="role-admin" name="role" value="admin" type="radio"{% if editing and user.is_admin %} checked{% endif %}><label for="role-admin"><strong>Administrador</strong><span>Acessa todas as áreas administrativas.</span></label></div>
+                        </div></div>
+                        <div class="user-form-field user-form-field-full">
+                            <label class="user-confirmation-option" for="user-confirmed">
+                                <input id="user-confirmed" name="confirmed" type="checkbox" value="true"{% if editing and user.confirmed %} checked{% endif %}>
+                                <span><strong>Usuário já confirmado</strong><span>{{ 'Desmarque para exigir nova confirmação por e-mail.' if editing else 'Marque para criar a conta sem enviar o e-mail de confirmação.' }}</span></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="user-form-actions">
+                        {% if editing %}<button class="users-danger-action" type="submit" form="delete-user-form">Excluir usuário</button>{% else %}<span></span>{% endif %}
+                        <div class="user-form-actions-right"><a class="users-secondary-action" data-lock-navigation href="/admin/users">Cancelar</a><button class="users-primary-action" type="submit">{{ 'Salvar alterações' if editing else 'Criar usuário' }}</button></div>
+                    </div>
+                </form>
+
+                {% if editing %}<form id="delete-user-form" class="user-delete-form" method="post" action="/admin/users/{{ user.id }}/delete" data-delete-user-form><input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}"></form>{% endif %}
+            </section>
+        </main>
+    </div>
+</div>
+
+{% if editing %}<dialog class="message-modal message-modal-warning" aria-labelledby="delete-user-modal-title" aria-describedby="delete-user-modal-description" data-delete-user-modal>
+    <div class="message-modal-content"><span class="message-modal-icon" aria-hidden="true">!</span><div class="message-modal-copy"><span class="eyebrow">Confirmar operação</span><h2 id="delete-user-modal-title">Excluir este usuário?</h2><p id="delete-user-modal-description">A conta de {{ user.full_name }} será removida permanentemente.</p><div class="confirmation-modal-actions"><button class="confirmation-modal-cancel" type="button" data-cancel-delete-user>Voltar</button><button class="message-modal-button confirmation-modal-confirm" type="button" data-confirm-delete-user>Sim, excluir usuário</button></div></div></div>
+</dialog>{% endif %}
+{% endblock %}

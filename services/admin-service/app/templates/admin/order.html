@@ -41,7 +41,7 @@
             </a>
             <a class="sidebar-link" data-lock-navigation href="/admin/deliveries">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h11v10h2.2l1.5-4H22v6h-2a3 3 0 0 1-6 0H9a3 3 0 0 1-6 0H1V7h2V5Zm2 2v7.2a3 3 0 0 1 3.8.8H12V7H5Zm11 6-.7 2h.7a3 3 0 0 1 2.2.9H20V13h-4ZM6 16a1 1 0 1 0 1 1 1 1 0 0 0-1-1Zm11 0a1 1 0 1 0 1 1 1 1 0 0 0-1-1Z"/></svg>
-                <span>Entregas</span>
+                <span>Áreas de entrega</span>
             </a>
 
             <p class="sidebar-label sidebar-label-secondary">Plataforma</p>
@@ -171,6 +171,27 @@
                         </dl>
                     </section>
 
+                    <section class="order-detail-card" aria-labelledby="customer-title">
+                        <header>
+                            <p class="eyebrow">Cliente</p>
+                            <h2 id="customer-title">Dados de contato</h2>
+                        </header>
+                        <dl class="order-info-list">
+                            <div>
+                                <dt>Nome</dt>
+                                <dd>{{ order.customer.name }}</dd>
+                            </div>
+                            <div>
+                                <dt>E-mail</dt>
+                                <dd><a href="mailto:{{ order.customer.email }}">{{ order.customer.email }}</a></dd>
+                            </div>
+                            <div>
+                                <dt>WhatsApp</dt>
+                                <dd>{{ order.customer.whatsapp }}</dd>
+                            </div>
+                        </dl>
+                    </section>
+
                     <section class="order-detail-card" aria-labelledby="delivery-address-title">
                         <header>
                             <p class="eyebrow">Entrega</p>
@@ -211,22 +232,9 @@
                                 <option value="CANCELLED">Cancelar pedido</option>
                             </select>
                             <button class="order-status-submit" type="submit">Atualizar status</button>
-                            <p>O pedido será preservado no histórico mesmo quando cancelado.</p>
                         </form>
-                        {% else %}
-                        <div class="order-address">
-                            <strong>Pedido finalizado</strong>
-                            <p>Pedidos entregues ou cancelados permanecem somente para consulta.</p>
-                        </div>
-                        {% endif %}
-                    </section>
-
-                    <section class="order-detail-card order-danger-card" aria-labelledby="order-delete-title">
-                        <header>
-                            <p class="eyebrow">Ação permanente</p>
-                            <h2 id="order-delete-title">Excluir pedido</h2>
-                        </header>
                         <form
+                            class="order-delete-inline"
                             method="post"
                             action="/admin/orders/{{ order.id }}/delete"
                             data-delete-order-form
@@ -236,27 +244,24 @@
                                 Excluir pedido
                             </button>
                         </form>
-                    </section>
-
-                    <section class="order-detail-card" aria-labelledby="customer-title">
-                        <header>
-                            <p class="eyebrow">Cliente</p>
-                            <h2 id="customer-title">Dados de contato</h2>
-                        </header>
-                        <dl class="order-info-list">
-                            <div>
-                                <dt>Nome</dt>
-                                <dd>{{ order.customer.name }}</dd>
-                            </div>
-                            <div>
-                                <dt>E-mail</dt>
-                                <dd><a href="mailto:{{ order.customer.email }}">{{ order.customer.email }}</a></dd>
-                            </div>
-                            <div>
-                                <dt>WhatsApp</dt>
-                                <dd>{{ order.customer.whatsapp }}</dd>
-                            </div>
-                        </dl>
+                        <p class="order-history-note">O pedido será preservado no histórico mesmo quando cancelado.</p>
+                        {% else %}
+                        <div class="order-address">
+                            <strong>Pedido finalizado</strong>
+                            <p>Pedidos entregues ou cancelados permanecem somente para consulta.</p>
+                        </div>
+                        <form
+                            class="order-delete-inline"
+                            method="post"
+                            action="/admin/orders/{{ order.id }}/delete"
+                            data-delete-order-form
+                        >
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                            <button class="order-action order-action-delete" type="submit">
+                                Excluir pedido
+                            </button>
+                        </form>
+                        {% endif %}
                     </section>
 
                     <section class="order-detail-card" aria-labelledby="order-metadata-title">
@@ -267,11 +272,11 @@
                         <dl class="order-info-list order-metadata-list">
                             <div>
                                 <dt>Criado em</dt>
-                                <dd>{{ order.created_at }}</dd>
+                                <dd data-datetime="{{ order.created_at }}">{{ order.created_at }}</dd>
                             </div>
                             <div>
                                 <dt>Atualizado em</dt>
-                                <dd>{{ order.updated_at }}</dd>
+                                <dd data-datetime="{{ order.updated_at }}">{{ order.updated_at }}</dd>
                             </div>
                             <div>
                                 <dt>Usuário</dt>

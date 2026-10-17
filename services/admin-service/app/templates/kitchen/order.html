@@ -257,11 +257,11 @@
                         <dl class="order-info-list order-metadata-list">
                             <div>
                                 <dt>Criado em</dt>
-                                <dd>{{ order.created_at }}</dd>
+                                <dd data-datetime="{{ order.created_at }}">{{ order.created_at }}</dd>
                             </div>
                             <div>
                                 <dt>Atualizado em</dt>
-                                <dd>{{ order.updated_at }}</dd>
+                                <dd data-datetime="{{ order.updated_at }}">{{ order.updated_at }}</dd>
                             </div>
                         </dl>
                     </section>

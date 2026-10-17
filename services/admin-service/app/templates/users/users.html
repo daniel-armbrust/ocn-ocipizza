@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Usuários | OCI Pizza Admin{% endblock %}
+
+{% block content %}
+<div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Navegação administrativa" data-dashboard-sidebar>
+        <div class="sidebar-brand">
+            <img src="{{ url_for('static', path='img/admin-mark.svg') }}" alt="" width="44" height="44">
+            <div><strong>OCI Pizza</strong><span>Administração</span></div>
+        </div>
+        <nav class="sidebar-navigation">
+            <p class="sidebar-label">Painel</p>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/dashboard"><span>Visão geral</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/orders"><span>Pedidos</span><span class="sidebar-badge">{{ pending_orders | default(0) }}</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/pizzas"><span>Cardápio</span></a>
+            <a class="sidebar-link sidebar-link-plain is-active" data-lock-navigation href="/admin/users" aria-current="page"><span>Usuários</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/deliveries"><span>Áreas de entrega</span></a>
+            <p class="sidebar-label sidebar-label-secondary">Plataforma</p>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/monitoring"><span>Monitoramento</span></a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <span class="user-avatar" aria-hidden="true">{{ admin_initials | default('AD') }}</span>
+                <div><strong>{{ admin_name | default('Administrador') }}</strong><span>Acesso administrativo</span></div>
+            </div>
+            <form method="post" action="/admin/logout">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                <button class="sidebar-logout" type="submit" aria-label="Sair do painel">Sair</button>
+            </form>
+        </div>
+    </aside>
+
+    <button class="sidebar-overlay" type="button" aria-label="Fechar menu" data-sidebar-overlay></button>
+    <div class="dashboard-main">
+        <header class="dashboard-topbar">
+            <button class="sidebar-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" data-sidebar-toggle>
+                <span></span><span></span><span></span>
+            </button>
+            <div class="topbar-title"><span>Painel administrativo</span><strong>Usuários</strong></div>
+            <div class="topbar-environment"><span class="status-dot" aria-hidden="true"></span>Operação online</div>
+        </header>
+
+        <main class="dashboard-content users-page-content">
+            <section class="users-page-heading" aria-labelledby="users-title">
+                <div>
+                    <p class="eyebrow">Controle de acesso</p>
+                    <h1 id="users-title">Usuários</h1>
+                    <p>Administre as contas que fazem pedidos, operam a cozinha e gerenciam a OCI Pizza.</p>
+                </div>
+                <a class="users-primary-action" data-lock-navigation href="/admin/users/new">
+                    <span aria-hidden="true">+</span>&nbsp; Novo usuário
+                </a>
+            </section>
+
+            <section class="users-panel" aria-labelledby="users-list-title">
+                <header class="users-panel-header">
+                    <div>
+                        <p class="eyebrow">Consulta</p>
+                        <h2 id="users-list-title">Contas cadastradas</h2>
+                    </div>
+                    <form class="users-filters" method="get" action="/admin/users">
+                        <input type="search" name="search" value="{{ search | default('', true) }}" placeholder="Buscar por nome ou e-mail" aria-label="Buscar usuário">
+                        <select name="role" aria-label="Filtrar por perfil">
+                            <option value="">Todos os perfis</option>
+                            <option value="regular"{% if role == 'regular' %} selected{% endif %}>Usuários regulares</option>
+                            <option value="kitchen"{% if role == 'kitchen' %} selected{% endif %}>Cozinha</option>
+                            <option value="admin"{% if role == 'admin' %} selected{% endif %}>Administradores</option>
+                        </select>
+                        <button type="submit">Filtrar</button>
+                    </form>
+                </header>
+
+                <div class="users-table-wrapper">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Usuário</th>
+                                <th scope="col">Perfil</th>
+                                <th scope="col">Contato</th>
+                                <th scope="col">Confirmação</th>
+                                <th scope="col"><span class="sr-only">Ações</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users | default([]) %}
+                            {% set is_admin = user.is_admin | default(false) %}
+                            {% set is_kitchen = user.is_kitchen | default(false) %}
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <div>
+                                            <strong>{{ user.full_name | default('Nome não informado') }}</strong>
+                                            <span>{{ user.email | default('E-mail não informado') }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if is_admin %}<span class="user-role user-role-admin">Administrador</span>
+                                    {% elif is_kitchen %}<span class="user-role user-role-kitchen">Cozinha</span>
+                                    {% else %}<span class="user-role user-role-regular">Regular</span>{% endif %}
+                                </td>
+                                <td>{{ user.whatsapp | default('—') }}</td>
+                                <td><span class="user-state {{ 'user-state-active' if user.confirmed else 'user-state-inactive' }}">{{ 'Confirmado' if user.confirmed else 'Pendente de confirmação' }}</span></td>
+                                <td><a class="user-row-action" data-lock-navigation href="/admin/users/{{ user.id }}">Ver detalhes&nbsp; →</a></td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5"><div class="users-empty"><strong>Nenhum usuário encontrado</strong><br>Ajuste os filtros ou cadastre um novo usuário.</div></td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <nav class="users-pagination" aria-label="Paginação de usuários">
+                    {% if has_previous_page %}<a data-lock-navigation href="/admin/users?offset={{ previous_offset }}{% if role %}&amp;role={{ role }}{% endif %}{% if search %}&amp;search={{ search }}{% endif %}">← Anterior</a>{% else %}<span></span>{% endif %}
+                    <span>Página {{ current_page | default(1) }}</span>
+                    {% if has_next_page %}<a data-lock-navigation href="/admin/users?offset={{ next_offset }}{% if role %}&amp;role={{ role }}{% endif %}{% if search %}&amp;search={{ search }}{% endif %}">Próxima →</a>{% else %}<span></span>{% endif %}
+                </nav>
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}
