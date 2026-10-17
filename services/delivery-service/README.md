@@ -1,9 +1,10 @@
-# OCI Pizza — Delivery Service: cotação e elegibilidade de entrega
+# OCI Pizza — Delivery Service: cotação e administração de entrega
 
 ## Responsabilidade do Serviço
 
 O `delivery-service` é responsável por consultar a elegibilidade e a cotação
-de entrega dos pedidos da OCI Pizza. O serviço responde a duas perguntas:
+de entrega dos pedidos da OCI Pizza e por administrar as áreas atendidas pela
+pizzaria. O serviço responde a duas perguntas:
 
 1. A pizzaria entrega no CEP informado?
 2. Quando a entrega está disponível, qual é a taxa e o prazo estimado?
@@ -16,6 +17,7 @@ Suas principais responsabilidades são:
 - Retornar a taxa e o prazo estimado da entrega
 - Persistir as áreas de entrega pertencentes ao seu domínio
 - Validar access tokens JWT antes de realizar uma cotação
+- Restringir as operações administrativas a usuários com `is_admin=true`
 - Expor respostas HTTP no padrão JSend
 
 O serviço não acessa dados de pedidos, usuários ou pizzas. Para preparar o
@@ -26,7 +28,7 @@ ambiente local de desenvolvimento, utilize o script `bootstrap.sh`.
 | Componente | Responsabilidade |
 | --- | --- |
 | Oracle NoSQL | Provider primário e atualmente implementado para persistência das áreas de entrega. |
-| `user-service` | Publica o JWKS utilizado para validar os access tokens JWT. |
+| `user-service` | Publica o JWKS e emite os access tokens JWT utilizados na autenticação. |
 
 O Oracle NoSQL é o provider padrão do serviço. Embora existam dependências e
 estruturas iniciais para SQLAlchemy no projeto, o repositório relacional de
@@ -207,11 +209,16 @@ As respostas da API seguem o padrão JSend.
 | Operação | Método HTTP | Endpoint | Acesso |
 | --- | --- | --- | --- |
 | Cotar entrega | `GET` | `/delivery/quote/{zip_code}` | Usuário autenticado. |
+| Listar áreas | `GET` | `/admin/delivery/areas` | Administrador. |
+| Consultar área | `GET` | `/admin/delivery/areas/{delivery_area_id}` | Administrador. |
+| Criar área | `POST` | `/admin/delivery/areas` | Administrador. |
+| Atualizar área | `PUT` | `/admin/delivery/areas/{delivery_area_id}` | Administrador. |
+| Excluir área | `DELETE` | `/admin/delivery/areas/{delivery_area_id}` | Administrador. |
+| Alterar status | `PATCH` | `/admin/delivery/areas/{delivery_area_id}/active` | Administrador. |
 | Health check | `GET` | `/health` | Público. |
 
-O arquivo `delivery_area_admin_routes.py` contém apenas o planejamento das
-rotas administrativas. Nenhuma rota administrativa está registrada atualmente
-na aplicação.
+As rotas administrativas retornam respostas JSend. A listagem aceita os
+parâmetros opcionais `active`, `limit` e `offset`.
 
 ## Autenticação
 
@@ -229,6 +236,9 @@ do `user-service`. A validação verifica:
 - Audiência definida em `JWT_AUDIENCE`
 - Prazo de validade do token
 - Claim `sub` contendo um UUID de usuário válido
+
+As rotas administrativas exigem adicionalmente a claim `is_admin=true`. A
+claim `role` não é utilizada pelo contrato de autenticação do serviço.
 
 As chaves públicas são mantidas em memória. O serviço tenta aquecer esse cache
 durante a inicialização, mas uma indisponibilidade momentânea do `user-service`
@@ -298,6 +308,34 @@ Quando não existe uma faixa ativa para o CEP, o resultado também é `200 OK`:
 Uma faixa cadastrada com `active=false` é tratada como indisponível para fins
 de cotação.
 
+## Administração das áreas de entrega
+
+As operações administrativas permitem cadastrar e manter as faixas atendidas
+pela pizzaria. Na criação, o serviço normaliza os CEPs, valida que o CEP
+inicial não seja maior que o final e persiste a taxa, o prazo e o status da
+área.
+
+Na atualização, os campos são parciais: valores não enviados permanecem
+inalterados. A alteração do status também pode ser feita isoladamente pelo
+endpoint `PATCH /admin/delivery/areas/{delivery_area_id}/active`.
+
+Exemplo de criação:
+
+```bash
+curl --request POST \
+  --url http://localhost:8003/admin/delivery/areas \
+  --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "name": "Centro",
+    "zip_code_start": "18000000",
+    "zip_code_end": "18100999",
+    "delivery_fee": "10.00",
+    "estimated_minutes": 40,
+    "active": true
+  }'
+```
+
 ## Endpoint operacional
 
 ### Health check
@@ -363,7 +401,7 @@ Os handlers globais utilizam códigos com o prefixo `DELIVERY_SERVICE_`:
 
 | Variável | Padrão | Descrição |
 | --- | --- | --- |
-| `APP_NAME` | `frontend-service` | Nome da aplicação. |
+| `APP_NAME` | `delivery-service` | Nome da aplicação. |
 | `APP_ENV` | `development` | Ambiente de execução. |
 | `DEBUG` | `false` | Ativa o modo de depuração. |
 | `PERSISTENCE_PROVIDER` | `nosql` | Provider de persistência; atualmente o serviço funciona com `nosql`. |

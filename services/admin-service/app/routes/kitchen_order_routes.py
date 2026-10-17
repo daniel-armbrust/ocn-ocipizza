@@ -10,6 +10,8 @@ import httpx
 from fastapi import APIRouter, Depends, Query, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from starlette_wtf import csrf_protect
+
 from app.forms.order_forms import OrderStatusForm
 from app.messages.order_service_messages import ORDER_MESSAGES
 from app.messages.user_service_messages import USER_MESSAGES
@@ -179,6 +181,7 @@ async def show_kitchen_order(
 # POST: /kitchen/orders/{order_id}/status
 #
 @router.post('/kitchen/orders/{order_id}/status')
+@csrf_protect
 async def update_kitchen_order_status(
     request: Request,
     order_id: UUID,

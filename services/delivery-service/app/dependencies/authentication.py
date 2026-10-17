@@ -107,9 +107,10 @@ async def get_current_admin_id(
             audience=settings.jwt_audience
         )
 
-        # Garante que somente usuários com privilégio administrativo
-        # possam acessar as rotas protegidas por esta dependência.
-        if payload.get('role') != 'admin':
+        # O user-service emite as permissões administrativas nas claims
+        # booleanas `is_admin` e `is_kitchen`; não existe uma claim `role`.
+        # As rotas administrativas do delivery-service exigem `is_admin`.
+        if payload.get('is_admin') is not True:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail='Administrator access required.'

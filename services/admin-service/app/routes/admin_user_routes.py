@@ -9,6 +9,7 @@ import httpx
 
 from fastapi import APIRouter, Depends, Query, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
+
 from starlette_wtf import csrf_protect
 
 from app.messages.user_service_messages import USER_MESSAGES

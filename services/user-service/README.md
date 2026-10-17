@@ -73,6 +73,7 @@ definidas em `requirements.txt`.
 | `OCI_QUEUE_ID` | — | OCID da fila utilizada pelo provider OCI Queue. |
 | `OCI_QUEUE_MESSAGES_ENDPOINT` | — | Endpoint de mensagens da OCI Queue. |
 | `OCI_REGION` | — | Região dos serviços OCI utilizados pela instância. |
+| `REFRESH_TOKEN_EXPIRATION_DAYS` | `30` | Validade do refresh token em dias. |
 | `JWT_KEY_PROVIDER` | `local` | Provider das chaves JWT: `local` ou `oci`. |
 | `JWT_ISSUER` | `user-service` | Emissor incluído e esperado nos access tokens. |
 | `JWT_AUDIENCE` | `ocipizza` | Audiência incluída e esperada nos access tokens. |
@@ -80,6 +81,8 @@ definidas em `requirements.txt`.
 | `JWT_PRIVATE_KEY_PATH` | `/run/secrets/jwt_private_key.pem` | Caminho da chave privada RSA local. |
 | `JWT_PUBLIC_KEY_PATH` | `/run/secrets/jwt_public_key.pem` | Caminho da chave pública RSA local. |
 | `JWT_PRIVATE_KEY_SECRET_ID` | — | OCID do secret que contém a chave privada no provider OCI. |
+| `LOG_LEVEL` | `INFO` | Nível global de logging da aplicação. |
+| `OCI_LOG_ID` | — | OCID do Custom Log, obrigatório fora de desenvolvimento. |
 
 Quando `MESSAGING_PROVIDER=oci_queue`, o serviço autentica no OCI Queue por
 Instance Principal. A instância deve pertencer a um Dynamic Group autorizado
@@ -88,9 +91,27 @@ arquivo de configuração OCI, API key ou chave privada armazenada na aplicaçã
 
 O `OCI_QUEUE_MESSAGES_ENDPOINT` deve receber o `messagesEndpoint` específico
 da fila, e não o endpoint administrativo do serviço OCI Queue.
-| `REFRESH_TOKEN_EXPIRATION_DAYS` | `30` | Validade do refresh token em dias. |
-| `LOG_LEVEL` | `INFO` | Nível global de logging da aplicação. |
-| `OCI_LOG_ID` | — | OCID do Custom Log, obrigatório fora de desenvolvimento. |
+
+O nome da fila RabbitMQ é configurado por `QUEUE_NAME`. O valor utilizado no
+ambiente local do projeto é `notifications-queue`, compartilhado com o
+`notification-service`.
+
+### Mensagens publicadas
+
+O `user-service` não envia e-mails diretamente. Depois de persistir os dados
+necessários, publica mensagens JSON na fila configurada para que o
+`notification-service` faça o envio:
+
+| Tipo (`type`) | Quando é publicada | Campos principais |
+| --- | --- | --- |
+| `USER_CONFIRMATION` | Cadastro de usuário ainda não confirmado. | `recipient`, `full_name` e `token`. |
+| `USER_PASSWORD_RESET` | Solicitação de redefinição de senha. | `recipient`, `full_name` e `token`. |
+
+O token enviado na mensagem é o valor original necessário para o usuário; o
+serviço persiste somente o hash do token. O provider pode ser alterado sem
+mudar o contrato da mensagem: RabbitMQ usa a fila lógica configurada em
+`QUEUE_NAME`, enquanto OCI Queue utiliza `OCI_QUEUE_ID` e
+`OCI_QUEUE_MESSAGES_ENDPOINT`.
 
 ## Documentação interativa
 
@@ -706,10 +727,9 @@ informar novamente o e-mail e a senha. Ele não deve ser enviado no cabeçalho
 das requisições autenticadas nem exposto em logs.
 
 > Estado atual: as rotas `/auth/refresh` e `/auth/logout` ainda não estão
-> implementadas. Além disso, o schema de login aceita senhas com exatamente 11
-> caracteres, enquanto as contas criadas pelo bootstrap utilizam senhas mais
-> longas. Portanto, o exemplo de login com uma conta de demonstração somente
-> funcionará após a correção dessa validação no código.
+> implementadas. O `refresh_token` é emitido na resposta de login para manter
+> o contrato preparado para essa evolução, mas não pode ser renovado ou
+> revogado por uma rota HTTP neste momento.
 
 A API responderá com `401 Unauthorized` quando o e-mail ou a senha forem
 inválidos, com `403 Forbidden` quando o e-mail do usuário ainda não estiver

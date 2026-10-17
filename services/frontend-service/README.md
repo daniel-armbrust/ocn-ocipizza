@@ -137,6 +137,11 @@ docker compose ps frontend-service
 e `offset`. O filtro `available` só é encaminhado ao `pizza-service` quando
 possui um valor booleano válido.
 
+O `frontend-service` não expõe uma rota web própria para a administração das
+áreas de entrega. Durante o checkout, o `CheckoutService` consulta
+internamente `GET /delivery/quote/{zip_code}` no `delivery-service` para
+calcular a elegibilidade, a taxa e o prazo da entrega.
+
 O menu é montado de acordo com a sessão validada no backend:
 
 | Estado | Itens exibidos |
@@ -260,10 +265,12 @@ mostrada ao usuário.
 | Arquivo | Responsabilidade |
 | --- | --- |
 | `app.js` | Comportamentos globais, mensagens temporárias e carrinho compartilhado. |
+| `modal.js` | Abertura, fechamento e confirmação dos modais da interface. |
 | `interaction_lock.js` | Bloqueia a interface durante formulários, chamadas assíncronas e navegações marcadas. |
 | `pizza_client.js` | Filtros, imagens e inclusão de pizzas no carrinho. |
 | `cart_client.js` | Exibição e manipulação dos itens do carrinho no `localStorage`. |
 | `checkout_client.js` | Máscaras, validação e modais do formulário de pagamento. |
+| `chatbot.js` | Comportamento do assistente visual de atendimento. |
 | `user_auth.js` | Máscara no cadastro e comportamento dos fluxos de autenticação. |
 | `user_profile.js` | Máscara e atualização do WhatsApp. |
 | `user_address.js` | Seleção e exclusão dos endereços do perfil. |

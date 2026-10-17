@@ -1,152 +1,209 @@
 # OCI Pizza
 
-Aplicação cloud-native de referência para demonstrar desenvolvimento de aplicações modernas na OCI, microsserviços, containers, Kubernetes, IaC e CI/CD.
+![Logo OCI Pizza](img/ocipizza-logo.png)
 
-## Desenvolvimento local
+O OCI Pizza é uma aplicação cloud native de referência criada para estudar, na
+prática, conceitos de arquitetura de microsserviços e desenvolvimento de
+aplicações modernas na Oracle Cloud Infrastructure (OCI).
 
-O ambiente local utiliza Docker Compose e os alvos definidos no `Makefile`.
-Esses alvos separam a infraestrutura, o bootstrap dos dados e os serviços da
-aplicação.
+O projeto demonstra separação de domínios, APIs REST, autenticação,
+mensageria, persistência, armazenamento de objetos, containers, observabilidade,
+infraestrutura como código e execução local e no OCI.
 
-Para listar os alvos disponíveis e suas descrições:
+Toda a aplicação é desenvolvida em Python 3.11, utilizando FastAPI como
+principal framework para as APIs REST, serviços web e integração com os
+componentes da arquitetura.
+
+A aplicação foi projetada para executar localmente com Docker Compose e para
+ser implantada na OCI utilizando os mesmos serviços e contratos. O ambiente
+local substitui serviços gerenciados por componentes compatíveis, permitindo
+desenvolvimento sem dependência de uma conta OCI. Na OCI, endpoints,
+credenciais e autenticação são trocados pelas configurações dos serviços
+gerenciados, mantendo a mesma aplicação e o mesmo comportamento esperado.
+
+## Instruções para agentes (`AGENTS.md`)
+
+O repositório possui arquivos `AGENTS.md` distribuídos pelos diretórios para
+registrar contexto, padrões e regras de trabalho para agentes de IA e demais
+colaboradores. Esses arquivos existem para preservar decisões do projeto,
+evitar alterações incompatíveis e manter a implementação consistente.
+
+- O `AGENTS.md` da raiz define as regras gerais do monorepo, segurança,
+  documentação, controle Git e fluxo de trabalho.
+- O `services/AGENTS.md` define os padrões compartilhados pelos microsserviços,
+  como organização interna, comunicação entre serviços, respostas HTTP e
+  validação.
+- Cada diretório de serviço pode possuir seu próprio `AGENTS.md`, com regras
+  específicas da responsabilidade e da arquitetura daquele serviço. Essas
+  instruções complementam as regras gerais e têm prioridade quando houver uma
+  particularidade do serviço.
+- Os diretórios de infraestrutura e automação podem possuir instruções próprias
+  para orientar alterações em Kubernetes, Terraform ou CI/CD.
+
+Antes de alterar qualquer componente, consulte o `AGENTS.md` da raiz, os
+arquivos aplicáveis aos diretórios envolvidos e o `README.md` do serviço. As
+instruções mais específicas devem ser consideradas em conjunto com as regras
+gerais do repositório.
+
+## Microsserviços
+
+Cada microsserviço possui um `README.md` próprio. Consulte esse arquivo antes
+de alterar ou integrar um serviço, pois ele contém responsabilidades,
+configurações, endpoints, dependências e instruções específicas.
+
+| Serviço | Responsabilidade |
+| --- | --- |
+| `user-service` | Usuários, autenticação, tokens JWT, confirmação de e-mail, senhas, sessões e endereços. |
+| `pizza-service` | Catálogo de pizzas, categorias, preços, disponibilidade e imagens. |
+| `delivery-service` | Áreas de entrega, faixas de CEP, taxa e prazo estimado. |
+| `order-service` | Criação, consulta, atualização e administração de pedidos, preservando snapshots da compra. |
+| `notification-service` | Consumo de mensagens e envio de e-mails transacionais. |
+| `frontend-service` | Interface web pública e BFF para sessões, formulários e chamadas aos microsserviços. |
+| `admin-service` | Painel administrativo para usuários, pizzas, entregas, pedidos e operações da cozinha. |
+| `chatbot-service` | |
+
+<!-- TODO: Documentar a responsabilidade do chatbot-service quando a implementação estiver disponível. -->
+
+Os serviços são proprietários dos seus próprios dados. A comunicação entre
+domínios ocorre por APIs ou mensagens, nunca por acesso direto ao banco de
+dados de outro microsserviço.
+
+## Serviços utilizados na OCI
+
+| Capacidade | Serviço OCI | Uso no OCI Pizza |
+| --- | --- | --- |
+| Persistência NoSQL | OCI NoSQL | Catálogo, pedidos e áreas de entrega, conforme o provider configurado. |
+| Persistência relacional | MySQL Database Service | Dados relacionais do `user-service` e providers alternativos. |
+| Cache e sessões | OCI Cache | Sessões e dados temporários quando o Redis local for substituído na OCI. |
+| Observabilidade | OCI Logging | Centralização dos logs fora do ambiente local. |
+| Execução de containers | Container Instances | Execução de containers sem gerenciamento direto de nós. |
+| Orquestração | OKE | Execução orquestrada dos microsserviços em Kubernetes. |
+| Imagens | Container Registry | Armazenamento e distribuição das imagens dos serviços. |
+| Arquivos e imagens | Object Storage | Imagens das pizzas e outros objetos. |
+| E-mails | Email Delivery | Envio de e-mails transacionais. |
+| Mensageria | OCI Queue | Publicação e consumo de notificações assíncronas. |
+
+Os serviços locais equivalentes imitam as funcionalidades necessárias da OCI:
+
+| Serviço OCI | Componente local equivalente |
+| --- | --- |
+| OCI NoSQL | Container `nosql` |
+| MySQL Database Service | Container `mysql` |
+| OCI Cache | Container `redis` |
+| OCI Logging | Logs enviados para `stdout` |
+| Container Instances/OKE | Docker Compose local e manifestos Kubernetes |
+| Container Registry | Imagens construídas localmente pelo Docker |
+| Object Storage | Container `object-storage`, baseado em MinIO |
+| Email Delivery | Container `mailpit`, acessado por SMTP |
+| OCI Queue | Container `rabbitmq` |
+
+Essa infraestrutura local existe justamente para imitar os fluxos essenciais
+da OCI e permitir que a aplicação seja executada localmente com o mesmo modelo
+de integração utilizado no ambiente OCI.
+
+## Execução local
+
+O ambiente local deve ser executado a partir da raiz do repositório usando o
+`docker-compose.yaml` e os alvos do `Makefile`. Essa é a forma recomendada,
+pois garante a ordem de inicialização, a rede e as configurações esperadas.
+
+Para consultar os comandos disponíveis:
 
 ```bash
 make help
 ```
 
-O alvo `help` é o padrão e também será executado quando `make` for chamado sem
-argumentos.
-
-### Iniciar o ambiente
-
-Para iniciar a infraestrutura, aguardar sua disponibilidade e subir todos os
-serviços da aplicação:
+Para iniciar a infraestrutura, aguardar sua disponibilidade e iniciar todos os
+microsserviços:
 
 ```bash
 make development
 ```
 
-Para iniciar e validar apenas os componentes de infraestrutura:
+Para iniciar somente a infraestrutura:
 
 ```bash
 make development-infra
 ```
 
-Para iniciar apenas os serviços da aplicação, quando a infraestrutura já
-estiver disponível:
+Para iniciar somente os microsserviços quando a infraestrutura já estiver
+disponível:
 
 ```bash
 make development-services
 ```
 
-### Bootstrap dos serviços
-
-O bootstrap inicia e valida a infraestrutura e, em seguida, executa todos os
-arquivos `services/*/bootstrap.sh` encontrados no repositório:
+Para executar os `bootstrap.sh` dos serviços que possuem esse script:
 
 ```bash
 make development-bootstrap
 ```
 
-Atualmente, possuem bootstrap os serviços `delivery-service`, `order-service`,
-`pizza-service` e `user-service`. Cada script é executado a partir da raiz do
-respectivo serviço.
+Os bootstraps podem recriar tabelas e dados de demonstração. Execute esse alvo
+somente quando a reinicialização do ambiente local for desejada.
 
-> **Atenção:** os scripts de bootstrap preparam o ambiente local e podem
-> recriar tabelas e dados de demonstração. Use esse alvo somente quando essa
-> reinicialização for desejada.
+### Build e rebuild
 
-Após o bootstrap, inicie os serviços com:
-
-```bash
-make development-services
-```
-
-### Construção das imagens
-
-Para construir somente as imagens dos serviços da aplicação, utilizando o
-cache disponível:
+Os comandos de construção atuam somente nos microsserviços da aplicação; não
+reconstroem MySQL, NoSQL, RabbitMQ, Redis, Object Storage ou Mailpit:
 
 ```bash
 make build
-```
-
-Para reconstruir somente essas imagens, sem utilizar cache:
-
-```bash
 make rebuild
-```
-
-Para reconstruir os serviços sem cache e depois iniciar o ambiente completo:
-
-```bash
 make development-rebuild
 ```
 
-Os alvos de construção não incluem MySQL, Oracle NoSQL, RabbitMQ, Redis,
-Object Storage ou Mailpit.
+`build` utiliza o cache disponível. `rebuild` reconstrói as imagens sem cache.
+`development-rebuild` reconstrói os microsserviços e inicia o ambiente de
+desenvolvimento novamente.
 
 ### Logs e encerramento
 
-Para acompanhar os logs dos serviços da aplicação:
-
 ```bash
 make development-logs
-```
-
-Para parar e remover os containers e a rede do ambiente, preservando os
-volumes:
-
-```bash
 make development-down
 ```
 
-### Qualidade e CI/CD
-
-<!-- TODO: Documentar e disponibilizar o alvo de lint dos serviços. -->
-<!-- TODO: Documentar e disponibilizar o alvo de testes automatizados. -->
-<!-- TODO: Documentar os alvos compartilhados com os pipelines de CI/CD. -->
-
-Os comandos de lint, testes automatizados e CI/CD ainda serão implementados.
-
-## Testando o pizza-service
-
-Com o ambiente iniciado, o `pizza-service` fica disponível no host em:
-
-```text
-http://localhost:8001
-```
-
-Para testar o health check:
+Também é possível utilizar diretamente o Compose:
 
 ```bash
-curl -i http://localhost:8001/health
+docker compose up -d
+docker compose ps
+docker compose logs -f
+docker compose down
 ```
 
-Para listar pizzas:
+## Portas locais
 
-```bash
-curl -i http://localhost:8001/pizzas
-```
+| Componente | Porta no host |
+| --- | ---: |
+| `pizza-service` | `8001` |
+| `user-service` | `8002` |
+| `delivery-service` | `8003` |
+| `order-service` | `8004` |
+| `notification-service` | `8005` |
+| `admin-service` | `8006` |
+| `frontend-service` | `8010` |
+| MySQL | `13306` |
+| Oracle NoSQL | `18080` |
+| RabbitMQ | `5672` |
+| Redis | `16379` |
+| Object Storage/MinIO | `9000` |
+| Mailpit SMTP | `1025` |
+| Mailpit Web UI | `8025` |
 
-Para consultar uma pizza específica:
+## Configuração e segurança
 
-```bash
-curl -i http://localhost:8001/pizzas/1
-```
+Os arquivos `.env.example` de cada serviço documentam as configurações locais.
+Não versione arquivos `.env`, senhas, tokens, chaves privadas ou outros
+segredos. Em ambientes OCI, prefira Instance Principal, Dynamic Groups, IAM
+Policies e serviços de secrets em vez de credenciais estáticas.
 
-Para criar uma pizza usando o token administrativo local:
+## Qualidade e CI/CD
 
-```bash
-curl -i -X POST http://localhost:8001/pizzas \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer admin-token" \
-  -d '{
-    "name": "Teste",
-    "description": "Pizza de teste",
-    "category": "tradicional",
-    "price": 49.9,
-    "image_name": "teste.jpg",
-    "available": true
-  }'
-```
+<!-- TODO: Implementar e documentar os comandos compartilhados de lint. -->
+<!-- TODO: Implementar e documentar os testes automatizados. -->
+<!-- TODO: Documentar os fluxos de CI/CD. -->
+
+Consulte o `README.md` de cada microsserviço para obter instruções específicas
+de execução, configuração e operação.

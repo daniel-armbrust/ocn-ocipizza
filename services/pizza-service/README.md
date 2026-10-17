@@ -37,6 +37,12 @@ configuração do serviço.
 O `pizza-service` não acessa diretamente os dados pertencentes a outros
 microsserviços.
 
+As rotas de leitura são públicas. As operações de criação, atualização e
+exclusão exigem um access token JWT emitido pelo `user-service`, com a claim
+`is_admin=true`. O serviço valida o token localmente usando as chaves
+publicadas pelo endpoint JWKS; ele não realiza uma chamada ao `user-service`
+para cada requisição.
+
 ### Dependências Python
 
 As bibliotecas Python são instaladas a partir do arquivo `requirements.txt`:
@@ -184,8 +190,9 @@ bucket. Ele também converte o valor persistido em `image_name` para a URL
 completa retornada em `image_url`.
 
 Na criação, o arquivo recebido no campo `image` é enviado ao Object Storage
-depois da persistência da pizza. Quando `image_name` não é informado, o
-serviço gera uma chave única no formato `pizza-{uuid}.{extensão}`. Na
+depois da persistência da pizza. O campo `image` é obrigatório e deve possuir
+um `Content-Type` iniciado por `image/`. Quando `image_name` não é informado,
+o serviço gera uma chave única no formato `pizza-{uuid}.{extensão}`. Na
 atualização, uma nova imagem é enviada somente quando o campo `image` é
 informado; se `image_name` não for enviado, uma nova chave é gerada e o objeto
 anterior é removido. Na exclusão, o serviço remove a pizza e sua imagem.
@@ -220,7 +227,9 @@ constrói a URL a partir de `OBJECTSTORAGE_NAMESPACE`, `OBJECTSTORAGE_BUCKET` e
 ### Validação futura das imagens
 
 Atualmente, o serviço valida se o upload possui conteúdo e um `Content-Type`
-de imagem. A identificação semântica para confirmar se o arquivo representa
+de imagem. Essa validação verifica o tipo declarado pelo cliente, mas ainda
+não inspeciona o conteúdo binário para confirmar o formato ou a legitimidade
+do arquivo. A identificação semântica para confirmar se o arquivo representa
 uma pizza ainda não está implementada.
 
 Existe um TODO para integrar o OCI Vision com um modelo customizado e um
@@ -386,6 +395,11 @@ O sucesso retorna `200 OK` e a mensagem `Pizza deleted successfully.`. Pizza
 inexistente resulta em `404 Not Found`; falhas de persistência ou de remoção da
 imagem resultam em `500 Internal Server Error`.
 
+A remoção do registro e a remoção do objeto são operações separadas; se a
+exclusão do objeto falhar, a API retorna erro mesmo que o registro já tenha
+sido removido. O tratamento de consistência entre essas operações está
+registrado como TODO no serviço.
+
 ## Modelo retornado pela API
 
 | Campo | Tipo | Descrição |
@@ -443,7 +457,7 @@ Resposta de falha:
 {
   "status": "fail",
   "data": {
-    "code": "PIZZA_NOT_FOUND",
+    "code": "PIZZA_SERVICE_PIZZA_NOT_FOUND",
     "message": "Pizza not found."
   }
 }
@@ -462,8 +476,7 @@ expõem detalhes internos e retornam `INTERNAL_SERVER_ERROR`.
 | `401 Unauthorized` | Access token ausente ou inválido. |
 | `403 Forbidden` | Usuário autenticado sem privilégio administrativo. |
 | `404 Not Found` | Pizza não encontrada. |
-| `500 Internal Server Error` | Falha interna de consulta ou persistência. |
-| `503 Service Unavailable` | Endpoint JWKS indisponível durante a validação do token. |
+| `500 Internal Server Error` | Falha interna de consulta, persistência, armazenamento ou comunicação com o JWKS. |
 
 ## Configurações
 

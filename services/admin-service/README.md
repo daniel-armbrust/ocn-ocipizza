@@ -24,7 +24,7 @@ opaco da sessão em um cookie `HttpOnly`.
 | `user-service` | Autenticação, autorização, revogação de sessões e JWKS. |
 | `order-service` | Consulta, atualização e exclusão de pedidos. |
 | `pizza-service` | Consulta e gerenciamento do catálogo de pizzas. |
-| `delivery-service` | Serviço disponível para futuras funcionalidades administrativas de entrega. |
+| `delivery-service` | Consulta e gerenciamento das áreas, taxas e prazos de entrega. |
 | `notification-service` | Serviço disponível para futuras funcionalidades administrativas de notificação. |
 | Redis | Persistência das sessões opacas do painel. |
 
@@ -89,6 +89,24 @@ nome do objeto, pois essa responsabilidade pertence ao `pizza-service`.
 
 Os botões de salvar e excluir na página de detalhes exibem um modal de
 confirmação antes do envio do formulário.
+
+### Administração das áreas de entrega
+
+| Método | Rota | Acesso | Comportamento |
+| --- | --- | --- | --- |
+| `GET` | `/admin/delivery/areas` | Admin | Lista áreas com filtro de status e paginação. |
+| `GET` | `/admin/delivery/areas/new` | Admin | Exibe o formulário de criação. |
+| `POST` | `/admin/delivery/areas` | Admin | Cria uma área com faixa de CEP, taxa e prazo. |
+| `GET` | `/admin/delivery/areas/{delivery_area_id}` | Admin | Exibe os dados e o formulário de edição. |
+| `PUT` | `/admin/delivery/areas/{delivery_area_id}` | Admin | Atualiza os dados da área. |
+| `POST` | `/admin/delivery/areas/{delivery_area_id}` | Admin | Atualiza os dados pelo formulário HTML. |
+
+As rotas de escrita validam os dados com `WTForms`, chamam o
+`DeliveryService` e sempre retornam `303 See Other`. O serviço delega as
+operações ao contrato administrativo do `delivery-service`. O `PUT` mantém o
+contrato HTTP explícito, enquanto o `POST` existe para permitir o envio por
+formulários HTML, que não suportam `PUT` nativamente. O navegador não recebe
+respostas JSON diretamente.
 
 ### Operação da cozinha
 
@@ -174,7 +192,7 @@ disponível em `/docs` e `/redoc`.
 | Diretório | Responsabilidade |
 | --- | --- |
 | `app/routes/` | Rotas HTML, autenticação e delegação aos serviços de aplicação. |
-| `app/services/` | Serviços de autenticação, sessão, pedidos e pizzas. |
+| `app/services/` | Serviços de autenticação, sessão, pedidos, pizzas e entregas. |
 | `app/clients/` | Clientes HTTP para comunicação com os microsserviços. |
 | `app/forms/` | Formulários e validações recebidos do navegador. |
 | `app/templates/` | Templates Jinja das áreas administrativa, cozinha, login e erros. |
@@ -184,6 +202,8 @@ disponível em `/docs` e `/redoc`.
 
 O arquivo `app/static/css/admin.css` funciona como manifesto dos estilos e
 `app/static/js/admin.js` como ponto de entrada dos módulos JavaScript.
+O módulo `app/static/js/delivery.js` aplica a máscara de CEP nos formulários
+de áreas de entrega.
 
 ## Tratamento de erros
 

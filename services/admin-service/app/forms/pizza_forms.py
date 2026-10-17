@@ -11,8 +11,12 @@ from wtforms import (
     StringField
 )
 
-from wtforms.validators import DataRequired, Optional, Length, NumberRange
-
+from wtforms.validators import (
+    DataRequired, 
+    Optional, 
+    Length, 
+    NumberRange
+)
 
 class PizzaForm(Form):
     """

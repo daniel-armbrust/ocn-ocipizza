@@ -10,6 +10,8 @@ import httpx
 from fastapi import APIRouter, Depends, Query, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from starlette_wtf import csrf_protect
+
 from app.forms.order_forms import OrderDeleteForm, OrderStatusForm
 from app.messages.order_service_messages import ORDER_MESSAGES
 
@@ -171,6 +173,7 @@ async def show_admin_order(
 @router.post(
     '/admin/orders/{order_id}/status'
 )
+@csrf_protect
 async def update_admin_order_status(
     request: Request,
     order_id: UUID,
@@ -275,6 +278,7 @@ async def update_admin_order_status(
 # POST: /admin/orders/{order_id}/delete
 #
 @router.post('/admin/orders/{order_id}/delete')
+@csrf_protect
 async def delete_admin_order(
     request: Request,
     order_id: UUID,

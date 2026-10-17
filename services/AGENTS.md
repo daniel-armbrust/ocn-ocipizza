@@ -12,10 +12,6 @@ Antes de alterar qualquer serviço:
 
 - Procure o arquivo específico de instruções para agentes do serviço: `services/<service-name>/AGENTS.md`
 
-- Consulte a especificação do serviço para realizar o seu desenvolvimento: `services/<service-name>/docs/specs/<service-name>-spec.md`
-
-- Consulte `services/<service-name>/docs/api/openapi.yaml` quando houver alteração em endpoints, payloads ou respostas
-
 Quando existir um conflito, as instruções mais específicas do serviço possuem prioridade.
 
 ## 2. Descrição dos Serviços da Aplicação
@@ -24,13 +20,11 @@ A aplicação OCI Pizza é composta pelos seguintes serviços:
 
 - Serviço responsável pelo domínio do catálogo de pizzas: `services/pizza-service/`
 
-- Serviço responsável pelo domínio de autenticação e gerenciamento de identidade: `services/auth-service/`
-
 - Serviço responsável pelo domínio de gerenciamento de usuários e dados de perfil: `services/user-service/`
 
 - Serviço responsável pelo domínio de criação e gerenciamento de pedidos: `services/order-service/`
 
-- Serviço responsável pelo domínio de processamento de pagamentos: `services/payment-service/`
+- Serviço responsável pelo cálculo e gerenciamento das áreas de entrega: `services/delivery-service/`
 
 - Serviço responsável pelo domínio de envio de notificações aos usuários: `services/notification-service/`
 
@@ -42,20 +36,27 @@ A aplicação OCI Pizza é composta pelos seguintes serviços:
 
 ## 3. APIs REST e Interfaces Web
 
-Serviços que expõem APIs REST devem seguir boas práticas que são:
+Serviços que expõem APIs REST devem seguir boas práticas:
 
-- Utilizar nomes de recursos no plural
+- Utilizar nomes de recursos no plural; endpoints operacionais, como
+  `/health`, e fluxos específicos de autenticação são exceções justificadas
 - Utilizar métodos HTTP corretamente
 - Utilizar códigos HTTP apropriados
 - Manter contratos estáveis
 
-O contrato técnico das APIs deve ser mantido atualizado através da especificação OpenAPI do serviço em: `services/<service-name>/docs/api/openapi.yaml`
+O contrato e o comportamento das APIs devem ser mantidos atualizados no
+`README.md` do serviço.
 
-Serviços que não expõem API própria, como `frontend-service`, não devem possuir OpenAPI por padrão. Nesses casos, o serviço deve documentar na SPEC quais APIs consome e como renderiza ou utiliza os dados obtidos.
+Serviços que não expõem API própria, como `frontend-service`, devem documentar
+no `README.md` quais APIs consomem e como renderizam ou utilizam os dados
+obtidos.
 
 ### Padrão de Resposta
 
-Todas as APIs REST dos serviços devem utilizar o padrão JSend (https://github.com/omniti-labs/jsend).
+As APIs REST que retornam dados da aplicação devem utilizar o padrão JSend
+(https://github.com/omniti-labs/jsend). Serviços BFF, como `frontend-service` e
+`admin-service`, podem retornar HTML ou redirecionamentos nas rotas de
+formulário; essa regra não transforma respostas de interface em JSON.
 
 O objetivo é manter consistência entre os microsserviços e facilitar o consumo das APIs.
 
@@ -137,7 +138,9 @@ Alterações em contratos existentes devem avaliar impacto nos consumidores.
 
 ## 5. Desenvolvimento Local
 
-Cada serviço deve ser executável no ambiente local utilizando os mecanismos definidos pelo projeto.
+Cada serviço deve ser executável no ambiente local utilizando os mecanismos
+definidos pelo projeto, preferencialmente pelos comandos do `Makefile` e pelo
+`docker compose`.
 
 Antes de alterar qualquer um dos arquivos `Dockerfile`, `requirements.txt` e `docker-compose.yaml`, avalie o impacto no ambiente local e nos demais serviços dependentes.
 
@@ -224,7 +227,7 @@ Tecnologias e padrões utilizados quando aplicável:
 - FastAPI para desenvolvimento de APIs REST ou renderização de páginas HTML
 - Pydantic para validação e modelagem de dados
 - Python Type Hints para definição explícita de tipos
-- Pytest para testes automatizados.
+- Pytest para testes automatizados quando houver uma suíte de testes no serviço.
 
 O código deve preferencialmente utilizar gerenciamento de dependências através de arquivos padronizados pelo projeto.
 
@@ -236,13 +239,17 @@ Antes de considerar uma alteração concluída, execute as ferramentas definidas
 
 - formatter
 - linter
-- Testes automatizados.
+- Testes automatizados existentes, quando aplicável.
 
 O agente deve consultar o `Makefile` localizado na raiz do projeto para identificar os comandos oficiais de validação.
 
-## 8. Testes
+## 9. Testes
 
-Toda alteração de código deve considerar testes em: `services/<service-name>/tests/`
+O desenvolvimento orientado a testes será realizado posteriormente pelo
+responsável pelo projeto. Portanto, não crie diretórios, arquivos ou suítes de
+testes (`tests/`, `test_*.py` ou equivalentes) sem uma solicitação explícita.
+Quando já existirem testes no serviço, preserve-os e execute os testes
+relacionados à alteração, se o ambiente permitir.
 
 Tipos esperados:
 
@@ -277,17 +284,14 @@ Para:
 - Renderização de templates
 - Tratamento de indisponibilidade de serviços consumidos
 
-Novas funcionalidades devem incluir testes quando aplicável.
+Novas funcionalidades podem ser preparadas para testes futuros, mas não devem
+gerar arquivos ou diretórios de testes por padrão.
 
-## 9. Especificação e Contrato de API
+## 10. Contrato de API
 
-Antes de implementar alterações em um serviço, o agente deve consultar:
-
-- `docs/specs/`
-    - Para entender requisitos funcionais, regras do domínio, decisões relevantes e limites arquiteturais do serviço.
-
-- `docs/api/openapi.yaml`
-    - Para alterações relacionadas aos contratos da API, quando o serviço expuser API própria.
+Antes de implementar alterações em endpoints, payloads ou respostas, o agente
+deve consultar o `README.md` do serviço e os arquivos de rotas, schemas e
+clientes relacionados.
 
 Quando uma alteração envolver:
 
@@ -296,13 +300,16 @@ Quando uma alteração envolver:
 - Nova integração
 - Alteração de contrato
 
-O agente deve atualizar a SPEC do serviço e, quando aplicável, o OpenAPI.
+O agente deve atualizar o `README.md` quando houver alteração no contrato
+técnico.
 
 O `README.md` do serviço deve ser revisado em toda alteração relevante no serviço e atualizado quando houver mudança em responsabilidades, estrutura interna, comandos de execução, variáveis de ambiente, endpoints ou comportamento documentado.
 
-Para evitar excesso de documentação, novos documentos em `docs/plans/`, `docs/decisions/` ou diretórios equivalentes não devem ser criados por padrão. Use esses formatos somente se houver solicitação explícita ou necessidade excepcional justificada.
+Não crie diretórios ou documentos auxiliares de planejamento por padrão. Registre
+as alterações necessárias no `README.md` do serviço, salvo solicitação explícita
+do usuário para outro formato.
 
-## 10. Definition of Done do Serviço
+## 11. Definition of Done do Serviço
 
 Uma alteração em um serviço está concluída quando:
 
@@ -314,15 +321,13 @@ Uma alteração em um serviço está concluída quando:
 
 ### Testes
 
-- Testes adicionados quando necessário
-- Testes existentes continuam funcionando
+- Não foram criados testes sem solicitação explícita
+- Testes existentes continuam funcionando, quando aplicável
 
 ### Documentação
 
 Quando aplicável:
 
-- Especificação atualizada
-- OpenAPI atualizado
 - `README.md` do serviço revisado e atualizado quando a alteração impactar responsabilidades, estrutura, execução, configuração, endpoints ou comportamento documentado
 
 ### Container

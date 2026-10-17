@@ -9,7 +9,11 @@ from wtforms import (
     PasswordField
 )
 
-from wtforms.validators import DataRequired, Email, Length, Regexp
+from wtforms.validators import (
+    DataRequired, 
+    Email, 
+    Length
+)
 
 
 class UserLoginForm(Form):

@@ -133,6 +133,15 @@ contrato esperado é:
 }
 ```
 
+Para as notificações específicas de saída e entrega, o contrato mantém os
+mesmos campos de `ORDER_UPDATED`, mas exige os respectivos status:
+
+- `ORDER_SENT` exige `status="OUT_FOR_DELIVERY"`.
+- `ORDER_DELIVERED` exige `status="DELIVERED"`.
+
+O `OrderEmailTemplateService` rejeita mensagens que utilizem um status
+incompatível com o tipo da notificação antes de renderizar o template.
+
 ## Mensageria
 
 O provider é selecionado por `MESSAGING_PROVIDER`.
@@ -265,6 +274,16 @@ ocorre exclusivamente pelo provider de mensageria.
 Em `development`, Swagger UI, ReDoc e OpenAPI JSON ficam disponíveis em
 `/docs`, `/redoc` e `/openapi.json`. Fora de `development`, essas interfaces são
 desabilitadas.
+
+## Estrutura principal
+
+| Diretório | Responsabilidade |
+| --- | --- |
+| `app/messaging/` | Consumidores RabbitMQ e OCI Queue. |
+| `app/workers/` | Ciclo de consumo e processamento das mensagens. |
+| `app/services/` | Renderização dos templates e envio das notificações. |
+| `app/templates/emails/` | Templates HTML dos e-mails de usuários e pedidos. |
+| `app/clients/` | Implementações SMTP e OCI Email Delivery. |
 
 ## Logging
 

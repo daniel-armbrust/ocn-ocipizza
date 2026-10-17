@@ -7,5 +7,6 @@ import './modals.js';
 import './kitchen.js';
 import './orders.js';
 import './pizzas.js';
+import './delivery.js';
 import './users.js';
 import './interaction_lock.js';

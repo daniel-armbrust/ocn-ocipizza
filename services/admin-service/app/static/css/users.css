@@ -341,6 +341,23 @@
     accent-color: var(--brand);
 }
 
+.user-form-checkbox {
+    display: flex;
+    align-items: center;
+    grid-column: 1 / -1;
+    gap: 10px;
+    color: var(--ink-700);
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+.user-form-checkbox input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--brand);
+}
+
 .user-confirmation-option strong,
 .user-confirmation-option span {
     display: block;

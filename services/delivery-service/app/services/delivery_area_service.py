@@ -193,7 +193,7 @@ class DeliveryAreaService:
             zip_code_start=zip_code_start, 
             zip_code_end=zip_code_end, 
             delivery_fee=Decimal(str(data.get('delivery_fee', delivery_area.delivery_fee))), 
-            estimated_minutes=data.get('estimated_minutes', delivery_area.stimated_minutes),
+            estimated_minutes=data.get('estimated_minutes', delivery_area.estimated_minutes),
             active=data.get('active', delivery_area.active), 
             created_at=delivery_area.created_at, 
             updated_at=now_utc()

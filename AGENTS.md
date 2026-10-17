@@ -49,46 +49,25 @@ As regras gerais e boas práticas para o desenvolvimento dos serviços ficam em:
 
 Cada serviço possui seu próprio contexto e pode possuir seu arquivo `AGENTS.md` específico, que complementa as regras gerais.
 
-Por exemplo, para o serviço `pizza-service` temos:
+Por exemplo, para o serviço `pizza-service`, consulte o arquivo
+`services/pizza-service/AGENTS.md` e o `README.md` do serviço.
 
-- O arquivo `AGENTS.md` localizado em: `services/pizza-service/AGENTS.md`.
-- Especificação do serviço: `services/pizza-service/docs/specs/pizza-service-spec.md`
-
-Antes de alterar um serviço, procure instruções específicas em seu diretório e consulte a documentação correspondente.
-
-### functions/
-
-Diretório que contém funções serverless utilizadas pela aplicação.
-
-Alterações neste diretório devem considerar a documentação existente em: `functions/docs/`
+Antes de alterar um serviço, procure instruções específicas em seu diretório e
+consulte a documentação que realmente existir.
 
 ### terraform/
 
 Diretório que contém o código e documentação relacionada à infraestrutura como código.
 
-Alterações neste diretório devem considerar a documentação existente no diretório: `terraform/docs/`
+Alterações neste diretório devem considerar as instruções em
+`terraform/AGENTS.md` e os arquivos de configuração existentes.
 
 ### kubernetes/
 
 Diretório que contém manifestos, configurações e documentação relacionada ao Kubernetes.
 
-Alterações neste diretório devem considerar a documentação existente no diretório: `kubernetes/docs/`
-
-### seed/
-
-Diretório que contém scripts e dados utilizados para inicialização de ambientes.
-
-Responsabilidades:
-
-- Criação de Dados Iniciais
-- Preparação de Ambientes de Desenvolvimento
-- Carga de Dados de Demonstração
-
-Não deve conter:
-
-- Regras de Negócio da Aplicação
-- Lógica Pertencente aos Serviços
-- Dados Reais ou Sensíveis
+Alterações neste diretório devem considerar as instruções em
+`kubernetes/AGENTS.md` e os manifestos existentes.
 
 ### cicd/
 
@@ -101,10 +80,6 @@ Responsabilidades:
 - Construção de Artefatos
 - Automações de Entrega
 
-### prompts/
-
-Diretório que contém prompts para executar uma tarefa específica.
-
 ## 4. Desenvolvimento Local
 
 O ambiente local deve utilizar as ferramentas e comandos definidos pelo projeto.
@@ -115,7 +90,9 @@ Consulte: `docker-compose.yaml` e `Makefile`.
 
 Evite criar comandos paralelos quando já existir uma automação definida.
 
-Quando uma decisão arquitetural relevante for tomada, ela deve ser registrada de forma objetiva na SPEC do componente afetado.
+Quando uma decisão arquitetural relevante for tomada, registre-a de forma
+objetiva no `README.md` do componente afetado, salvo solicitação explícita de
+outro formato.
 
 ## 5. Controle Git
 
@@ -173,7 +150,6 @@ Nunca:
 - Versionar arquivos contendo segredos
 - Expor informações sensíveis
 - Remover controles de segurança sem justificativa
-- Não criar, excluir, mover ou editar arquivos fora da raiz deste repositório
 - Criar, excluir, mover ou editar arquivos fora da raiz deste repositório
 - Gerar artefatos, scripts, arquivos temporários ou documentação fora deste repositório
 - Realizar alterações externas ao repositório sem instrução explícita
@@ -185,28 +161,22 @@ Sempre:
 - Aplicar princípio do menor privilégio
 - Considerar impacto de segurança antes e depois das alterações
 
-## 9. Desenvolvimento Orientado a Especificações (Spec Driven Development)
+## 9. Documentação e fluxo de trabalho
 
 Para funcionalidades relevantes, o fluxo esperado é:
 
-1. Especificação 
-2. Implementação 
-3. Testes
+1. Entendimento do contexto e dos contratos existentes
+2. Implementação pequena e verificável
+3. Validação pertinente
 4. Revisão
 
-Antes de implementar uma funcionalidade nova:
+Antes de implementar uma funcionalidade nova, consulte o `README.md`, os
+`AGENTS.md` aplicáveis e os arquivos de código relacionados. Atualize o
+`README.md` quando houver mudança em responsabilidades, configuração,
+integrações, endpoints ou comportamento.
 
-- Procure uma especificação existente
-- Atualize a especificação quando necessário
-- Consulte e atualize o contrato OpenAPI quando houver alteração de API
-- Registre decisões relevantes na própria SPEC, de forma curta e rastreável
-
-Para evitar excesso de documentação, o projeto deve manter apenas dois artefatos documentais obrigatórios por serviço:
-
-- `services/<service-name>/docs/specs/<service-name>-spec.md`, como fonte funcional e arquitetural do serviço
-- `services/<service-name>/docs/api/openapi.yaml`, como contrato técnico da API
-
-Planos de implementação, ADRs e documentos auxiliares não devem ser criados por padrão. Eles só devem existir quando houver solicitação explícita ou necessidade excepcional justificada.
+Não crie planos, ADRs, SPECs, contratos OpenAPI ou outros documentos auxiliares
+sem solicitação explícita.
 
 ## 10. Definition of Done
 
@@ -220,7 +190,9 @@ Uma tarefa somente está concluída quando:
 
 ### Validação
 
-- Testes executados quando aplicável
+- Validações pertinentes executadas quando aplicável
+- Testes existentes preservados e executados quando aplicável
+- Nenhum arquivo ou diretório de testes criado sem solicitação explícita
 - Problemas encontrados foram corrigidos
 
 ### Revisão
@@ -232,6 +204,4 @@ Uma tarefa somente está concluída quando:
 
 Quando aplicável:
 
-- Documentação atualizada
-- Especificações atualizadas
-- Contratos OpenAPI atualizados
+- `README.md` atualizado quando aplicável

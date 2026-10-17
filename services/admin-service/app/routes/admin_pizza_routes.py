@@ -9,6 +9,8 @@ import httpx
 from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from starlette_wtf import csrf_protect
+
 from app.dependencies.authentication import get_admin_authenticated_session
 from app.dependencies.templates import templates
 
@@ -160,6 +162,7 @@ async def show_new_pizza(
 # POST: /admin/pizzas
 #
 @router.post('/admin/pizzas')
+@csrf_protect
 async def create_admin_pizza(
     request: Request,
     session: dict = Depends(get_admin_authenticated_session),
@@ -233,6 +236,7 @@ async def create_admin_pizza(
 # POST: /admin/pizzas/{pizza_id}/edit
 #
 @router.post('/admin/pizzas/{pizza_id}/edit')
+@csrf_protect
 async def update_admin_pizza(
     pizza_id: UUID,
     request: Request,
@@ -285,6 +289,7 @@ async def update_admin_pizza(
 # POST: /admin/pizzas/{pizza_id}/delete
 #
 @router.post('/admin/pizzas/{pizza_id}/delete')
+@csrf_protect
 async def delete_admin_pizza(
     request: Request,
     pizza_id: UUID,

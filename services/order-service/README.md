@@ -300,10 +300,10 @@ As respostas seguem o padrão JSend.
 | Criar pedido | `POST` | `/orders` | Usuário autenticado. |
 | Listar meus pedidos | `GET` | `/orders` | Usuário autenticado. |
 | Consultar meu pedido | `GET` | `/orders/{order_id}` | Proprietário autenticado. |
-| Listar todos os pedidos | `GET` | `/admin/orders` | Administrador autenticado. |
-| Resumir indicadores dos pedidos | `GET` | `/admin/orders/summary` | Administrador autenticado. |
-| Consultar qualquer pedido | `GET` | `/admin/orders/{order_id}` | Administrador autenticado. |
-| Atualizar status do pedido | `PATCH` | `/admin/orders/{order_id}/status` | Administrador autenticado. |
+| Listar todos os pedidos | `GET` | `/admin/orders` | Admin ou cozinha autenticados. |
+| Resumir indicadores dos pedidos | `GET` | `/admin/orders/summary` | Admin ou cozinha autenticados. |
+| Consultar qualquer pedido | `GET` | `/admin/orders/{order_id}` | Admin ou cozinha autenticados. |
+| Atualizar status do pedido | `PATCH` | `/admin/orders/{order_id}/status` | Admin ou cozinha autenticados. |
 | Excluir pedido | `DELETE` | `/admin/orders/{order_id}` | Administrador autenticado. |
 | Health check | `GET` | `/health` | Público. |
 
@@ -324,7 +324,8 @@ do `user-service`. A validação verifica:
 - Prazo de validade do token
 - Claim `sub` contendo um UUID de usuário válido
 
-As rotas de consulta e atualização sob `/admin/orders` exigem um dos claims:
+As rotas de consulta e atualização sob `/admin/orders` aceitam um dos seguintes
+claims:
 
 ```json
 {
@@ -335,6 +336,8 @@ As rotas de consulta e atualização sob `/admin/orders` exigem um dos claims:
 Usuários com `is_kitchen: true` também podem consultar pedidos e atualizar seus
 status. A exclusão em `DELETE /admin/orders/{order_id}` exige exclusivamente
 `is_admin: true`.
+
+O serviço não utiliza uma claim `role` para decidir a autorização.
 
 O serviço tenta aquecer o cache de chaves públicas durante a inicialização.
 Quando o `kid` solicitado não está no cache, o JWKS é consultado novamente.
@@ -511,9 +514,9 @@ terceiros.
 
 ## Operações administrativas
 
-As operações desta seção exigem, na implementação atual, um JWT válido com
-`role=admin`. Consulte a limitação de integração descrita na seção de
-autenticação e autorização.
+As operações desta seção exigem um JWT válido com as claims de permissão
+emitidas pelo `user-service`. Consultas e atualizações aceitam operadores
+administrativos ou da cozinha; a exclusão exige um administrador.
 
 ### GET `/admin/orders` — Listar todos os pedidos
 
@@ -595,10 +598,11 @@ Remove permanentemente um pedido após a autorização administrativa.
 ```bash
 curl --request DELETE \
   --url http://localhost:8004/admin/orders/ORDER_UUID \
-  --header "Authorization: Bearer ACCESS_TOKEN"
+  --header "Authorization: Bearer ADMIN_ACCESS_TOKEN"
 ```
 
-A operação modifica o status e atualiza `updated_at`. Os estados aceitos são:
+O pedido é removido permanentemente. A atualização de status é realizada pela
+rota `PATCH /admin/orders/{order_id}/status`; os estados aceitos são:
 
 | Status | Significado |
 | --- | --- |

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Áreas de entrega | OCI Pizza Admin{% endblock %}
+
+{% block content %}
+<div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Navegação administrativa" data-dashboard-sidebar>
+        <div class="sidebar-brand">
+            <img src="{{ url_for('static', path='img/admin-mark.svg') }}" alt="" width="44" height="44">
+            <div><strong>OCI Pizza</strong><span>Administração</span></div>
+        </div>
+        <nav class="sidebar-navigation">
+            <p class="sidebar-label">Painel</p>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/dashboard"><span>Visão geral</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/orders"><span>Pedidos</span><span class="sidebar-badge">{{ pending_orders | default(0) }}</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/pizzas"><span>Cardápio</span></a>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/users"><span>Usuários</span></a>
+            <a class="sidebar-link sidebar-link-plain is-active" data-lock-navigation href="/admin/delivery/areas" aria-current="page"><span>Áreas de entrega</span></a>
+            <p class="sidebar-label sidebar-label-secondary">Plataforma</p>
+            <a class="sidebar-link sidebar-link-plain" data-lock-navigation href="/admin/monitoring"><span>Monitoramento</span></a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <span class="user-avatar" aria-hidden="true">{{ admin_initials | default('AD') }}</span>
+                <div><strong>{{ admin_name | default('Administrador') }}</strong><span>Acesso administrativo</span></div>
+            </div>
+            <form method="post" action="/admin/logout">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                <button class="sidebar-logout" type="submit" aria-label="Sair do painel">Sair</button>
+            </form>
+        </div>
+    </aside>
+
+    <button class="sidebar-overlay" type="button" aria-label="Fechar menu" data-sidebar-overlay></button>
+    <div class="dashboard-main">
+        <header class="dashboard-topbar">
+            <button class="sidebar-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" data-sidebar-toggle>
+                <span></span><span></span><span></span>
+            </button>
+            <div class="topbar-title"><span>Painel administrativo</span><strong>Áreas de entrega</strong></div>
+            <div class="topbar-environment"><span class="status-dot" aria-hidden="true"></span>Operação online</div>
+        </header>
+
+        <main class="dashboard-content users-page-content">
+            <section class="users-page-heading" aria-labelledby="deliveries-title">
+                <div>
+                    <p class="eyebrow">Configuração logística</p>
+                    <h1 id="deliveries-title">Áreas de entrega</h1>
+                    <p>Consulte as regiões atendidas, as taxas e os prazos estimados para entrega.</p>
+                </div>
+                <a class="users-primary-action" data-lock-navigation href="/admin/delivery/areas/new">
+                    <span aria-hidden="true">+</span>&nbsp; Nova área
+                </a>
+            </section>
+
+            <section class="users-panel" aria-labelledby="delivery-list-title">
+                <header class="users-panel-header">
+                    <div>
+                        <p class="eyebrow">Consulta</p>
+                        <h2 id="delivery-list-title">Regiões cadastradas</h2>
+                    </div>
+                    <form class="users-filters" method="get" action="/admin/delivery/areas">
+                        <select name="active" aria-label="Filtrar por status">
+                            <option value="">Todas as áreas</option>
+                            <option value="true"{% if active is sameas true %} selected{% endif %}>Ativas</option>
+                            <option value="false"{% if active is sameas false %} selected{% endif %}>Inativas</option>
+                        </select>
+                        <button type="submit">Filtrar</button>
+                    </form>
+                </header>
+
+                <div class="users-table-wrapper">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Região</th>
+                                <th scope="col">Faixa de CEP</th>
+                                <th scope="col">Taxa de entrega</th>
+                                <th scope="col">Prazo estimado</th>
+                                <th scope="col">Status</th>
+                                <th scope="col"><span class="sr-only">Ações</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for area in delivery_areas | default([]) %}
+                            <tr>
+                                <td><strong>{{ area.name | default('Região não informada') }}</strong></td>
+                                <td>{{ area.zip_code_start | default('—') }} – {{ area.zip_code_end | default('—') }}</td>
+                                <td>R$ {{ '%.2f' | format(area.delivery_fee | float) | replace('.', ',') }}</td>
+                                <td>{{ area.estimated_minutes | default('—') }}{% if area.estimated_minutes is not none %} min{% endif %}</td>
+                                <td><span class="user-state {{ 'user-state-active' if area.active else 'user-state-inactive' }}">{{ 'Ativa' if area.active else 'Inativa' }}</span></td>
+                                <td><a class="user-row-action" data-lock-navigation href="/admin/delivery/areas/{{ area.id }}">Ver detalhes&nbsp; →</a></td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6"><div class="users-empty"><strong>Nenhuma área encontrada</strong><br>Cadastre uma nova área ou ajuste o filtro.</div></td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <nav class="users-pagination" aria-label="Paginação de áreas de entrega">
+                    {% if has_previous_page %}<a data-lock-navigation href="/admin/delivery/areas?offset={{ previous_offset }}{% if active is not none %}&amp;active={{ active | lower }}{% endif %}">← Anterior</a>{% else %}<span></span>{% endif %}
+                    <span>Página {{ current_page | default(1) }}</span>
+                    {% if has_next_page %}<a data-lock-navigation href="/admin/delivery/areas?offset={{ next_offset }}{% if active is not none %}&amp;active={{ active | lower }}{% endif %}">Próxima →</a>{% else %}<span></span>{% endif %}
+                </nav>
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}

@@ -11,7 +11,11 @@ from wtforms import (
     StringField
 )
 
-from wtforms.validators import DataRequired, Email, Length
+from wtforms.validators import (
+    DataRequired, 
+    Email, 
+    Length
+)
 
 
 class UserCreateForm(Form):
