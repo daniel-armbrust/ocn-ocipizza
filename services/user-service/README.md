@@ -289,6 +289,35 @@ Se o `.env` já existir, seu conteúdo é preservado sem alterações. Portanto,
 confirme se a `DATABASE_URL` existente aponta para o MySQL esperado antes de
 executar o bootstrap.
 
+## `startdev.sh` — Execução local do serviço
+
+O script `startdev.sh` inicia o `user-service` diretamente em modo de
+desenvolvimento. Ele configura o MySQL local, o RabbitMQ, a fila
+`notifications-queue`, as chaves JWT locais e a audiência `ocipizza`, cria e
+ativa o ambiente virtual `.venv` quando necessário, instala as dependências e
+inicia o Uvicorn com recarregamento automático na porta `8002`.
+
+O `startdev.sh` não cria o banco, não executa migrations, não gera usuários de
+demonstração e não inicia MySQL ou RabbitMQ. Execute primeiro o `bootstrap.sh`
+e garanta que a infraestrutura esteja disponível.
+
+O script é exclusivo para desenvolvimento local. As credenciais e chaves
+definidas nele são valores de demonstração e não devem ser utilizadas em
+produção.
+
+Para executá-lo:
+
+```bash
+cd services/user-service
+./startdev.sh
+```
+
+Caso não possua permissão de execução, utilize:
+
+```bash
+bash startdev.sh
+```
+
 ## Reconstruir a imagem Docker
 
 Quando algum arquivo do `user-service` for modificado, reconstrua a imagem

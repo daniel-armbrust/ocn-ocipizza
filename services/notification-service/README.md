@@ -235,6 +235,24 @@ cd services/notification-service
 ./startdev.sh
 ```
 
+### Propósito do `startdev.sh`
+
+O script `startdev.sh` automatiza a execução local do
+`notification-service`. Ele configura o RabbitMQ como provider de mensageria,
+seleciona SMTP com Mailpit como provider de e-mail, define a fila
+`notifications-queue`, cria e ativa o ambiente virtual `.venv` quando
+necessário, instala as dependências de `requirements.txt` e inicia o Uvicorn
+com recarregamento automático na porta `8005`.
+
+Ao iniciar o FastAPI, o ciclo de vida da aplicação também inicia o worker que
+consome as mensagens da fila. Portanto, o script não apenas inicia o endpoint
+de health check: ele coloca o consumidor de notificações em execução.
+
+O script é exclusivo para desenvolvimento local. As configurações de RabbitMQ
+e Mailpit são valores locais e não devem ser utilizadas em produção; nesse
+ambiente, selecione os providers e forneça as credenciais por configuração
+segura.
+
 O `startdev.sh` configura diretamente RabbitMQ e SMTP com Mailpit. Para manter
 uma configuração local própria ou selecionar outros providers, copie o arquivo
 de exemplo e inicie o Uvicorn sem o script:

@@ -143,6 +143,35 @@ Se o `.env` já existir, seus valores serão preservados. Configurações locais
 obrigatórias de mensageria que ainda não existirem serão acrescentadas pelo
 bootstrap sem sobrescrever as definições existentes.
 
+## `startdev.sh` — Execução local do serviço
+
+O script `startdev.sh` inicia o `order-service` diretamente em modo de
+desenvolvimento. Ele configura Oracle NoSQL, RabbitMQ, a fila
+`notifications-queue` e a validação JWT, cria e ativa o ambiente virtual
+`.venv` quando necessário, instala as dependências e inicia o Uvicorn com
+recarregamento automático na porta `8004`.
+
+O `startdev.sh` não cria a tabela, os índices ou os dados do serviço. Execute o
+`bootstrap.sh` antes da primeira execução ou quando precisar recriar a
+estrutura local. A infraestrutura Oracle NoSQL, RabbitMQ e o `user-service`
+também devem estar disponíveis previamente.
+
+O script é exclusivo para desenvolvimento local e não deve ser utilizado como
+processo de produção.
+
+Para executá-lo:
+
+```bash
+cd services/order-service
+./startdev.sh
+```
+
+Caso não possua permissão de execução, utilize:
+
+```bash
+bash startdev.sh
+```
+
 ## Reconstruir a imagem Docker
 
 Após modificar o serviço, reconstrua sua imagem a partir da raiz do monorepo:

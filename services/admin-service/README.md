@@ -163,6 +163,20 @@ um mecanismo seguro de configuração e nunca versionadas no repositório.
 O serviço utiliza Python 3.11. Com os demais serviços e o Redis disponíveis,
 execute a partir do diretório do serviço:
 
+### Propósito do `startdev.sh`
+
+O script `startdev.sh` automatiza a execução local do `admin-service`. Ele
+define as variáveis de ambiente de desenvolvimento, configura as URLs dos
+microsserviços, prepara o ambiente virtual `.venv`, instala as dependências de
+`requirements.txt` e inicia o Uvicorn com recarregamento automático na porta
+`8006`.
+
+O script é destinado exclusivamente ao desenvolvimento local. As chaves de
+sessão e CSRF presentes nele são valores de demonstração e não devem ser
+utilizadas em produção. Em ambientes OCI ou outros ambientes compartilhados,
+forneça essas configurações por um mecanismo seguro e execute o serviço pelo
+processo de deployment correspondente.
+
 ```bash
 cd services/admin-service
 python3.11 -m venv .venv

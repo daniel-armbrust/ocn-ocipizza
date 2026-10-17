@@ -66,6 +66,12 @@ O ambiente de execução utiliza Python 3.11.
 O script `bootstrap.sh` cria o ambiente Python, gera a configuração local,
 prepara o provider de persistência selecionado e inclui pizzas de demonstração.
 
+Ele é um script de preparação do ambiente, não o processo principal da API.
+Quando o provider é Oracle NoSQL, a execução recria a tabela local antes de
+carregar os dados de demonstração; portanto, pode remover pizzas existentes.
+Utilize-o somente em desenvolvimento e quando essa reinicialização for
+desejada.
+
 ### Pré-requisitos
 
 - Python 3.11
@@ -145,6 +151,32 @@ O `.env` criado pelo bootstrap utiliza:
 Se o `.env` já existir, seu conteúdo é preservado. Nesse caso, confira se ele
 contém `OBJECTSTORAGE_ENDPOINT`, `OBJECTSTORAGE_BUCKET`,
 `OBJECTSTORAGE_ACCESS_KEY` e `OBJECTSTORAGE_SECRET_KEY`.
+
+## `startdev.sh` — Execução local do serviço
+
+O script `startdev.sh` inicia o `pizza-service` diretamente em modo de
+desenvolvimento. Ele configura o Oracle NoSQL, o Object Storage local, a
+validação JWT, cria e ativa o ambiente virtual `.venv` quando necessário,
+instala as dependências de `requirements.txt` e inicia o Uvicorn com
+recarregamento automático na porta `8001`.
+
+O `startdev.sh` não cria a tabela, não cadastra as pizzas de demonstração e não
+prepara o MinIO. Execute primeiro o `bootstrap.sh` e garanta que o Oracle NoSQL,
+o Object Storage e o `user-service` estejam disponíveis. O script é exclusivo
+para desenvolvimento local e não deve ser utilizado como processo de produção.
+
+Para executá-lo:
+
+```bash
+cd services/pizza-service
+./startdev.sh
+```
+
+Caso não possua permissão de execução, utilize:
+
+```bash
+bash startdev.sh
+```
 
 ## Reconstruir a imagem Docker
 

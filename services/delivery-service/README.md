@@ -59,6 +59,10 @@ O script `bootstrap.sh` prepara o ambiente Python, cria a configuração local,
 recria a tabela no Oracle NoSQL e cadastra as áreas de entrega utilizadas em
 desenvolvimento.
 
+Ele é um script de preparação do ambiente, não o processo principal da API:
+deve ser executado antes da primeira inicialização ou quando for necessário
+recarregar a tabela e as áreas de demonstração.
+
 > **Atenção:** cada execução exclui a tabela configurada em
 > `NOSQL_TABLE_NAME` e todos os seus registros antes de criar uma nova tabela.
 > Utilize esse bootstrap somente para preparação do ambiente local.
@@ -143,6 +147,32 @@ O `.env` criado pelo bootstrap utiliza:
 - Logging com nível `INFO`
 
 Se o `.env` já existir, seu conteúdo será preservado.
+
+## `startdev.sh` — Execução local do serviço
+
+O script `startdev.sh` inicia o `delivery-service` diretamente no ambiente de
+desenvolvimento. Ele define as variáveis locais para Oracle NoSQL e validação
+JWT, cria e ativa o ambiente virtual `.venv` quando necessário, instala as
+dependências de `requirements.txt` e inicia o Uvicorn com recarregamento
+automático na porta `8003`.
+
+O `startdev.sh` não recria a tabela nem cadastra as áreas de demonstração.
+Execute primeiro o `bootstrap.sh` e garanta que o Oracle NoSQL e o
+`user-service` estejam disponíveis. O script é exclusivo para desenvolvimento
+local e não deve ser utilizado como processo de produção.
+
+Para executá-lo:
+
+```bash
+cd services/delivery-service
+./startdev.sh
+```
+
+Caso não possua permissão de execução, utilize:
+
+```bash
+bash startdev.sh
+```
 
 ## Reconstruir a imagem Docker
 

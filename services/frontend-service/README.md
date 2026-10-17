@@ -108,6 +108,22 @@ cd services/frontend-service
 ./startdev.sh
 ```
 
+### Propósito do `startdev.sh`
+
+O script `startdev.sh` automatiza a execução local do `frontend-service`. Ele
+define as URLs dos microsserviços, configura o Redis, as chaves de sessão e
+CSRF, cria e ativa o ambiente virtual `.venv` quando necessário, instala as
+dependências de `requirements.txt` e inicia o Uvicorn com recarregamento
+automático na porta `8010`.
+
+O script é destinado exclusivamente ao desenvolvimento local. As chaves de
+sessão e CSRF presentes nele são valores de demonstração e não devem ser
+utilizadas em produção. Em ambientes OCI, forneça essas configurações por um
+mecanismo seguro e utilize o processo de deployment correspondente.
+
+O `startdev.sh` não inicia os microsserviços consumidos nem o Redis; eles devem
+estar disponíveis previamente, normalmente por meio do Docker Compose.
+
 <!-- TODO: O startdev.sh combina o hostname interno `redis` com a porta
 publicada `16379`. Alinhar o endpoint para execução no host antes de considerar
 esse fluxo autossuficiente; o .env.example utiliza 127.0.0.1:16379. -->
