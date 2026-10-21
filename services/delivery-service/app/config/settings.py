@@ -3,6 +3,7 @@
 #
 
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -22,12 +23,13 @@ class Settings(BaseSettings):
     app_env: str = 'development'
     debug: bool = False
 
-    oci_region: str = 'sa-saopaulo-1'
+    oci_region: str | None = 'sa-saopaulo-1'
 
     # Persistência
-    persistence_provider: str = 'nosql'
+    persistence_provider: Literal['nosql', 'sqlalchemy'] = 'nosql'
     
     # Oracle NoSQL
+    nosql_provider: Literal['local', 'oci'] = 'local'
     nosql_table_name: str = 'delivery_areas'
     nosql_endpoint: str | None = None
     nosql_compartment_id: str | None = None
@@ -47,6 +49,18 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = 'INFO'
     oci_log_id: str | None = None
+
+    # Estratégia de autenticação utilizada para acessar os serviços
+    # do OCI.
+    oci_auth_mode: Literal[
+        'config_file', 
+        'instance_principal'
+    ] = 'instance_principal'
+    
+    # Caminho do arquivo de configuração e profile usados para
+    # autenticação nos serviços do OCI.
+    oci_config_file: str | None = None
+    oci_config_profile: str | None = None
 
 @lru_cache
 def get_settings() -> Settings:

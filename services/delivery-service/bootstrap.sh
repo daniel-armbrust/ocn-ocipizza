@@ -14,9 +14,10 @@
 #  5. Cria o arquivo .env local, caso ainda não exista.
 #  6. Carrega as variáveis definidas no arquivo .env.
 #  7. Identifica o provider de persistência configurado.
-#  8. Recria a tabela de áreas de entrega no Oracle NoSQL.
-#  9. Cadastra as áreas de entrega de Sorocaba no ambiente de desenvolvimento.
-# 10. Finaliza o bootstrap deixando o serviço pronto para execução.
+#  8. Valida o provider NoSQL e as configurações obrigatórias do ambiente.
+#  9. Garante a tabela de áreas de entrega no backend NoSQL selecionado.
+# 10. Cadastra as áreas de entrega de Sorocaba no ambiente de desenvolvimento.
+# 11. Finaliza o bootstrap deixando o serviço pronto para execução.
 #
 # Uso:
 #
@@ -97,8 +98,16 @@ DEBUG=true
 PERSISTENCE_PROVIDER=nosql
 
 # Oracle NoSQL
+NOSQL_PROVIDER=local
 NOSQL_TABLE_NAME=delivery_areas
 NOSQL_ENDPOINT=http://localhost:18080
+NOSQL_COMPARTMENT_ID=
+
+# Autenticação OCI (utilizada quando NOSQL_PROVIDER=oci)
+OCI_REGION=sa-saopaulo-1
+OCI_AUTH_MODE=config_file
+OCI_CONFIG_FILE=
+OCI_CONFIG_PROFILE=DEFAULT
 
 # JWT
 JWT_ISSUER=user-service
@@ -121,9 +130,29 @@ set -a
 source "$ENV_FILE"
 set +a
 
+# O provider determina se o handle será conectado ao Oracle NoSQL local ou
+# ao Oracle NoSQL Cloud Service. O compartment é obrigatório para o provider
+# OCI porque identifica onde a tabela será criada.
+export NOSQL_PROVIDER="${NOSQL_PROVIDER:-local}"
+
+if [ "${NOSQL_PROVIDER}" != 'local' ] && \
+   [ "${NOSQL_PROVIDER}" != 'oci' ]; then
+    echo "Provider NoSQL não suportado: ${NOSQL_PROVIDER}"
+    echo 'Utilize NOSQL_PROVIDER=local ou NOSQL_PROVIDER=oci.'
+    exit 1
+fi
+
+if [ "${NOSQL_PROVIDER}" != 'local' ] && \
+   [ -z "${NOSQL_COMPARTMENT_ID:-}" ]; then
+    echo 'Erro: NOSQL_COMPARTMENT_ID é obrigatório quando '
+    echo 'NOSQL_PROVIDER for diferente de local.'
+    exit 1
+fi
+
 display_step 'Inicialização da persistência'
 
 echo "Provider de persistência configurado: ${PERSISTENCE_PROVIDER}"
+echo "Provider NoSQL configurado: ${NOSQL_PROVIDER}"
 
 if [ "${PERSISTENCE_PROVIDER}" != 'nosql' ]; then
     echo "Provider de persistência não suportado pelo bootstrap: ${PERSISTENCE_PROVIDER}"
@@ -133,34 +162,18 @@ fi
 echo 'Inicializando persistência Oracle NoSQL...'
 
 python <<'PYTHON'
-import os
-
-from borneo import TableRequest
+from app.config.settings import settings
+from borneo import TableLimits, TableRequest
 
 from app.repositories.nosql.connection import create_nosql_handle
 
 
-table_name = os.getenv(
-    'NOSQL_TABLE_NAME',
-    'delivery_areas'
-)
+table_name = settings.nosql_table_name
 
 handle = create_nosql_handle()
 
-drop_statement = f'''
-    DROP TABLE IF EXISTS {table_name}
-'''
-
-print(f'Excluindo tabela {table_name}, caso exista...')
-
-drop_request = TableRequest().set_statement(drop_statement)
-drop_result = handle.table_request(drop_request)
-drop_result.wait_for_completion(handle, 60000, 1000)
-
-print(f'Tabela {table_name} removida.')
-
 statement = f'''
-    CREATE TABLE {table_name} (
+    CREATE TABLE IF NOT EXISTS {table_name} (
         id STRING,
         name STRING,
         zip_code_start STRING,
@@ -174,9 +187,21 @@ statement = f'''
     )
 '''
 
-print(f'Criando tabela {table_name}...')
+print(f'Garantindo a tabela {table_name}...')
 
-request = TableRequest().set_statement(statement)
+# O Oracle NoSQL exige limites de capacidade durante a criação da tabela.
+# Estes valores iniciais são fixos para manter o bootstrap previsível.
+table_limits = TableLimits(
+    read_units=5,
+    write_units=5,
+    storage_gb=1
+)
+
+request = (
+    TableRequest()
+    .set_statement(statement)
+    .set_table_limits(table_limits)
+)
 result = handle.table_request(request)
 result.wait_for_completion(handle, 60000, 1000)
 
@@ -185,11 +210,13 @@ print(f'Tabela {table_name} pronta para utilização.')
 handle.close()
 PYTHON
 
-# Este bootstrap é exclusivo do ambiente local e sempre recria os dados de
-# demonstração depois de recriar a tabela.
-display_step 'Criando áreas de entrega de demonstração'
+# Este bootstrap cadastra os dados de demonstração somente no ambiente de
+# desenvolvimento e quando eles ainda não existem, permitindo execuções
+# repetidas sem duplicar registros.
+if [ "${APP_ENV}" = 'development' ]; then
+    display_step 'Criando áreas de entrega de demonstração'
 
-python <<'PYTHON'
+    python <<'PYTHON'
 import csv
 import os
 
@@ -305,6 +332,7 @@ if persisted_total != expected_total:
 
 print(f'{persisted_total} áreas de entrega persistidas com sucesso.')
 PYTHON
+fi
 
 display_step 'Bootstrap do delivery-service concluído com sucesso'
 

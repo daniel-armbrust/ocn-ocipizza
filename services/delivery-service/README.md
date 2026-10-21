@@ -56,21 +56,23 @@ O ambiente de execução utiliza Python 3.11.
 ## `bootstrap.sh` — Bootstrap do ambiente local
 
 O script `bootstrap.sh` prepara o ambiente Python, cria a configuração local,
-recria a tabela no Oracle NoSQL e cadastra as áreas de entrega utilizadas em
-desenvolvimento.
+identifica o provider NoSQL selecionado, garante a tabela e cadastra as áreas
+de entrega utilizadas em desenvolvimento.
 
 Ele é um script de preparação do ambiente, não o processo principal da API:
 deve ser executado antes da primeira inicialização ou quando for necessário
 recarregar a tabela e as áreas de demonstração.
 
-> **Atenção:** cada execução exclui a tabela configurada em
-> `NOSQL_TABLE_NAME` e todos os seus registros antes de criar uma nova tabela.
-> Utilize esse bootstrap somente para preparação do ambiente local.
+> **Atenção:** a tabela não é excluída durante o bootstrap. Os dados de
+> demonstração são inseridos de forma idempotente, portanto execuções
+> repetidas não duplicam áreas já cadastradas.
 
 ### Pré-requisitos
 
 - Python 3.11
-- Oracle NoSQL local disponível na porta `18080`
+- Oracle NoSQL local disponível na porta `18080`, quando
+  `NOSQL_PROVIDER=local`; ou acesso configurado ao OCI NoSQL, quando
+  `NOSQL_PROVIDER=oci`
 
 Para iniciar a infraestrutura a partir da raiz do monorepo:
 
@@ -121,16 +123,16 @@ docker compose ps delivery-service
 3. Atualiza o `pip` e instala o `requirements.txt`
 4. Cria o arquivo `.env`, caso ele ainda não exista
 5. Carrega as configurações locais
-6. Valida o provider definido em `PERSISTENCE_PROVIDER`
-7. Exclui a tabela `delivery_areas`, caso exista, e cria uma nova tabela
-8. Cadastra as 30 faixas de CEP de demonstração de Sorocaba
-9. Confirma que os 30 registros foram efetivamente persistidos
+6. Carrega e valida `NOSQL_PROVIDER` e as configurações obrigatórias do OCI
+7. Garante a tabela configurada em `NOSQL_TABLE_NAME`
+8. Cria a tabela com `read_units=5`, `write_units=5` e `storage_gb=1`
+9. Em `APP_ENV=development`, cadastra as 30 faixas de CEP de demonstração
+10. Confirma que os 30 registros foram efetivamente persistidos
 
 Os UUIDs das áreas são derivados de suas faixas de CEP. Dessa forma, o
-bootstrap pode ser executado novamente com os mesmos identificadores. Como a
-tabela é recriada, as áreas de demonstração são carregadas em toda execução,
-independentemente do valor de `APP_ENV`. O script termina com erro se a
-quantidade persistida for diferente de 30.
+bootstrap pode ser executado novamente com os mesmos identificadores sem
+duplicar registros. O seed só é executado em `APP_ENV=development`, e o
+script termina com erro se a quantidade persistida for diferente de 30.
 
 ### Configuração local criada
 
@@ -139,8 +141,11 @@ O `.env` criado pelo bootstrap utiliza:
 - `APP_NAME=delivery-service`
 - `APP_ENV=development`
 - `PERSISTENCE_PROVIDER=nosql`
+- `NOSQL_PROVIDER=local`
 - Tabela `delivery_areas`
 - Oracle NoSQL em `http://localhost:18080`
+- `NOSQL_COMPARTMENT_ID` vazio para o provider local
+- `OCI_AUTH_MODE=config_file`, com profile `DEFAULT`
 - Emissor JWT `user-service`
 - Audiência JWT `ocipizza`
 - JWKS em `http://localhost:8002/.well-known/jwks.json`
@@ -151,15 +156,16 @@ Se o `.env` já existir, seu conteúdo será preservado.
 ## `startdev.sh` — Execução local do serviço
 
 O script `startdev.sh` inicia o `delivery-service` diretamente no ambiente de
-desenvolvimento. Ele define as variáveis locais para Oracle NoSQL e validação
-JWT, cria e ativa o ambiente virtual `.venv` quando necessário, instala as
-dependências de `requirements.txt` e inicia o Uvicorn com recarregamento
+desenvolvimento. Ele carrega o `.env`, aplica valores padrão, valida o
+provider NoSQL e as configurações de autenticação OCI, ativa o ambiente
+virtual preparado pelo `bootstrap.sh` e inicia o Uvicorn com recarregamento
 automático na porta `8003`.
 
-O `startdev.sh` não recria a tabela nem cadastra as áreas de demonstração.
-Execute primeiro o `bootstrap.sh` e garanta que o Oracle NoSQL e o
-`user-service` estejam disponíveis. O script é exclusivo para desenvolvimento
-local e não deve ser utilizado como processo de produção.
+O `startdev.sh` não cria o ambiente virtual, instala dependências, recria a
+tabela nem cadastra as áreas de demonstração. Execute primeiro o
+`bootstrap.sh` e garanta que o backend NoSQL e o `user-service` estejam
+disponíveis. O script é exclusivo para desenvolvimento local e não deve ser
+utilizado como processo de produção.
 
 Para executá-lo:
 
@@ -188,13 +194,15 @@ docker compose ps delivery-service
 
 ### Oracle NoSQL
 
-O valor `nosql` utiliza a tabela definida por `NOSQL_TABLE_NAME`. Em
-desenvolvimento, `NOSQL_ENDPOINT` é obrigatório e aponta para o Oracle NoSQL
-local.
+O valor `nosql` utiliza a tabela definida por `NOSQL_TABLE_NAME`. Quando
+`NOSQL_PROVIDER=local`, `NOSQL_ENDPOINT` aponta para o Oracle NoSQL local.
+Quando `NOSQL_PROVIDER=oci`, o serviço utiliza o Oracle NoSQL Cloud Service,
+exige `NOSQL_COMPARTMENT_ID` e autentica conforme `OCI_AUTH_MODE`:
 
-Fora de `development`, cada instância do serviço acessa o Oracle NoSQL da
-região OCI em que está sendo executada. A autenticação utiliza Instance
-Principal e `OCI_REGION` é obrigatória para selecionar a região.
+- `config_file`: exige `OCI_CONFIG_FILE` e utiliza `OCI_CONFIG_PROFILE`.
+- `instance_principal`: utiliza a identidade da instância no OCI.
+
+`OCI_REGION` identifica a região quando o modo `config_file` é utilizado.
 
 A tabela `delivery_areas` contém os campos:
 
@@ -435,10 +443,14 @@ Os handlers globais utilizam códigos com o prefixo `DELIVERY_SERVICE_`:
 | `APP_ENV` | `development` | Ambiente de execução. |
 | `DEBUG` | `false` | Ativa o modo de depuração. |
 | `PERSISTENCE_PROVIDER` | `nosql` | Provider de persistência; atualmente o serviço funciona com `nosql`. |
+| `NOSQL_PROVIDER` | `local` | Backend NoSQL: `local` ou `oci`. |
 | `NOSQL_TABLE_NAME` | `delivery_areas` | Nome da tabela Oracle NoSQL. |
-| `NOSQL_ENDPOINT` | — | Endpoint Oracle NoSQL obrigatório em desenvolvimento. |
-| `NOSQL_COMPARTMENT_ID` | — | OCID do compartment relacionado ao NoSQL. |
-| `OCI_REGION` | — | Região Oracle NoSQL obrigatória fora de desenvolvimento. |
+| `NOSQL_ENDPOINT` | `http://localhost:18080` | Endpoint do Oracle NoSQL local quando `NOSQL_PROVIDER=local`. |
+| `NOSQL_COMPARTMENT_ID` | — | OCID obrigatório quando `NOSQL_PROVIDER=oci`. |
+| `OCI_REGION` | `sa-saopaulo-1` | Região usada no acesso ao OCI NoSQL com arquivo de configuração. |
+| `OCI_AUTH_MODE` | `config_file` | Autenticação OCI: `config_file` ou `instance_principal`. |
+| `OCI_CONFIG_FILE` | — | Caminho do arquivo OCI quando `OCI_AUTH_MODE=config_file`. |
+| `OCI_CONFIG_PROFILE` | `DEFAULT` | Profile do arquivo de configuração OCI. |
 | `DATABASE_URL` | — | URL reservada para o provider SQLAlchemy. |
 | `HTTP_CLIENT_TIMEOUT` | `10.0` | Timeout da consulta HTTP ao JWKS, em segundos. |
 | `JWT_ISSUER` | `user-service` | Emissor esperado no access token. |
@@ -448,8 +460,8 @@ Os handlers globais utilizam códigos com o prefixo `DELIVERY_SERVICE_`:
 | `OCI_LOG_ID` | — | OCID do Custom Log obrigatório fora de desenvolvimento. |
 
 Os valores da tabela refletem os padrões definidos atualmente em
-`app/config/settings.py`. O bootstrap sobrescreve `APP_NAME` no `.env` local
-com o valor `delivery-service`.
+`app/config/settings.py`, `bootstrap.sh` e `startdev.sh`. O bootstrap
+preserva um `.env` já existente.
 
 ## Documentação interativa
 

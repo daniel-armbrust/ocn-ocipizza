@@ -123,7 +123,7 @@ class NosqlDeliveryAreaRepository(DeliveryAreaRepository):
         #
         # Os CEPs são armazenados normalizados com oito caracteres
         # numéricos, permitindo a comparação direta entre as strings.
-        statement = f"""
+        statement = f'''
             SELECT id, name, zip_code_start, zip_code_end,
                    delivery_fee, estimated_minutes, active,
                    created_at, updated_at
@@ -132,7 +132,7 @@ class NosqlDeliveryAreaRepository(DeliveryAreaRepository):
               AND zip_code_end >= '{zip_code}'
               AND active = true
             LIMIT 1
-        """
+        '''
 
         request = QueryRequest().set_statement(statement)
 
@@ -176,27 +176,27 @@ class NosqlDeliveryAreaRepository(DeliveryAreaRepository):
             active_value = 'true' if active else 'false'
             filters.append(f'active = {active_value}')
 
-        statement = f"""
+        statement = f'''
              SELECT id, name, zip_code_start, zip_code_end,
                     delivery_fee, estimated_minutes, active,
                     created_at, updated_at
             FROM {self.table_name}
-        """
+        '''
 
         # Monta dinamicamente a cláusula WHERE apenas quando existem
         # filtros informados para a consulta.
         if filters:
-            statement += f"""
+            statement += f'''
                 WHERE {' AND '.join(filters)}
-            """
+            '''
 
         # LIMIT e OFFSET permitem que a interface administrativa realize
         # a paginação das áreas de entrega sem carregar toda a tabela.
-        statement += f"""
+        statement += f'''
             ORDER BY zip_code_start
             LIMIT {limit}
             OFFSET {offset}
-        """
+        '''
 
         request = QueryRequest().set_statement(statement)
 
