@@ -90,6 +90,30 @@ class PizzaService:
             pizza_id=pizza_id
         )
 
+    async def get_image(self,
+                        access_token: str,
+                        pizza_id: UUID) -> tuple[bytes, str]:
+        """
+        Obtém a imagem de uma pizza através do pizza-service.
+
+        Args:
+            access_token: Token JWT da sessão administrativa.
+            pizza_id: Identificador único da pizza consultada.
+
+        Raises:
+            httpx.HTTPError: Quando o cliente não consegue concluir a
+                comunicação ou recebe uma resposta HTTP de erro.
+            ValueError: Quando a resposta não possui um tipo MIME de imagem.
+
+        Returns:
+            Tupla contendo o conteúdo binário e o tipo MIME da imagem.
+        """
+
+        return await self.admin_pizza_client.get_image(
+            access_token=access_token,
+            pizza_id=pizza_id
+        )
+
     async def create(self,
                     access_token: str,
                     data: dict,

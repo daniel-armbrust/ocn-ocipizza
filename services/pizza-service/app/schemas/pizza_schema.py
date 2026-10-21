@@ -9,7 +9,7 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, ConfigDict
 
-from app.models.pizza import PizzaCategory
+from app.models.pizza import Pizza, PizzaCategory
 
 
 class PizzaCreateRequest(BaseModel):
@@ -31,11 +31,7 @@ class PizzaCreateRequest(BaseModel):
     description: str = Field(min_length=1, max_length=500)
     category: PizzaCategory
     price: Decimal = Field(gt=0)
-    image_name: str | None = Field(
-        default=None,
-        min_length=1,
-        max_length=255
-    )
+    image_name: str | None = Field(default=None, min_length=1, max_length=255)
     available: bool = True
 
 
@@ -83,13 +79,12 @@ class PizzaResponse(BaseModel):
     category: PizzaCategory
     price: Decimal
     image_name: str
-    image_url: str
     available: bool
     created_at: datetime
     updated_at: datetime
 
     @classmethod
-    def from_model(cls, pizza, image_url: str) -> 'PizzaResponse':
+    def from_model(cls, pizza: Pizza) -> 'PizzaResponse':
         """
         Cria o schema de resposta a partir do modelo da aplicação.
 
@@ -107,7 +102,6 @@ class PizzaResponse(BaseModel):
             category=pizza.category,
             price=pizza.price,
             image_name=pizza.image_name,
-            image_url=image_url,
             available=pizza.available,
             created_at=pizza.created_at,
             updated_at=pizza.updated_at

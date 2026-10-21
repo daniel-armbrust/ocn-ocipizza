@@ -70,6 +70,11 @@ async def show_admin_pizzas(
     has_next_page = len(paginated_pizzas) > limit
     pizzas = paginated_pizzas[:limit]
 
+    # O Object Storage é privado. A imagem deve ser acessada pelo proxy do
+    # admin-service, sem expor o endereço interno do pizza-service.
+    for pizza in pizzas:
+        pizza['image_url'] = f'/admin/pizzas/{pizza["id"]}/image'
+
     return templates.TemplateResponse(
         request=request,
         name='admin/pizzas.html',
@@ -119,12 +124,50 @@ async def show_admin_pizza(
         pizza_id=pizza_id
     )
 
+    # Mantém o endereço da imagem dentro do BFF administrativo.
+    pizza['image_url'] = f'/admin/pizzas/{pizza_id}/image'
+
     return templates.TemplateResponse(
         request=request,
         name='admin/pizza.html',
         context={
             'pizza': pizza
         }
+    )
+
+#
+# GET: /admin/pizzas/{pizza_id}/image
+#
+@router.get(
+    '/admin/pizzas/{pizza_id:uuid}/image',
+    response_class=Response
+)
+async def get_admin_pizza_image(
+    pizza_id: UUID,
+    session: dict = Depends(get_admin_authenticated_session),
+    pizza_service: PizzaService = Depends(get_pizza_service)
+) -> Response:
+    """
+    Encaminha ao navegador a imagem privada de uma pizza.
+
+    Args:
+        pizza_id: Identificador UUID da pizza consultada.
+        session: Sessão administrativa validada pela dependência da rota.
+        pizza_service: Serviço responsável pela comunicação com o
+            pizza-service.
+
+    Returns:
+        Resposta contendo os bytes da imagem e o tipo MIME correspondente.
+    """
+
+    image_data, content_type = await pizza_service.get_image(
+        access_token=session['access_token'],
+        pizza_id=pizza_id
+    )
+
+    return Response(
+        content=image_data,
+        media_type=content_type
     )
 
 #

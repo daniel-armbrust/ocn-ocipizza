@@ -107,8 +107,51 @@ class PizzaClient:
 
         response.raise_for_status()
 
-        return response.json()['data']['pizza']
+        pizza = response.json()['data']['pizza']
 
+        # A imagem é privada no Object Storage e deve ser acessada através
+        # da rota de imagem do frontend-service.
+        pizza['image_url'] = f'/pizzas/{pizza_id}/image'
+
+        return pizza
+
+    async def get_image(self, pizza_id: str) -> tuple[bytes, str]:
+        """
+        Obtém o conteúdo da imagem de uma pizza.
+
+        Args:
+            pizza_id: Identificador UUID da pizza consultada.
+
+        Returns:
+            Tupla contendo os bytes da imagem e o seu tipo MIME.
+
+        Raises:
+            httpx.HTTPStatusError: Caso o pizza-service retorne uma resposta
+                HTTP de erro.
+            httpx.RequestError: Caso ocorra uma falha de comunicação com o
+                pizza-service.
+        """
+
+        async with httpx.AsyncClient(
+            timeout=settings.http_client_timeout
+        ) as client:
+            response = await client.get(
+                f'{self.base_url}/pizzas/{pizza_id}/image',
+                timeout=settings.http_client_timeout
+            )
+
+        response.raise_for_status()
+
+        content_type = response.headers.get('content-type', '')
+
+        # A rota de imagem não deve encaminhar respostas genéricas ou
+        # arquivos que não sejam imagens para o navegador.
+        if not content_type.startswith('image/'):
+            raise ValueError(
+                'Pizza image response must have an image content type.'
+            )
+
+        return response.content, content_type
 
 def get_pizza_client() -> PizzaClient:
     """

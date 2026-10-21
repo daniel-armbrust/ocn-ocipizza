@@ -15,7 +15,8 @@ Suas principais responsabilidades são:
 
 O serviço armazena somente o nome do arquivo de imagem associado à pizza. O
 conteúdo da imagem é mantido pelo serviço de Object Storage do ambiente. As
-respostas da API incluem tanto `image_name` quanto a URL completa `image_url`.
+respostas da API incluem `image_name` e a referência da rota privada
+`image_url`.
 
 Para preparar o serviço em um ambiente local de desenvolvimento, utilize o
 script `bootstrap.sh`.
@@ -64,21 +65,22 @@ O ambiente de execução utiliza Python 3.11.
 ## `bootstrap.sh` — Bootstrap do ambiente local
 
 O script `bootstrap.sh` cria o ambiente Python, gera a configuração local,
-prepara o provider de persistência selecionado e inclui pizzas de demonstração.
+valida os providers configurados, prepara o provider de persistência
+selecionado e inclui pizzas de demonstração.
 
 Ele é um script de preparação do ambiente, não o processo principal da API.
-Quando o provider é Oracle NoSQL, a execução recria a tabela local antes de
-carregar os dados de demonstração; portanto, pode remover pizzas existentes.
-Utilize-o somente em desenvolvimento e quando essa reinicialização for
-desejada.
+Quando `NOSQL_PROVIDER=local`, utiliza o endpoint local configurado. Quando o
+provider é diferente de `local`, `NOSQL_COMPARTMENT_ID` é obrigatório para a
+configuração do Oracle NoSQL no OCI. A tabela é garantida com a estrutura
+necessária sem ser recriada a cada execução.
 
 ### Pré-requisitos
 
 - Python 3.11
-- Oracle NoSQL local disponível na porta `18080`, quando o provider for `nosql`
+- Oracle NoSQL local disponível na porta `18080`, quando `NOSQL_PROVIDER=local`
+- Credenciais e configuração OCI válidas, quando `NOSQL_PROVIDER=oci`
 - MySQL disponível, quando o provider for `sqlalchemy`
-- MinIO disponível na porta `9000`, com o bucket `pizza-images`, para o Object
-  Storage local
+- MinIO disponível na porta `9000`, quando `OBJECTSTORAGE_PROVIDER=local`
 
 Para iniciar a infraestrutura padrão a partir da raiz do monorepo, execute:
 
@@ -129,18 +131,24 @@ docker compose ps pizza-service
 3. Atualiza o `pip` e instala o `requirements.txt`
 4. Cria o arquivo `.env`, caso ele ainda não exista
 5. Carrega as configurações locais
-6. Identifica o provider definido em `PERSISTENCE_PROVIDER`
-7. Cria a tabela `pizzas` no Oracle NoSQL quando o provider é `nosql`
-8. Inicializa e executa o Alembic quando o provider é `sqlalchemy`
-9. Inclui as pizzas de demonstração que ainda não existem
+6. Valida `NOSQL_PROVIDER`, `OBJECTSTORAGE_PROVIDER` e as configurações
+   obrigatórias dos providers
+7. Identifica o provider definido em `PERSISTENCE_PROVIDER`
+8. Cria a tabela `pizzas` no Oracle NoSQL quando o provider é `nosql`
+9. Inicializa e executa o Alembic quando o provider é `sqlalchemy`
+10. Inclui as pizzas de demonstração que ainda não existem
+11. Garante o bucket configurado e envia as imagens de demonstração usando o
+    provider selecionado em `OBJECTSTORAGE_PROVIDER`
 
 ### Configuração local criada
 
 O `.env` criado pelo bootstrap utiliza:
 
 - `PERSISTENCE_PROVIDER=nosql`
+- `NOSQL_PROVIDER=local`
 - Tabela `pizzas`
 - Oracle NoSQL em `http://localhost:18080`
+- `OBJECTSTORAGE_PROVIDER=local`
 - MinIO em `http://localhost:9000`
 - Bucket `pizza-images`
 - Credenciais locais do MinIO `minioadmin`/`minioadmin`
@@ -152,18 +160,42 @@ Se o `.env` já existir, seu conteúdo é preservado. Nesse caso, confira se ele
 contém `OBJECTSTORAGE_ENDPOINT`, `OBJECTSTORAGE_BUCKET`,
 `OBJECTSTORAGE_ACCESS_KEY` e `OBJECTSTORAGE_SECRET_KEY`.
 
+Para utilizar os recursos OCI no bootstrap, altere `NOSQL_PROVIDER` e/ou
+`OBJECTSTORAGE_PROVIDER` para `oci` e configure `OCI_AUTH_MODE`,
+`OCI_CONFIG_FILE` (quando aplicável), `OCI_REGION` e
+`NOSQL_COMPARTMENT_ID`. Quando o bucket OCI ainda não existir, informe também
+`OBJECTSTORAGE_COMPARTMENT_ID`. O bootstrap é interrompido quando um provider
+inválido é informado ou quando um compartment obrigatório não está definido.
+
+Exemplo mínimo para autenticação OCI por arquivo de configuração:
+
+```env
+NOSQL_PROVIDER=oci
+NOSQL_COMPARTMENT_ID=ocid1.compartment.oc1..xxxxxxxx
+OBJECTSTORAGE_PROVIDER=oci
+OBJECTSTORAGE_COMPARTMENT_ID=ocid1.compartment.oc1..xxxxxxxx
+OCI_AUTH_MODE=config_file
+OCI_CONFIG_FILE=/home/seu-usuario/.oci/config
+OCI_CONFIG_PROFILE=DEFAULT
+OCI_REGION=sa-saopaulo-1
+```
+
+`OBJECTSTORAGE_COMPARTMENT_ID` só é utilizado quando o bucket precisa ser
+criado. Se o bucket já existir, o bootstrap apenas o reutiliza.
+
 ## `startdev.sh` — Execução local do serviço
 
 O script `startdev.sh` inicia o `pizza-service` diretamente em modo de
-desenvolvimento. Ele configura o Oracle NoSQL, o Object Storage local, a
-validação JWT, cria e ativa o ambiente virtual `.venv` quando necessário,
-instala as dependências de `requirements.txt` e inicia o Uvicorn com
-recarregamento automático na porta `8001`.
+desenvolvimento. Ele carrega o `.env`, aplica os valores padrão para o
+Oracle NoSQL, Object Storage e validação JWT, ativa o ambiente virtual
+`.venv` preparado pelo bootstrap e inicia o Uvicorn com recarregamento
+automático na porta `8001`.
 
-O `startdev.sh` não cria a tabela, não cadastra as pizzas de demonstração e não
-prepara o MinIO. Execute primeiro o `bootstrap.sh` e garanta que o Oracle NoSQL,
-o Object Storage e o `user-service` estejam disponíveis. O script é exclusivo
-para desenvolvimento local e não deve ser utilizado como processo de produção.
+O `startdev.sh` não cria o ambiente virtual, não instala dependências, não
+cria a tabela, não cadastra as pizzas de demonstração e não prepara o MinIO.
+Execute primeiro o `bootstrap.sh` e garanta que o Oracle NoSQL, o Object
+Storage e o `user-service` estejam disponíveis. O script é exclusivo para
+desenvolvimento local e não deve ser utilizado como processo de produção.
 
 Para executá-lo:
 
@@ -192,19 +224,39 @@ docker compose ps pizza-service
 
 Oracle NoSQL é o provider primário e padrão do `pizza-service`. Como alternativa,
 o serviço também pode persistir o catálogo no MySQL por meio do SQLAlchemy. O
-provider utilizado em cada execução é selecionado por `PERSISTENCE_PROVIDER`.
+provider utilizado em cada execução é selecionado por `PERSISTENCE_PROVIDER`, e
+`NOSQL_PROVIDER` seleciona entre o Oracle NoSQL local e o OCI NoSQL.
 
 ### Oracle NoSQL
 
-O valor `nosql` utiliza a tabela definida por `NOSQL_TABLE_NAME`. Em
-desenvolvimento, `NOSQL_ENDPOINT` é obrigatório. Fora do ambiente de
-desenvolvimento, a aplicação opera em uma arquitetura multi-region. Cada
-instância do `pizza-service` acessa o Oracle NoSQL correspondente à região OCI
-em que está sendo executada. A conexão utiliza Instance Principal e a variável
-`OCI_REGION` é obrigatória para selecionar o endpoint regional do Oracle NoSQL.
+O valor `nosql` utiliza a tabela definida por `NOSQL_TABLE_NAME`. Quando
+`NOSQL_PROVIDER=local`, `NOSQL_ENDPOINT` aponta para o container Oracle NoSQL
+local. Quando `NOSQL_PROVIDER=oci`, a conexão utiliza a região OCI e a
+estratégia definida por `OCI_AUTH_MODE`.
 
 A tabela criada pelo bootstrap possui os campos `id`, `name`, `description`,
 `category`, `price`, `image_name`, `available`, `created_at` e `updated_at`.
+Durante a criação, o bootstrap aplica limites fixos de capacidade para manter
+o ambiente previsível: `read_units=5`, `write_units=5` e `storage_gb=1`.
+
+#### Autenticação OCI
+
+Quando `NOSQL_PROVIDER=oci`, o bootstrap exige `NOSQL_COMPARTMENT_ID` e utiliza
+o modo definido em `OCI_AUTH_MODE`:
+
+- `config_file`: exige `OCI_CONFIG_FILE` apontando para o arquivo de
+  configuração OCI. `OCI_CONFIG_PROFILE` identifica o profile utilizado; quando
+  não informado, o profile padrão do arquivo é utilizado. `OCI_REGION` também
+  deve informar a região do Oracle NoSQL.
+- `instance_principal`: não utiliza `OCI_CONFIG_FILE` nem
+  `OCI_CONFIG_PROFILE`. A execução precisa ocorrer em um recurso OCI com
+  Instance Principal configurado e permissões para acessar o NoSQL. A região é
+  obtida a partir da identidade do recurso.
+
+O mesmo `OCI_AUTH_MODE` é utilizado pelo Object Storage quando
+`OBJECTSTORAGE_PROVIDER=oci`. No modo `config_file`, o arquivo e o profile OCI
+devem estar disponíveis no ambiente de execução. No modo `instance_principal`,
+o recurso OCI precisa possuir a identidade e as políticas necessárias.
 
 ### MySQL com SQLAlchemy — alternativa
 
@@ -218,8 +270,8 @@ alembic upgrade head
 ## Object Storage e URLs das imagens
 
 O `ObjectStorageService` envia, substitui e remove os arquivos de imagem no
-bucket. Ele também converte o valor persistido em `image_name` para a URL
-completa retornada em `image_url`.
+bucket. A leitura das imagens ocorre pelo endpoint da aplicação, sem expor o
+bucket privado diretamente ao cliente.
 
 Na criação, o arquivo recebido no campo `image` é enviado ao Object Storage
 depois da persistência da pizza. O campo `image` é obrigatório e deve possuir
@@ -229,32 +281,26 @@ atualização, uma nova imagem é enviada somente quando o campo `image` é
 informado; se `image_name` não for enviado, uma nova chave é gerada e o objeto
 anterior é removido. Na exclusão, o serviço remove a pizza e sua imagem.
 
-Em desenvolvimento, a URL é formada pela combinação de
-`OBJECTSTORAGE_ENDPOINT`, `OBJECTSTORAGE_BUCKET` e o nome do objeto:
+Quando `OBJECTSTORAGE_PROVIDER=local`, a URL é formada pela combinação de
+`OBJECTSTORAGE_ENDPOINT`, `OBJECTSTORAGE_BUCKET` e o nome do objeto. Quando o
+provider é `oci`, a URL regional do OCI Object Storage é utilizada.
 
-```text
-{OBJECTSTORAGE_ENDPOINT}/{OBJECTSTORAGE_BUCKET}/{image_name}
-```
-
-Por exemplo, para `OBJECTSTORAGE_ENDPOINT=http://localhost:9000`,
-`OBJECTSTORAGE_BUCKET=pizza-images` e `image_name=pizza-calabresa.jpg`, a API
-retorna:
-
-```text
-http://localhost:9000/pizza-images/pizza-calabresa.jpg
-```
+Essas URLs pertencem ao armazenamento privado e não devem ser acessadas
+diretamente pelo navegador. Para obter uma imagem, utilize a rota
+`GET /pizzas/{pizza_id}/image`, que lê o objeto no servidor e devolve seu
+conteúdo.
 
 O cliente MinIO utiliza `OBJECTSTORAGE_ACCESS_KEY` e
 `OBJECTSTORAGE_SECRET_KEY` para autenticação. O `.env` criado pelo bootstrap e
 o `docker-compose.yaml` usam `minioadmin` para ambas as variáveis, de acordo com
 as credenciais do MinIO local. Essas credenciais são exclusivas do ambiente de
-desenvolvimento. O bucket e sua política de acesso devem ser preparados na
-infraestrutura local antes do uso; o serviço não cria nem altera o bucket.
+desenvolvimento. O bucket local permanece privado; o bootstrap apenas garante
+sua existência e envia as imagens de demonstração.
 
-Fora do ambiente de desenvolvimento, `OBJECTSTORAGE_ENDPOINT` não é utilizado.
-O serviço utiliza Instance Principal para obter automaticamente a região OCI e
-constrói a URL a partir de `OBJECTSTORAGE_NAMESPACE`, `OBJECTSTORAGE_BUCKET` e
-`image_name`.
+No provider OCI, o serviço utiliza `OCI_AUTH_MODE` para autenticação, obtém o
+namespace do tenancy e constrói a URL a partir da região, bucket e
+`image_name`. O bucket OCI deve estar disponível para a identidade utilizada
+na autenticação.
 
 ### Validação futura das imagens
 
@@ -301,9 +347,10 @@ Todas as respostas da API seguem o padrão JSend.
 | --- | --- | --- | --- |
 | READ | `GET` | `/pizzas` | Público. |
 | READ | `GET` | `/pizzas/{pizza_id}` | Público. |
-| CREATE | `POST` | `/pizzas` | Administrador. |
-| UPDATE | `PUT` | `/pizzas/{pizza_id}` | Administrador. |
-| DELETE | `DELETE` | `/pizzas/{pizza_id}` | Administrador. |
+| READ | `GET` | `/pizzas/{pizza_id}/image` | Público; retorna a imagem pelo serviço. |
+| CREATE | `POST` | `/admin/pizzas` | Administrador. |
+| UPDATE | `PUT` | `/admin/pizzas/{pizza_id}` | Administrador. |
+| DELETE | `DELETE` | `/admin/pizzas/{pizza_id}` | Administrador. |
 
 As operações administrativas esperam um access token JWT com a claim
 `is_admin` igual a `true` no cabeçalho:
@@ -353,11 +400,24 @@ sem registro correspondente resulta em `404 Not Found`. Um valor que não seja
 UUID resulta em `400 Bad Request`. A resposta da pizza inclui a URL completa da
 imagem no campo `image_url`.
 
+### READ — Obter a imagem de uma pizza
+
+```bash
+curl --request GET \
+  --url http://localhost:8001/pizzas/PIZZA_ID/image
+```
+
+O endpoint consulta o objeto no bucket privado e devolve o conteúdo da imagem
+com o `Content-Type` armazenado. A aplicação não exige que o bucket seja
+público para disponibilizar essa rota. Pizza inexistente resulta em `404 Not
+Found`; falhas de leitura do Object Storage resultam em `500 Internal Server
+Error`.
+
 ### CREATE — Criar uma pizza
 
 ```bash
 curl --request POST \
-  --url http://localhost:8001/pizzas \
+  --url http://localhost:8001/admin/pizzas \
   --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
   --header 'Accept: application/json' \
   --form 'name=Margherita Especial' \
@@ -382,8 +442,8 @@ Object Storage.
 | `image` | Obrigatório; arquivo não vazio com um `Content-Type` de imagem. |
 | `available` | Opcional; o padrão é `true`. |
 
-O sucesso retorna `201 Created` e a pizza criada em `data.pizza`, incluindo
-`image_url`. Erros de validação retornam `400 Bad Request`; falhas de
+O sucesso retorna `201 Created` e a pizza criada em `data.pizza`, incluindo a
+referência da rota privada da imagem em `image_url`. Erros de validação retornam `400 Bad Request`; falhas de
 persistência, upload da imagem ou construção da URL retornam `500 Internal
 Server Error`.
 
@@ -394,7 +454,7 @@ utilizar o método HTTP `PUT`.
 
 ```bash
 curl --request PUT \
-  --url http://localhost:8001/pizzas/PIZZA_ID \
+  --url http://localhost:8001/admin/pizzas/PIZZA_ID \
   --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
   --header 'Accept: application/json' \
   --form 'price=54.90' \
@@ -411,14 +471,14 @@ o serviço gera uma nova chave e remove a imagem anterior do Object Storage.
 Quando informado, `price` deve ser maior que zero e possuir no máximo duas
 casas decimais. O sucesso retorna `200 OK`; pizza inexistente resulta em `404
 Not Found`; falhas de persistência ou de atualização da imagem resultam em `500
-Internal Server Error`. A resposta atualizada inclui `image_url`, recalculada a
-partir do `image_name`.
+Internal Server Error`. A resposta atualizada inclui a referência da rota
+privada em `image_url`.
 
 ### DELETE — Excluir uma pizza
 
 ```bash
 curl --request DELETE \
-  --url http://localhost:8001/pizzas/PIZZA_ID \
+  --url http://localhost:8001/admin/pizzas/PIZZA_ID \
   --header 'Authorization: Bearer ADMIN_ACCESS_TOKEN' \
   --header 'Accept: application/json'
 ```
@@ -442,7 +502,7 @@ registrado como TODO no serviço.
 | `category` | string | `salgada`, `vegetariana` ou `doce`. |
 | `price` | decimal | Preço da pizza. |
 | `image_name` | string | Nome do arquivo armazenado no Object Storage. |
-| `image_url` | string | URL completa da imagem no Object Storage. |
+| `image_url` | string | URL da rota privada usada para obter a imagem. |
 | `available` | boolean | Indica se a pizza pode ser comercializada. |
 | `created_at` | datetime | Data e hora de criação. |
 | `updated_at` | datetime | Data e hora da última atualização. |
@@ -474,7 +534,7 @@ Resposta de sucesso:
       "category": "salgada",
       "price": "49.90",
       "image_name": "pizza-calabresa.jpg",
-      "image_url": "http://localhost:9000/pizza-images/pizza-calabresa.jpg",
+      "image_url": "/pizzas/33333333-3333-4333-8333-333333333333/image",
       "available": true,
       "created_at": "2026-10-03T12:00:00Z",
       "updated_at": "2026-10-03T12:00:00Z"
@@ -518,19 +578,25 @@ expõem detalhes internos e retornam `INTERNAL_SERVER_ERROR`.
 | `APP_ENV` | `development` | Ambiente de execução. |
 | `DEBUG` | `false` | Ativa o modo de depuração. |
 | `PERSISTENCE_PROVIDER` | `nosql` | Provider de persistência: `nosql` (primário e padrão) ou `sqlalchemy` (alternativo). |
+| `NOSQL_PROVIDER` | `local` | Backend NoSQL: `local` ou `oci`. |
 | `NOSQL_TABLE_NAME` | `pizzas` | Nome da tabela Oracle NoSQL. |
-| `NOSQL_ENDPOINT` | — | Endpoint NoSQL utilizado em desenvolvimento. |
+| `NOSQL_ENDPOINT` | — | Endpoint utilizado quando `NOSQL_PROVIDER=local`. |
 | `NOSQL_COMPARTMENT_ID` | — | OCID do compartment relacionado ao NoSQL. |
 | `DATABASE_URL` | — | URL de conexão utilizada pelo SQLAlchemy. |
-| `OCI_REGION` | — | Região do Oracle NoSQL acessado pela instância; obrigatória fora de desenvolvimento. |
+| `DATABASE_PROVIDER` | `local` | Provider de banco relacional reservado para o SQLAlchemy. |
+| `OCI_REGION` | `sa-saopaulo-1` | Região utilizada pelos providers OCI. |
+| `OCI_AUTH_MODE` | `config_file` | Autenticação OCI: `config_file` ou `instance_principal`. |
+| `OCI_CONFIG_FILE` | — | Caminho do arquivo de configuração OCI quando aplicável. |
+| `OCI_CONFIG_PROFILE` | `DEFAULT` | Profile do arquivo de configuração OCI. |
 | `JWT_ISSUER` | `user-service` | Emissor esperado no JWT. |
 | `JWT_AUDIENCE` | `ocipizza` | Audiência esperada no JWT. |
 | `JWT_JWKS_URL` | `http://user-service:8000/.well-known/jwks.json` | URL das chaves públicas JWT. |
-| `OBJECTSTORAGE_ENDPOINT` | `http://object-storage:9000` | Endpoint opcional do MinIO, utilizado somente em desenvolvimento. |
-| `OBJECTSTORAGE_NAMESPACE` | — | Namespace do OCI Object Storage fora de desenvolvimento. |
-| `OBJECTSTORAGE_BUCKET` | — | Nome do bucket de imagens. |
-| `OBJECTSTORAGE_ACCESS_KEY` | — | Chave de acesso do MinIO, obrigatória em desenvolvimento. |
-| `OBJECTSTORAGE_SECRET_KEY` | — | Chave secreta do MinIO, obrigatória em desenvolvimento. |
+| `OBJECTSTORAGE_PROVIDER` | `local` | Backend de objetos: `local` ou `oci`. |
+| `OBJECTSTORAGE_ENDPOINT` | `http://object-storage:9000` | Endpoint utilizado pelo provider local. |
+| `OBJECTSTORAGE_BUCKET` | `pizza-images` | Nome do bucket de imagens. |
+| `OBJECTSTORAGE_COMPARTMENT_ID` | — | Compartment usado para criar o bucket OCI quando ele ainda não existe. |
+| `OBJECTSTORAGE_ACCESS_KEY` | — | Chave do MinIO, obrigatória no provider local. |
+| `OBJECTSTORAGE_SECRET_KEY` | — | Chave secreta do MinIO, obrigatória no provider local. |
 | `LOG_LEVEL` | `INFO` | Nível de logging da aplicação. |
 | `OCI_LOG_ID` | — | OCID do Custom Log fora de desenvolvimento. |
 

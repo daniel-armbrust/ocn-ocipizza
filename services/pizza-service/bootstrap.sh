@@ -3,7 +3,7 @@
 #
 # bootstrap.sh - pizza-service
 #
-# Este script prepara o ambiente de desenvolvimento local do pizza-service.
+# Este script prepara o ambiente configurado do pizza-service.
 #
 # Etapas executadas:
 #
@@ -13,12 +13,13 @@
 #  4. Instala as dependências definidas em requirements.txt.
 #  5. Cria o arquivo .env local, caso ainda não exista.
 #  6. Carrega as variáveis definidas no arquivo .env.
-#  7. Identifica o provider de persistência configurado.
-#  8. Inicializa a persistência necessária para o provider selecionado.
-#  9. Cria a tabela de pizzas no Oracle NoSQL, quando necessário.
-# 10. Cadastra as pizzas de demonstração no ambiente de desenvolvimento.
-# 11. Cria o bucket e envia as imagens de demonstração para o MinIO.
-# 12. Finaliza o bootstrap deixando o serviço pronto para execução.
+#  7. Identifica os providers de persistência e Object Storage configurados.
+#  8. Valida os providers e as configurações obrigatórias do ambiente.
+#  9. Inicializa a persistência necessária para o provider selecionado.
+# 10. Cria a tabela no backend NoSQL ou aplica as migrations SQLAlchemy.
+# 11. Em development, cadastra as pizzas de demonstração de forma idempotente.
+# 12. Em development, cria o bucket e envia as imagens ao storage selecionado.
+# 13. Finaliza o bootstrap deixando o serviço pronto para execução.
 #
 # Uso:
 #
@@ -101,16 +102,23 @@ DEBUG=true
 
 # Persistência
 PERSISTENCE_PROVIDER=nosql
+NOSQL_PROVIDER=local
 
 # Oracle NoSQL
 NOSQL_TABLE_NAME=pizzas
 NOSQL_ENDPOINT=http://localhost:18080
 
-# Object Storage (MinIO)
+# Object Storage local (MinIO)
+OBJECTSTORAGE_PROVIDER=local
 OBJECTSTORAGE_ENDPOINT=http://localhost:9000
 OBJECTSTORAGE_BUCKET=pizza-images
 OBJECTSTORAGE_ACCESS_KEY=minioadmin
 OBJECTSTORAGE_SECRET_KEY=minioadmin
+
+# Autenticação OCI (utilizada quando um provider OCI for selecionado)
+OCI_AUTH_MODE=config_file
+OCI_CONFIG_FILE=
+OCI_CONFIG_PROFILE=DEFAULT
 
 # JWT
 JWT_ISSUER=user-service
@@ -130,65 +138,93 @@ set -a
 source .env
 set +a
 
+# Providers possuem valores padrão equivalentes aos definidos em Settings.
+# A validação ocorre antes de iniciar qualquer recurso para evitar um
+# bootstrap parcialmente executado por configuração incompleta.
+export NOSQL_PROVIDER="${NOSQL_PROVIDER:-local}"
+export OBJECTSTORAGE_PROVIDER="${OBJECTSTORAGE_PROVIDER:-local}"
+
+if [ "${NOSQL_PROVIDER}" != 'local' ] && \
+   [ "${NOSQL_PROVIDER}" != 'oci' ]; then
+    echo "Provider NoSQL não suportado: ${NOSQL_PROVIDER}"
+    echo "Utilize NOSQL_PROVIDER=local ou NOSQL_PROVIDER=oci."
+    exit 1
+fi
+
+if [ "${NOSQL_PROVIDER}" != 'local' ] && \
+   [ -z "${NOSQL_COMPARTMENT_ID:-}" ]; then
+    echo 'Erro: NOSQL_COMPARTMENT_ID é obrigatório quando '
+    echo 'NOSQL_PROVIDER for diferente de local.'
+    exit 1
+fi
+
+if [ "${OBJECTSTORAGE_PROVIDER}" != 'local' ] && \
+   [ "${OBJECTSTORAGE_PROVIDER}" != 'oci' ]; then
+    echo "Provider Object Storage não suportado: ${OBJECTSTORAGE_PROVIDER}"
+    echo "Utilize OBJECTSTORAGE_PROVIDER=local ou "\
+        "OBJECTSTORAGE_PROVIDER=oci."
+    exit 1
+fi
+
 # Persistência
 
 display_step 'Inicialização da persistência'
 
 echo "Provider de persistência configurado: ${PERSISTENCE_PROVIDER}"
+echo "Provider NoSQL configurado: ${NOSQL_PROVIDER:-não utilizado}"
+echo "Provider Object Storage configurado: "\
+    "${OBJECTSTORAGE_PROVIDER}"
 
 if [ "${PERSISTENCE_PROVIDER}" = "nosql" ]; then
-    echo 'Inicializando persistência Oracle NoSQL...'
+    echo 'Inicializando a tabela Oracle NoSQL...'
 
+    # O handle é criado pela mesma fábrica utilizada pela aplicação. Dessa
+    # forma, NOSQL_PROVIDER seleciona automaticamente o backend local ou OCI.
     python <<'PYTHON'
-import os
-
-from borneo import NoSQLHandleConfig, TableRequest
-
+from app.config.settings import settings
 from app.repositories.nosql.connection import create_nosql_handle
+from borneo import TableLimits, TableRequest
 
-table_name = os.getenv(
-    'NOSQL_TABLE_NAME',
-    'pizzas'
-)
 
+table_name = settings.nosql_table_name
 handle = create_nosql_handle()
 
-drop_statement = f'''
-    DROP TABLE IF EXISTS {table_name}
-'''
+try:
+    statement = f'''
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            id STRING,
+            name STRING,
+            description STRING,
+            category STRING,
+            price NUMBER,
+            image_name STRING,
+            available BOOLEAN,
+            created_at TIMESTAMP(3),
+            updated_at TIMESTAMP(3),
+            PRIMARY KEY(id)
+        )
+    '''
 
-print(f'Excluindo tabela {table_name}, caso exista...')
+    print(f'Garantindo a tabela {table_name}...')
 
-drop_request = TableRequest().set_statement(drop_statement)
-drop_result = handle.table_request(drop_request)
-drop_result.wait_for_completion(handle, 60000, 1000)
-
-print(f'Tabela {table_name} removida.')
-
-statement = f'''
-    CREATE TABLE {table_name} (
-        id STRING,
-        name STRING,
-        description STRING,
-        category STRING,
-        price NUMBER,
-        image_name STRING,
-        available BOOLEAN,
-        created_at TIMESTAMP(3),
-        updated_at TIMESTAMP(3),
-        PRIMARY KEY(id)
+    # O Oracle NoSQL exige limites de capacidade durante a criação da tabela.
+    # Estes valores iniciais são fixos para manter o bootstrap previsível.
+    table_limits = TableLimits(
+        read_units=5,
+        write_units=5,
+        storage_gb=1
     )
-'''
 
-print(f'Criando tabela {table_name}...')
-
-request = TableRequest().set_statement(statement)
-result = handle.table_request(request)
-result.wait_for_completion(handle, 60000, 1000)
-
-print(f'Tabela {table_name} pronta para utilização.')
-
-handle.close()
+    request = (
+        TableRequest()
+        .set_statement(statement)
+        .set_table_limits(table_limits)
+    )
+    result = handle.table_request(request)
+    result.wait_for_completion(handle, 60000, 1000)
+    print(f'Tabela {table_name} pronta para utilização.')
+finally:
+    handle.close()
 PYTHON
 
 elif [ "${PERSISTENCE_PROVIDER}" = "sqlalchemy" ]; then
@@ -333,11 +369,10 @@ if [ "${APP_ENV}" = "development" ]; then
     display_step 'Criando pizzas de demonstração...'
 
     python <<'PYTHON'
-import os
-
 from decimal import Decimal
 from uuid import UUID
 
+from app.config.settings import settings
 from app.models.pizza import Pizza, PizzaCategory
 from app.repositories.nosql.connection import create_nosql_handle
 from app.repositories.nosql.nosql_pizza_repository import (
@@ -496,15 +531,15 @@ demo_pizzas = [
     )
 ]
 
-if os.getenv('PERSISTENCE_PROVIDER') != 'nosql':
+if settings.persistence_provider != 'nosql':
     raise RuntimeError(
-        'O seed de pizzas requer uma implementação de repositório disponível.'
+        'O seed de pizzas requer PERSISTENCE_PROVIDER=nosql.'
     )
 
 handle = create_nosql_handle()
 repository = NosqlPizzaRepository(
     handle=handle,
-    table_name=os.getenv('NOSQL_TABLE_NAME', 'pizzas')
+    table_name=settings.nosql_table_name
 )
 
 try:
@@ -522,18 +557,21 @@ finally:
     handle.close()
 PYTHON
 
-    display_step 'Enviando imagens de demonstração para o MinIO'
+    display_step 'Inicializando o bucket e as imagens de demonstração'
 
     python <<'PYTHON'
-import json
 import mimetypes
+import os
 
+from io import BytesIO
 from pathlib import Path
+from urllib.parse import urlparse
 
+import oci
+from minio import Minio
 from minio.error import S3Error
 
-from app.services.objectstorage_service import get_objectstorage_service
-
+from app.config.settings import settings
 
 seeds_directory = Path('seeds')
 image_paths = sorted(seeds_directory.glob('*.jpg'))
@@ -543,45 +581,128 @@ if not image_paths:
         'Nenhuma imagem de demonstração foi encontrada em seeds/.'
     )
 
-objectstorage_service = get_objectstorage_service()
-client = objectstorage_service.client
-bucket = objectstorage_service.bucket
+provider = settings.objectstorage_provider
+bucket = settings.objectstorage_bucket
 
-if not client.bucket_exists(bucket):
-    print(f'Criando bucket {bucket}...')
-    client.make_bucket(bucket)
+if provider == 'local':
+    if not settings.objectstorage_access_key:
+        raise ValueError(
+            'OBJECTSTORAGE_ACCESS_KEY is required when '
+            'OBJECTSTORAGE_PROVIDER is local.'
+        )
+
+    if not settings.objectstorage_secret_key:
+        raise ValueError(
+            'OBJECTSTORAGE_SECRET_KEY is required when '
+            'OBJECTSTORAGE_PROVIDER is local.'
+        )
+
+    endpoint = urlparse(settings.objectstorage_endpoint)
+    if not endpoint.netloc:
+        raise ValueError('OBJECTSTORAGE_ENDPOINT is invalid.')
+
+    client = Minio(
+        endpoint.netloc,
+        access_key=settings.objectstorage_access_key,
+        secret_key=settings.objectstorage_secret_key,
+        secure=endpoint.scheme == 'https'
+    )
+
+    # Cria o bucket local com a política privada padrão do MinIO.
+    if not client.bucket_exists(bucket):
+        client.make_bucket(bucket)
+
+    namespace = None
+
+elif provider == 'oci':
+    if settings.oci_auth_mode == 'config_file':
+        if not settings.oci_config_file:
+            raise ValueError(
+                'OCI_CONFIG_FILE is required when OCI_AUTH_MODE '
+                'is config_file.'
+            )
+
+        config = oci.config.from_file(
+            file_location=settings.oci_config_file,
+            profile_name=settings.oci_config_profile or 'DEFAULT'
+        )
+        config['region'] = settings.oci_region
+        client = oci.object_storage.ObjectStorageClient(config=config)
+        region = settings.oci_region
+    elif settings.oci_auth_mode == 'instance_principal':
+        signer = oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
+        region = signer.region or settings.oci_region
+        client = oci.object_storage.ObjectStorageClient(
+            config={'region': region},
+            signer=signer
+        )
+    else:
+        raise ValueError(
+            f'Unsupported OCI authentication mode: {settings.oci_auth_mode}'
+        )
+
+    namespace = client.get_namespace().data
+
+    # O bucket pode já existir. Só solicita o compartment quando a criação
+    # realmente for necessária.
+    try:
+        client.get_bucket(
+            namespace_name=namespace,
+            bucket_name=bucket
+        )
+    except oci.exceptions.ServiceError as ex:
+        if ex.status != 404:
+            raise
+
+        compartment_id = os.getenv('OBJECTSTORAGE_COMPARTMENT_ID')
+        if not compartment_id:
+            raise ValueError(
+                'OBJECTSTORAGE_COMPARTMENT_ID is required to create '
+                'an OCI Object Storage bucket.'
+            )
+
+        details = oci.object_storage.models.CreateBucketDetails(
+            name=bucket,
+            compartment_id=compartment_id
+        )
+        client.create_bucket(
+            namespace_name=namespace,
+            create_bucket_details=details
+        )
 else:
-    print(f'Bucket {bucket} já existe.')
+    raise ValueError(
+        f'Unsupported Object Storage provider: {provider}'
+    )
 
-# As imagens são acessadas diretamente pelo navegador durante o
-# desenvolvimento. A política permite somente a leitura pública dos objetos.
-public_read_policy = {
-    'Version': '2012-10-17',
-    'Statement': [
-        {
-            'Effect': 'Allow',
-            'Principal': {'AWS': ['*']},
-            'Action': ['s3:GetObject'],
-            'Resource': [f'arn:aws:s3:::{bucket}/*']
-        }
-    ]
-}
-
-client.set_bucket_policy(
-    bucket,
-    json.dumps(public_read_policy)
+print(
+    f'Bucket {bucket} pronto no provider {provider}.'
 )
 
 for image_path in image_paths:
     object_name = image_path.name
 
-    try:
-        client.stat_object(bucket, object_name)
-        print(f'Imagem de demonstração já existe: {object_name}')
-        continue
-    except S3Error as ex:
-        if ex.code not in {'NoSuchKey', 'NoSuchObject', 'NoSuchResource'}:
-            raise
+    if provider == 'local':
+        try:
+            client.stat_object(bucket, object_name)
+            print(f'Imagem de demonstração já existe: {object_name}')
+            continue
+        except S3Error as ex:
+            if ex.code not in {
+                'NoSuchKey', 'NoSuchObject', 'NoSuchResource'
+            }:
+                raise
+    else:
+        try:
+            client.head_object(
+                namespace_name=namespace,
+                bucket_name=bucket,
+                object_name=object_name
+            )
+            print(f'Imagem de demonstração já existe: {object_name}')
+            continue
+        except oci.exceptions.ServiceError as ex:
+            if ex.status != 404:
+                raise
 
     content_type, _ = mimetypes.guess_type(image_path.name)
 
@@ -590,11 +711,24 @@ for image_path in image_paths:
             f'Tipo de conteúdo inválido para imagem: {image_path.name}'
         )
 
-    objectstorage_service.upload_object(
-        object_name=object_name,
-        data=image_path.read_bytes(),
-        content_type=content_type
-    )
+    image_data = image_path.read_bytes()
+
+    if provider == 'local':
+        client.put_object(
+            bucket_name=bucket,
+            object_name=object_name,
+            data=BytesIO(image_data),
+            length=len(image_data),
+            content_type=content_type
+        )
+    else:
+        client.put_object(
+            namespace_name=namespace,
+            bucket_name=bucket,
+            object_name=object_name,
+            put_object_body=image_data,
+            content_type=content_type
+        )
 
     print(f'Imagem de demonstração enviada: {object_name}')
 PYTHON

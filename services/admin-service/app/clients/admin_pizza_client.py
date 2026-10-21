@@ -126,6 +126,49 @@ class AdminPizzaClient:
 
         return response.json()['data']['pizza']
 
+    async def get_image(self,
+                        access_token: str,
+                        pizza_id: UUID) -> tuple[bytes, str]:
+        """
+        Obtém a imagem de uma pizza no pizza-service.
+
+        Args:
+            access_token: Token JWT da sessão administrativa.
+            pizza_id: Identificador único da pizza consultada.
+
+        Raises:
+            httpx.HTTPError: Quando a comunicação falha ou o pizza-service
+                retorna uma resposta HTTP de erro.
+            ValueError: Quando a resposta não possui um tipo MIME de imagem.
+
+        Returns:
+            Tupla contendo o conteúdo binário e o tipo MIME da imagem.
+        """
+
+        headers = {
+            'Authorization': f'Bearer {access_token}'
+        }
+
+        async with httpx.AsyncClient(
+            timeout=settings.http_client_timeout
+        ) as client:
+            response = await client.get(
+                f'{self.base_url}/pizzas/{pizza_id}/image',
+                headers=headers,
+                timeout=settings.http_client_timeout
+            )
+
+        response.raise_for_status()
+
+        content_type = response.headers.get('content-type', '')
+
+        if not content_type.startswith('image/'):
+            raise ValueError(
+                'Pizza image response must have an image content type.'
+            )
+
+        return response.content, content_type
+
     async def create(self,
                      access_token: str,
                      data: dict,
@@ -146,7 +189,9 @@ class AdminPizzaClient:
             Dicionário com os dados da pizza criada.
         """
 
-        headers = {'Authorization': f'Bearer {access_token}'}
+        headers = {
+            'Authorization': f'Bearer {access_token}'
+        }
 
         # O WTForms representa o preço como `Decimal`, mas o httpx exige
         # tipos primitivos para os campos do multipart/form-data.
@@ -161,7 +206,7 @@ class AdminPizzaClient:
             timeout=settings.http_client_timeout
         ) as client:
             response = await client.post(
-                f'{self.base_url}/pizzas',
+                f'{self.base_url}/admin/pizzas',
                 data=multipart_data,
                 files={'image': image},
                 headers=headers
@@ -190,7 +235,9 @@ class AdminPizzaClient:
             Dicionário com os dados atualizados da pizza.
         """
 
-        headers = {'Authorization': f'Bearer {access_token}'}
+        headers = {
+            'Authorization': f'Bearer {access_token}'
+        }
 
         # Mantém a mesma conversão usada na criação para que atualizações de
         # preço também possam ser enviadas pelo encoder multipart do httpx.
@@ -207,7 +254,7 @@ class AdminPizzaClient:
             timeout=settings.http_client_timeout
         ) as client:
             response = await client.put(
-                f'{self.base_url}/pizzas/{pizza_id}',
+                f'{self.base_url}/admin/pizzas/{pizza_id}',
                 data=multipart_data,
                 files=files,
                 headers=headers
@@ -235,13 +282,15 @@ class AdminPizzaClient:
                 pelo admin-service.
         """
 
-        headers = {'Authorization': f'Bearer {access_token}'}
+        headers = {
+            'Authorization': f'Bearer {access_token}'
+        }
 
         async with httpx.AsyncClient(
             timeout=settings.http_client_timeout
         ) as client:
             response = await client.delete(
-                f'{self.base_url}/pizzas/{pizza_id}',
+                f'{self.base_url}/admin/pizzas/{pizza_id}',
                 headers=headers
             )
 

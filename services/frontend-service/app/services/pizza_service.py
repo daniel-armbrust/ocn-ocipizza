@@ -59,6 +59,25 @@ class PizzaService:
             offset=offset
         )
 
+    async def get_image(self, pizza_id: str) -> tuple[bytes, str]:
+        """
+        Obtém a imagem de uma pizza através do pizza-service.
+
+        Args:
+            pizza_id: Identificador UUID da pizza consultada.
+
+        Returns:
+            Tupla contendo os bytes da imagem e o seu tipo MIME.
+
+        Raises:
+            httpx.HTTPStatusError: Caso o pizza-service retorne uma resposta
+                HTTP de erro.
+            httpx.RequestError: Caso ocorra uma falha de comunicação com o
+                pizza-service.
+        """
+
+        return await self.pizza_client.get_image(pizza_id)
+
 
 def get_pizza_service(
     pizza_client: PizzaClient = Depends(get_pizza_client)

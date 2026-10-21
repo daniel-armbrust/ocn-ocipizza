@@ -141,11 +141,11 @@ class NosqlPizzaRepository(PizzaRepository):
 
         # Define explicitamente os campos retornados pela consulta.
         statement = (
-            f"""
+            f'''
             SELECT id, name, description, category, price,
                 image_name, available, created_at, updated_at
             FROM {self.table_name}
-            """
+            '''
         )
 
         filters = []
@@ -176,8 +176,6 @@ class NosqlPizzaRepository(PizzaRepository):
             f' LIMIT {limit}'
             f' OFFSET {offset}'
         )
-
-        print(statement)
 
         request = QueryRequest().set_statement(statement)
 

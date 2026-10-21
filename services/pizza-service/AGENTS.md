@@ -38,8 +38,9 @@ conter regras de negócio.
   execução.
 - O acesso deve ocorrer pelos repositórios e pela unidade de trabalho fornecida
   por injeção de dependências.
-- O `bootstrap.sh` pode recriar a tabela e remover dados locais; utilize-o
-  somente para preparar desenvolvimento.
+- O `bootstrap.sh` garante a tabela, os dados de demonstração e o bucket nos
+  providers selecionados por `NOSQL_PROVIDER` e `OBJECTSTORAGE_PROVIDER`.
+  Execute-o somente para preparar um ambiente controlado.
 - Alterações no modelo persistido devem ser refletidas nos providers
   suportados e no `README.md`.
 
@@ -65,8 +66,9 @@ conter regras de negócio.
   chave do objeto mudar.
 - Na exclusão, o registro e sua imagem associada devem ser removidos conforme
   o comportamento documentado do serviço.
-- Em desenvolvimento, utilize MinIO e as configurações locais. Fora de
-  desenvolvimento, utilize OCI Object Storage com Instance Principal.
+- Para o provider `local`, utilize MinIO e as configurações locais. Para o
+  provider `oci`, utilize OCI Object Storage com a estratégia definida por
+  `OCI_AUTH_MODE`.
 - Nunca registre conteúdo de imagem, credenciais ou URLs contendo informações
   sensíveis.
 

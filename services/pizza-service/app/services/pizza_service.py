@@ -72,45 +72,29 @@ class PizzaService:
                 category: PizzaCategory | None = None,
                 available: bool | None = None,
                 limit: int = 10,
-                offset: int = 0) -> list[tuple[Pizza, str]]:
+                offset: int = 0) -> list[Pizza]:
         """
         Retorna as pizzas cadastradas de acordo com os filtros informados.
 
         Args:
             category: Categoria utilizada para filtrar as pizzas.
-            available: Filtra pizzas de acordo com sua disponibilidade.
+            available: Indica se o resultado deve ser filtrado
+                pela disponibilidade.
             limit: Quantidade máxima de pizzas retornadas.
             offset: Quantidade de registros ignorados antes do retorno.
 
         Returns:
-            Lista contendo as pizzas encontradas.
-
-        Raises:
-            PizzaQueryError: Caso ocorra uma falha durante a consulta
-                das pizzas.
+            Lista de pizzas encontradas.
         """
 
-        try:
-            pizzas = self.pizza_repository.get_all(
-                category=category,
-                available=available,
-                limit=limit,
-                offset=offset
-            )
+        return self.pizza_repository.get_all(
+            category=category,
+            available=available,
+            limit=limit,
+            offset=offset
+        )
 
-            return [
-                (
-                    pizza,
-                    self.objectstorage_service.get_object_url(
-                        pizza.image_name
-                    )
-                )
-                for pizza in pizzas
-            ]
-        except Exception as ex:
-            raise PizzaQueryError('Error retrieving pizzas.') from ex
-
-    def get_by_id(self, pizza_id: UUID) -> tuple[Pizza, str]:
+    def get_by_id(self, pizza_id: UUID) -> Pizza:
         """
         Retorna uma pizza através de seu identificador.
 
@@ -128,51 +112,38 @@ class PizzaService:
         try:
             pizza = self.pizza_repository.get_by_id(pizza_id)
         except Exception as ex:
-            raise PizzaQueryError(
-                'Error retrieving pizza.'
-            ) from ex
+            raise PizzaQueryError('Error retrieving pizza.') from ex
 
         if pizza is None:
             raise PizzaNotFoundError('Pizza not found.')
 
-        image_url = self.objectstorage_service.get_object_url(
-            pizza.image_name
-        )
+        return pizza
 
-        return pizza, image_url
-
-    @staticmethod
-    def _generate_image_name(content_type: str) -> str:
+    def get_image(self, pizza_id: UUID) -> tuple[bytes, str]:
         """
-        Gera um nome único para uma imagem armazenada no Object Storage.
+        Retorna a imagem associada à pizza informada.
 
         Args:
-            content_type: Tipo MIME informado para a imagem recebida.
+            pizza_id: Identificador UUID da pizza.
 
         Returns:
-            Nome seguro e único para o objeto armazenado.
+            Conteúdo binário da imagem e seu tipo MIME.
+
+        Raises:
+            PizzaNotFoundError: Caso a pizza não seja encontrada.
+            PizzaQueryError: Caso ocorra uma falha durante a consulta.
         """
 
-        # A extensão é derivada do tipo MIME, e não do nome enviado pelo
-        # cliente, para evitar confiar em dados controlados externamente.
-        extensions = {
-            'image/jpeg': 'jpg',
-            'image/png': 'png',
-            'image/gif': 'gif',
-            'image/webp': 'webp',
-            'image/svg+xml': 'svg'
-        }
+        pizza = self.get_by_id(pizza_id)
 
-        extension = extensions.get(content_type, 'img')
-
-        # UUID4 reduz o risco de colisão mesmo quando múltiplas instâncias
-        # do serviço recebem uploads simultaneamente.
-        return f'pizza-{uuid4().hex}.{extension}'
+        return self.objectstorage_service.get_object(
+            pizza.image_name
+        )
 
     def create(self,
                payload: PizzaCreateRequest,
                image_data: bytes,
-               content_type: str) -> tuple[Pizza, str]:
+               content_type: str) -> Pizza:
         """
         Cria uma nova pizza e armazena sua respectiva imagem.
 
@@ -182,11 +153,11 @@ class PizzaService:
             content_type: Tipo MIME da imagem.
 
         Returns:
-            Pizza criada e a respectiva URL de imagem.
+            Pizza criada.
 
         Raises:
             PizzaCreationError: Caso ocorra uma falha durante a criação
-                da pizza.
+                da pizza ou no armazenamento de sua imagem.
         """
 
         if not content_type or not content_type.startswith('image/'):
@@ -211,6 +182,7 @@ class PizzaService:
         # pela camada HTTP.
         pizza = Pizza(
             id=uuid4(),
+
             # Padroniza a apresentação antes de persistir os textos do
             # catálogo, independentemente do cliente que enviou a requisição.
             name=payload.name.title(),
@@ -246,18 +218,13 @@ class PizzaService:
                 'Pizza created, but failed to upload image.'
             ) from ex
 
-        # Obtém a URL correspondente ao objeto armazenado.
-        image_url = self.objectstorage_service.get_object_url(
-            pizza.image_name
-        )
-
-        return pizza, image_url
+        return pizza
 
     def update(self,
                pizza_id: UUID,
                payload: PizzaUpdateRequest,
                image_data: bytes | None = None,
-               content_type: str | None = None) -> tuple[Pizza, str]:
+               content_type: str | None = None) -> Pizza:
         """
         Atualiza os dados de uma pizza e, quando informado,
         substitui sua imagem.
@@ -269,7 +236,7 @@ class PizzaService:
             content_type: Tipo MIME da nova imagem.
 
         Returns:
-            Pizza atualizada e a respectiva URL de imagem.
+            Pizza atualizada.
 
         Raises:
             PizzaNotFoundError: Caso a pizza não seja encontrada.
@@ -297,26 +264,26 @@ class PizzaService:
             # Obtém somente os campos efetivamente enviados.
             update_data = payload.model_dump(exclude_unset=True)
 
-            # Aplica a mesma padronização da criação somente aos campos que
-            # foram enviados na atualização parcial.
+            # Aplica a mesma padronização da criação somente aos campos
+            # enviados na atualização parcial.
             if 'name' in update_data:
                 update_data['name'] = update_data['name'].title()
 
             if 'description' in update_data:
-                update_data['description'] = (
-                    update_data['description'].capitalize()
-                )
+                update_data['description'] =  update_data['description'].capitalize()
 
+            # Quando uma nova imagem é enviada e nenhum nome foi informado,
+            # gera uma nova chave para o objeto.
             if image_data is not None and 'image_name' not in update_data:
-                # Uma nova imagem recebe uma nova chave para não sobrescrever
-                # o objeto anterior quando o nome não for informado.
-                update_data['image_name'] = self._generate_image_name(
-                    content_type
-                )
+                update_data['image_name'] = self._generate_image_name(content_type)
 
             # Atualiza apenas os atributos informados na requisição.
             for field, value in update_data.items():
-                setattr(pizza, field, value)
+                setattr(
+                    pizza,
+                    field,
+                    value
+                )
 
             pizza.updated_at = now_utc()
 
@@ -335,11 +302,6 @@ class PizzaService:
         # a atualização da pizza ter sido confirmada.
         if image_data is not None:
             try:
-                if not content_type:
-                    raise ValueError(
-                        'Content type is required when image data is provided.'
-                    )
-
                 self.objectstorage_service.upload_object(
                     object_name=pizza.image_name,
                     data=image_data,
@@ -352,6 +314,7 @@ class PizzaService:
                     self.objectstorage_service.delete_object(
                         previous_image_name
                     )
+
             except Exception as ex:
                 # TODO: Implementar tratamento de inconsistência entre a
                 # atualização da pizza e as operações no Object Storage,
@@ -360,58 +323,81 @@ class PizzaService:
                     'Pizza updated, but failed to update image.'
                 ) from ex
 
-        # A URL é calculada a partir do nome da imagem atualmente
-        # associado à pizza.
-        image_url = self.objectstorage_service.get_object_url(
-            pizza.image_name
-        )
-
-        return pizza, image_url
+        return pizza
 
     def delete(self, pizza_id: UUID) -> None:
         """
-        Remove uma pizza.
+        Remove uma pizza e sua respectiva imagem.
 
         Args:
-            pizza_id: Identificador UUID da pizza que será removida.
-
-        Returns:
-            None.
+            pizza_id: Identificador da pizza.
 
         Raises:
             PizzaNotFoundError: Caso a pizza não seja encontrada.
-            PizzaDeletionError: Caso ocorra uma falha durante
-                a remoção da pizza.
+            PizzaDeleteError: Caso ocorra uma falha durante a remoção.
         """
 
         try:
+            # Consulta a pizza atualmente persistida para obter
+            # o nome da imagem associada antes da remoção.
             pizza = self.pizza_repository.get_by_id(pizza_id)
-        except Exception as ex:
-            raise PizzaDeletionError(
-                'Error retrieving pizza for deletion.'
-            ) from ex
 
-        # Interrompe a operação caso a pizza não exista.
-        if pizza is None:
-            raise PizzaNotFoundError('Pizza not found.')
+            if pizza is None:
+                raise PizzaNotFoundError()
 
-        try:
+            image_name = pizza.image_name
+
+            # Remove a pizza do repositório.
             self.pizza_repository.delete(pizza_id)
+
             self.unit_of_work.commit()
+        except PizzaNotFoundError:
+            self.unit_of_work.rollback()
+            raise
         except Exception as ex:
             self.unit_of_work.rollback()
-            raise PizzaDeletionError('Error deleting pizza.') from ex
+            raise PizzaDeletionError('Failed to delete pizza.') from ex
 
         try:
-            self.objectstorage_service.delete_object(pizza.image_name)
+            # Remove a imagem somente após a exclusão da pizza
+            # ter sido confirmada no repositório.
+            self.objectstorage_service.delete_object(image_name)
         except Exception as ex:
-            # TODO: Implementar tratamento de inconsistência entre a
-            # exclusão da pizza e a remoção da imagem no Object Storage,
-            # incluindo retry ou processamento assíncrono.
+            # TODO: Implementar tratamento de inconsistência entre a remoção
+            # da pizza e a exclusão da imagem no Object Storage, incluindo
+            # retry, compensação ou processamento assíncrono.
             raise PizzaDeletionError(
                 'Pizza deleted, but failed to delete image.'
             ) from ex
 
+    @staticmethod
+    def _generate_image_name(content_type: str) -> str:
+        """
+        Gera um nome único para uma imagem armazenada no Object Storage.
+
+        Args:
+            content_type: Tipo MIME informado para a imagem recebida.
+
+        Returns:
+            Nome seguro e único para o objeto armazenado.
+        """
+
+        # A extensão é derivada do tipo MIME, e não do nome enviado pelo
+        # cliente, para evitar confiar em dados controlados externamente.
+        extensions = {
+            'image/jpeg': 'jpg',
+            'image/png': 'png',
+            'image/gif': 'gif',
+            'image/webp': 'webp',
+            'image/svg+xml': 'svg'
+        }
+
+        extension = extensions.get(content_type, 'img')
+
+        # UUID4 reduz o risco de colisão mesmo quando múltiplas instâncias
+        # do serviço recebem uploads simultaneamente.
+        return f'pizza-{uuid4().hex}.{extension}'
+    
 
 def get_pizza_service(
         pizza_repository: PizzaRepository = Depends(

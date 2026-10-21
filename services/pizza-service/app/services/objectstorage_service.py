@@ -25,44 +25,47 @@ class ObjectStorageService:
 
     def __init__(self) -> None:
         """
-        Inicializa o cliente de Object Storage correspondente
-        ao ambiente da aplicação.
-
-        Raises:
-            ValueError: Caso alguma configuração obrigatória não esteja
-                definida.
+        Inicializa o cliente de Object Storage correspondente ao 
+        provider configurado para a aplicação. 
+        
+        Raises: 
+            ValueError: Caso alguma configuração obrigatória não esteja 
+                definida ou alguma opção configurada não seja suportada. 
         """
 
-        if not settings.objectstorage_bucket:
-            raise ValueError('OBJECTSTORAGE_BUCKET is required.')
-
-        self.bucket = settings.objectstorage_bucket
-
-        self.endpoint = None
+        self.bucket = settings.objectstorage_bucket 
+        
         self.namespace = None
+        self.endpoint = None
         self.region = None
         self.client = None
 
-        # Em desenvolvimento, utiliza MinIO.
-        if settings.app_env == 'development':
+        # Utiliza o MinIO como implementação local compatível 
+        # com armazenamento de objetos.
+        if settings.objectstorage_provider == 'minio':
             if not settings.objectstorage_access_key:
                 raise ValueError(
-                    'OBJECTSTORAGE_ACCESS_KEY is required '
-                    'in development environment.'
+                    'OBJECTSTORAGE_ACCESS_KEY is required when ' 
+                    'OBJECTSTORAGE_PROVIDER is minio.'
                 )
 
             if not settings.objectstorage_secret_key:
                 raise ValueError(
-                    'OBJECTSTORAGE_SECRET_KEY is required '
-                    'in development environment.'
+                    'OBJECTSTORAGE_SECRET_KEY is required when ' 
+                    'OBJECTSTORAGE_PROVIDER is minio.'
+                )
+
+            if not settings.objectstorage_endpoint:
+                raise ValueError(
+                    'OBJECTSTORAGE_ENDPOINT is required when '
+                    'OBJECTSTORAGE_PROVIDER is minio.'
                 )
 
             endpoint = urlparse(settings.objectstorage_endpoint)
-
             self.endpoint = settings.objectstorage_endpoint.rstrip('/')
 
-            # Inicializa o cliente MinIO utilizando o endpoint
-            # configurado para o ambiente de desenvolvimento.
+            # Inicializa o cliente MinIO utilizando o endpoint 
+            # e as credenciais configuradas para execução local.
             self.client = Minio(
                 endpoint.netloc,
                 access_key=settings.objectstorage_access_key,
@@ -71,70 +74,111 @@ class ObjectStorageService:
             )
 
             return
+        
+        # Utiliza o OCI Object Storage como backend de armazenamento.
+        elif settings.objectstorage_provider == 'oci':
+               
+            # Utiliza o arquivo de configuração OCI para autenticação, 
+            # normalmente durante a execução local da aplicação.
+            if settings.oci_auth_mode == 'config_file':
 
-        # Fora do ambiente de desenvolvimento, o namespace
-        # do OCI Object Storage é obrigatório.
-        if not settings.objectstorage_namespace:
+                if not settings.oci_region:
+                    raise ValueError(
+                        'OCI_REGION is required to configure regional OCI access '
+                        'and build service URLs.'
+                    )
+
+                config = oci.config.from_file(
+                    file_location=settings.oci_config_file,
+                    profile_name=settings.oci_config_profile
+                )
+
+                self.region = settings.oci_region
+                config['region'] = settings.oci_region
+
+                self.client = oci.object_storage.ObjectStorageClient(
+                    config=config
+                )
+
+            # Utiliza a identidade da própria Compute Instance para 
+            # autenticação, evitando o uso de chaves e credenciais 
+            # armazenadas localmente.
+            elif settings.oci_auth_mode == 'instance_principal':
+                signer = oci.auth.signers.InstancePrincipalSecurityTokenSigner()
+
+                # Obtém automaticamente a região do OCI associada à 
+                # Compute Instance.
+                self.region = signer.region
+
+                self.client = (
+                    oci.object_storage.ObjectStorageClient(
+                        config={
+                            'region': self.region
+                        },
+                        signer=signer
+                    )
+                )
+
+            else:
+                raise ValueError(
+                    'Unsupported OCI authentication mode: '
+                    f'{settings.oci_auth_mode}'
+                )
+
+            # Obtém automaticamente o namespace associado ao tenant
+            # utilizado durante a autenticação no OCI.
+            self.namespace = self.client.get_namespace().data
+
+        else:
             raise ValueError(
-                'OBJECTSTORAGE_NAMESPACE is required '
-                'outside development environment.'
-            )
+                'Unsupported Object Storage provider: ' 
+                f'{settings.objectstorage_provider}'
+            )       
 
-        self.namespace = settings.objectstorage_namespace
-
-        # Utiliza Instance Principal para autenticação e obtenção
-        # automática da região onde a aplicação está executando.
-        signer = (
-            oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
-        )
-
-        self.region = signer.region
-
-        if not self.region:
-            raise ValueError(
-                'Unable to determine OCI region '
-                'from Instance Principal.'
-            )
-
-        # Inicializa o cliente OCI Object Storage.
-        self.client = oci.object_storage.ObjectStorageClient(
-            config={'region': self.region},
-            signer=signer
-        )
-
-    def get_object_url(self, object_name: str) -> str:
+    def get_object(self,
+                   object_name: str) -> tuple[bytes, str]:
         """
-        Retorna a URL completa de um objeto.
-
-        Em desenvolvimento, utiliza o endpoint do MinIO.
-
-        Nos demais ambientes, utiliza a URL regional do
-        OCI Object Storage.
+        Obtém um objeto armazenado no provider configurado.
 
         Args:
             object_name: Nome do objeto armazenado no bucket.
 
         Returns:
-            URL completa do objeto.
+            Conteúdo binário do objeto e seu tipo MIME.
         """
 
-        # Armazenamento local baseado em MinIO.
-        if settings.app_env == 'development':
-            return (
-                f'{self.endpoint}/'
-                f'{self.bucket}/'
-                f'{object_name}'
+        # Obtém o objeto armazenado no MinIO.
+        if settings.objectstorage_provider == 'minio':
+            response = self.client.get_object(
+                bucket_name=self.bucket,
+                object_name=object_name
             )
 
-        # No OCI, constrói a URL utilizando região, namespace,
-        # bucket e nome do objeto.
-        return (
-            f'https://objectstorage.{self.region}.oraclecloud.com/'
-            f'n/{self.namespace}/'
-            f'b/{self.bucket}/'
-            f'o/{object_name}'
-        )
+            try: 
+                content = response.read() 
+                content_type = response.headers.get('Content-Type') 
+            finally: 
+                response.close() 
+                response.release_conn()
 
+        # Obtém a imagem armazenada no OCI Object Storage. 
+        if settings.objectstorage_provider == 'oci': 
+            response = self.client.get_object(
+                namespace_name=self.namespace, 
+                bucket_name=self.bucket, 
+                object_name=object_name
+            ) 
+            
+            content = response.data.content 
+            content_type = response.headers.get('content-type')
+
+        # Garante que somente objetos do tipo imagem sejam 
+        # retornados pelo serviço. 
+        if not content_type or not content_type.startswith('image/'): 
+            raise ValueError('Stored object is not a valid image.')
+
+        return content, content_type
+            
     def delete_object(self, object_name: str) -> None:
         """
         Remove um objeto do armazenamento configurado.
@@ -143,7 +187,7 @@ class ObjectStorageService:
             object_name: Nome do objeto que será removido.
         """
 
-        if settings.app_env == 'development':
+        if settings.objectstorage_provider == 'minio':
             self.client.remove_object(self.bucket, object_name)
             return
 
@@ -160,15 +204,27 @@ class ObjectStorageService:
                       data: bytes,
                       content_type: str) -> None:
         """
-        Envia um novo objeto para o armazenamento configurado.
+        Envia uma imagem para o provider de armazenamento configurado.
 
         Args:
-            object_name: Nome do objeto que será armazenado.
-            data: Conteúdo binário do objeto.
-            content_type: Tipo MIME do objeto.
+            object_name: Nome utilizado para identificar o objeto.
+            data: Conteúdo binário da imagem que será armazenada.
+            content_type: Tipo MIME da imagem enviada.
+
+        Raises:
+            ValueError: Quando o conteúdo informado não for uma imagem.
+            RuntimeError: Quando o provider configurado não for suportado.
         """
 
-        if settings.app_env == 'development':
+        # Garante que somente arquivos do tipo imagem sejam
+        # armazenados pelo serviço.
+        if not content_type.startswith('image/'):
+            raise ValueError(
+                'Object content type must be an image.'
+            )
+
+        # Envia a imagem para o MinIO.
+        if settings.objectstorage_provider == 'minio':
             self.client.put_object(
                 bucket_name=self.bucket,
                 object_name=object_name,
@@ -179,14 +235,22 @@ class ObjectStorageService:
 
             return
 
-        # No OCI, envia o objeto utilizando namespace, bucket
-        # e nome do objeto.
-        self.client.put_object(
-            namespace_name=self.namespace,
-            bucket_name=self.bucket,
-            object_name=object_name,
-            put_object_body=data,
-            content_type=content_type
+        # Envia a imagem para o OCI Object Storage utilizando
+        # o namespace e o bucket configurados para a aplicação.
+        if settings.objectstorage_provider == 'oci':
+            self.client.put_object(
+                namespace_name=self.namespace,
+                bucket_name=self.bucket,
+                object_name=object_name,
+                put_object_body=data,
+                content_type=content_type
+            )
+
+            return
+
+        raise RuntimeError(
+            'Unsupported Object Storage provider: '
+            f'{settings.objectstorage_provider}'
         )
 
 

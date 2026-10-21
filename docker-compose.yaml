@@ -1,5 +1,8 @@
 services:
 
+  # TODO: “A aplicação que hoje funciona localmente continua funcionando
+  # quando troco os mocks/serviços locais pelos serviços reais do OCI?”
+
   # Microserviço responsável pelo gerenciamento do catálogo 
   # de pizzas.
   pizza-service:
@@ -15,24 +18,35 @@ services:
       APP_ENV: development
       LOG_LEVEL: INFO
 
+      # Provider de persistência.
       PERSISTENCE_PROVIDER: nosql
 
+      # Use local to connect to the container below or oci to use
+      # Oracle NoSQL Database Cloud Service.
+      NOSQL_PROVIDER: ${NOSQL_PROVIDER:-local}
       NOSQL_ENDPOINT: http://nosql:8080
       NOSQL_TABLE_NAME: pizzas
+      NOSQL_COMPARTMENT_ID: ${NOSQL_COMPARTMENT_ID:-}
 
-      OBJECTSTORAGE_ENDPOINT: http://object-storage:9000
+      # Use local to connect to the MinIO container or oci to use
+      # OCI Object Storage.
+      OBJECTSTORAGE_PROVIDER: ${OBJECTSTORAGE_PROVIDER:-local}
+      
+      OBJECTSTORAGE_ENDPOINT: http://objectstorage:9000
       OBJECTSTORAGE_BUCKET: pizza-images
+            
       OBJECTSTORAGE_ACCESS_KEY: minioadmin
       OBJECTSTORAGE_SECRET_KEY: minioadmin
 
       JWT_ISSUER: user-service
       JWT_AUDIENCE: ocipizza
       JWT_JWKS_URL: http://user-service:8000/.well-known/jwks.json
-    depends_on:
-      nosql:
-        condition: service_started
-      object-storage:
-        condition: service_started
+
+      OCI_AUTH_MODE: config_file
+      OCI_CONFIG_FILE: /app/.oci/config
+      OCI_CONFIG_PROFILE: DEFAULT
+    volumes:
+      - ${HOME}/.oci:/app/.oci:ro
 
   # Microserviço responsável pelo ciclo de vida dos usuários.
   # Persiste dados no MySQL e publica notificações no RabbitMQ
@@ -220,8 +234,8 @@ services:
         DELIVERY_SERVICE_URL: http://delivery-service:8000
         ORDER_SERVICE_URL: http://order-service:8000
     depends_on:
-      pizza-service:
-        condition: service_started
+      # pizza-service:
+      #   condition: service_started
       user-service:
         condition: service_started
       delivery-service:
@@ -261,7 +275,7 @@ services:
         JWT_AUDIENCE: ocipizza
         JWT_JWKS_URL: http://user-service:8000/.well-known/jwks.json
 
-        OBJECTSTORAGE_ENDPOINT: http://object-storage:9000
+        OBJECTSTORAGE_ENDPOINT: http://objectstorage:9000
         OBJECTSTORAGE_ACCESS_KEY: minioadmin
         OBJECTSTORAGE_SECRET_KEY: minioadmin
 
@@ -279,7 +293,7 @@ services:
         condition: service_started
       redis:
         condition: service_healthy
-      object-storage:
+      objectstorage:
         condition: service_started
 
   # Banco de dados NoSQL utilizado pelos serviços da 
@@ -300,8 +314,8 @@ services:
 
   # Serviço utilizado para armazenamento de imagens da 
   # aplicação.
-  object-storage:
-    container_name: ocipizza-object-storage
+  objectstorage:
+    container_name: ocipizza-objectstorage
     image: ghcr.io/coollabsio/minio@sha256:69b55a1c1c5dc285ce04db96689f5b2102317fc77a50680a1874ca6efd1c87f9
     command:
       - server
@@ -317,7 +331,7 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     volumes:
-      - object-storage-data:/data
+      - objectstorage-data:/data
 
   # Banco de dados relacional MySQL.
   # https://container-registry.oracle.com/ords/ocr/ba/mysql/community-server 
@@ -426,6 +440,6 @@ networks:
 volumes:
   mysql-data:
   nosql-data:
-  object-storage-data:
+  objectstorage-data:
   rabbitmq-data:
   mailpit-data:

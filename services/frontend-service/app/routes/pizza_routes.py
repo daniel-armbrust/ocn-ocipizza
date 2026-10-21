@@ -2,7 +2,9 @@
 # routes/pizza_routes.py
 #
 
-from fastapi import APIRouter, Depends, Query, Request
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import HTMLResponse
 
 from app.dependencies.templates import templates
@@ -79,6 +81,13 @@ async def list_all_pizzas(
         offset=offset
     )
 
+    # O pizza-service retorna somente o nome do objeto. A URL pública para a
+    # imagem é fornecida pelo BFF, que mantém privado o Object Storage.
+    pizza_items = pizzas.get('data', {}).get('pizzas', [])
+
+    for pizza in pizza_items:
+        pizza['image_url'] = f'/pizzas/{pizza["id"]}/image'
+
     return templates.TemplateResponse(
         request=request,
         name='pizzas/list.html',
@@ -92,4 +101,35 @@ async def list_all_pizzas(
             'limit': limit,
             'offset': offset
         }
+    )
+
+#
+# GET: /pizzas/{pizza_id}/image
+#
+@router.get(
+    '/pizzas/{pizza_id}/image',
+    response_class=Response
+)
+async def get_pizza_image(
+    pizza_id: UUID,
+    pizza_service: PizzaService = Depends(get_pizza_service)
+) -> Response:
+    """
+    Encaminha ao navegador a imagem privada de uma pizza.
+
+    Args:
+        pizza_id: Identificador UUID da pizza consultada.
+        pizza_service: Serviço responsável pela comunicação com o
+            pizza-service.
+
+    Returns:
+        Resposta contendo os bytes da imagem e o tipo MIME informado pelo
+        pizza-service.
+    """
+
+    image_data, content_type = await pizza_service.get_image(str(pizza_id))
+
+    return Response(
+        content=image_data,
+        media_type=content_type
     )

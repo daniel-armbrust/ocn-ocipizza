@@ -15,6 +15,7 @@ from app.config.settings import settings
 from app.clients.jwks_client import jwks_client
 
 from app.routes.pizza_routes import router as pizza_router
+from app.routes.pizza_admin_routes import router as pizza_admin_router
 
 from app.responses.jsend import fail_response
 
@@ -147,3 +148,4 @@ def health_check() -> dict:
 
 
 app.include_router(pizza_router)
+app.include_router(pizza_admin_router)
