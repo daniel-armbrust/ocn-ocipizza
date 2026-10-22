@@ -4,6 +4,7 @@
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -25,14 +26,14 @@ class Settings(BaseSettings):
     app_env: str = 'development'
     debug: bool = False
 
-    oci_region: str = 'sa-saopaulo-1'
+    oci_region: str | None = 'sa-saopaulo-1'
 
     # URL base pública utilizada para construir links 
     # enviados aos usuários.
     site_url: str = 'https://www.ocipizza.com.br'
 
     # E-mail
-    email_provider: str = 'smtp'
+    email_provider: Literal['smtp', 'oci'] = 'smtp'
 
     # Caminho do diretório que contém os templates utilizados
     # na construção dos e-mails de notificação.
@@ -56,7 +57,7 @@ class Settings(BaseSettings):
     smtp_email_sender: str = 'no-reply@ocipizza.com.br'
 
     # Mensageria
-    messaging_provider: str
+    messaging_provider: Literal['rabbitmq', 'oci_queue'] = 'oci_queue'
     queue_name: str = 'notifications-queue'
 
     # Intervalo, em segundos, entre as consultas à fila quando
@@ -75,11 +76,23 @@ class Settings(BaseSettings):
     
     # OCI Queue
     oci_queue_id: str | None = None
-    oci_queue_messages_endpoint: str | None = None
 
     # Logging
     log_level: str = 'INFO'
     oci_log_id: str | None = None
+
+    # Estratégia de autenticação utilizada para acessar os serviços
+    # do OCI.
+    oci_auth_mode: Literal[
+        'config_file', 
+        'instance_principal'
+    ] = 'instance_principal'
+
+    # Caminho do arquivo de configuração e profile usados para
+    # autenticação nos serviços do OCI.
+    oci_config_file: str | None = None
+    oci_config_profile: str | None = None
+    
 
 @lru_cache
 def get_settings() -> Settings:

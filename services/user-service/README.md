@@ -71,8 +71,10 @@ definidas em `requirements.txt`.
 | `RABBITMQ_PASSWORD` | — | Senha utilizada na conexão com o RabbitMQ. |
 | `QUEUE_NAME` | — | Nome lógico da fila utilizada pelo provider de mensageria. |
 | `OCI_QUEUE_ID` | — | OCID da fila utilizada pelo provider OCI Queue. |
-| `OCI_QUEUE_MESSAGES_ENDPOINT` | — | Endpoint de mensagens da OCI Queue. |
 | `OCI_REGION` | — | Região dos serviços OCI utilizados pela instância. |
+| `OCI_AUTH_MODE` | `instance_principal` | Autenticação OCI: `config_file` ou `instance_principal`. |
+| `OCI_CONFIG_FILE` | — | Caminho do arquivo de configuração OCI quando `OCI_AUTH_MODE=config_file`. |
+| `OCI_CONFIG_PROFILE` | — | Profile usado no arquivo de configuração OCI. |
 | `REFRESH_TOKEN_EXPIRATION_DAYS` | `30` | Validade do refresh token em dias. |
 | `JWT_KEY_PROVIDER` | `local` | Provider das chaves JWT: `local` ou `oci`. |
 | `JWT_ISSUER` | `user-service` | Emissor incluído e esperado nos access tokens. |
@@ -84,13 +86,15 @@ definidas em `requirements.txt`.
 | `LOG_LEVEL` | `INFO` | Nível global de logging da aplicação. |
 | `OCI_LOG_ID` | — | OCID do Custom Log, obrigatório fora de desenvolvimento. |
 
-Quando `MESSAGING_PROVIDER=oci_queue`, o serviço autentica no OCI Queue por
-Instance Principal. A instância deve pertencer a um Dynamic Group autorizado
-por uma IAM Policy a publicar na fila configurada. Esse fluxo não utiliza
-arquivo de configuração OCI, API key ou chave privada armazenada na aplicação.
+Quando `MESSAGING_PROVIDER=oci_queue`, o serviço utiliza o modo definido em
+`OCI_AUTH_MODE`. O modo `config_file` usa `OCI_CONFIG_FILE` e
+`OCI_CONFIG_PROFILE`; o modo `instance_principal` usa a identidade da
+instância no OCI. Em ambos os casos, a identidade deve possuir uma IAM Policy
+autorizando a publicação na fila configurada.
 
-O `OCI_QUEUE_MESSAGES_ENDPOINT` deve receber o `messagesEndpoint` específico
-da fila, e não o endpoint administrativo do serviço OCI Queue.
+O publisher consulta os metadados da fila e obtém automaticamente o
+`messagesEndpoint` específico. Portanto, não é necessário configurar uma
+variável `OCI_QUEUE_MESSAGES_ENDPOINT`.
 
 O nome da fila RabbitMQ é configurado por `QUEUE_NAME`. O valor utilizado no
 ambiente local do projeto é `notifications-queue`, compartilhado com o
@@ -110,8 +114,8 @@ necessários, publica mensagens JSON na fila configurada para que o
 O token enviado na mensagem é o valor original necessário para o usuário; o
 serviço persiste somente o hash do token. O provider pode ser alterado sem
 mudar o contrato da mensagem: RabbitMQ usa a fila lógica configurada em
-`QUEUE_NAME`, enquanto OCI Queue utiliza `OCI_QUEUE_ID` e
-`OCI_QUEUE_MESSAGES_ENDPOINT`.
+`QUEUE_NAME`, enquanto OCI Queue utiliza `OCI_QUEUE_ID` e obtém o endpoint de
+mensagens automaticamente.
 
 ## Documentação interativa
 

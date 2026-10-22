@@ -157,17 +157,18 @@ envio do e-mail.
 
 ### OCI Queue
 
-Use `MESSAGING_PROVIDER=oci_queue` e configure `OCI_QUEUE_ID`,
-`OCI_QUEUE_MESSAGES_ENDPOINT` e `OCI_REGION`.
+Use `MESSAGING_PROVIDER=oci_queue` e configure `QUEUE_NAME`,
+`QUEUE_COMPARTMENT_ID` e `OCI_REGION`. O `OCI_QUEUE_ID` pode ser informado
+diretamente ou localizado pelo nome durante o bootstrap e o `startdev.sh`.
 
-`OCI_QUEUE_MESSAGES_ENDPOINT` deve conter o `messagesEndpoint` específico da
-fila, e não o endpoint administrativo do serviço. O consumidor solicita no
-máximo uma mensagem e a exclui usando o `receipt` somente depois do
-processamento bem-sucedido.
+O consumidor consulta os metadados da fila e obtém automaticamente o
+`messagesEndpoint` específico. Ele solicita no máximo uma mensagem e a exclui
+usando o `receipt` somente depois do processamento bem-sucedido.
 
-O provider OCI autentica por Instance Principal. A instância deve pertencer a
-um Dynamic Group autorizado por uma IAM Policy a consumir e excluir mensagens.
-A aplicação não utiliza arquivo de configuração OCI nem API key.
+O provider OCI aceita `OCI_AUTH_MODE=config_file` para execução local com
+arquivo de configuração ou `OCI_AUTH_MODE=instance_principal` para execução em
+um recurso OCI. A identidade utilizada deve possuir uma IAM Policy autorizando
+consultar e excluir mensagens.
 
 ## Providers de e-mail
 
@@ -183,12 +184,23 @@ Mailpit sem autenticação e sem TLS.
 ### OCI Email Delivery
 
 Use `EMAIL_PROVIDER=oci`. O cliente usa a API de data plane do OCI Email
-Delivery e autentica por Instance Principal. O remetente precisa estar aprovado
-e a instância precisa das permissões IAM correspondentes.
+Delivery e utiliza o modo de autenticação OCI configurado. O `bootstrap.sh`
+consulta o remetente em `OCI_EMAIL_DELIVERY_COMPARTMENT_ID` e o cria caso ele
+ainda não exista, usando o endereço definido em `SMTP_EMAIL_SENDER`. O domínio,
+a verificação DNS e as permissões IAM continuam sendo responsabilidades da
+configuração da tenancy.
 
-<!-- TODO: Alinhar a assinatura de OciEmailSender.send com EmailSender antes de
-utilizar EMAIL_PROVIDER=oci. Atualmente EmailService encaminha body_text, mas a
-implementação OCI não aceita esse argumento. -->
+## `bootstrap.sh` — Preparação do ambiente
+
+O `bootstrap.sh` cria o ambiente virtual, instala as dependências, cria ou
+atualiza o `.env` e valida os providers configurados. Quando
+`MESSAGING_PROVIDER=oci_queue`, ele cria a fila caso ela não exista e grava o
+OCID em `OCI_QUEUE_ID`. Quando `EMAIL_PROVIDER=oci`, ele garante a existência
+do remetente configurado no OCI Email Delivery. O script não cria domínios nem
+altera registros DNS.
+
+Variáveis exportadas externamente têm precedência sobre valores do `.env`,
+permitindo executar o bootstrap com configurações de homologação no OCI.
 
 ## Configurações
 
@@ -200,6 +212,7 @@ implementação OCI não aceita esse argumento. -->
 | `SITE_URL` | `https://www.ocipizza.com.br` | URL pública usada nos links dos e-mails. |
 | `MESSAGING_PROVIDER` | Obrigatório | `rabbitmq` ou `oci_queue`. |
 | `QUEUE_NAME` | `notifications-queue` | Nome lógico da fila. |
+| `QUEUE_COMPARTMENT_ID` | — | Compartment usado para criar ou localizar a fila OCI. |
 | `NOTIFICATION_POLL_INTERVAL` | `5.0` | Espera quando nenhuma mensagem está disponível. |
 | `NOTIFICATION_RETRY_INTERVAL` | `10.0` | Espera depois de uma falha no ciclo de consumo. |
 | `RABBITMQ_HOST` | — | Host obrigatório para RabbitMQ. |
@@ -207,8 +220,10 @@ implementação OCI não aceita esse argumento. -->
 | `RABBITMQ_USERNAME` | — | Usuário obrigatório para RabbitMQ. |
 | `RABBITMQ_PASSWORD` | — | Senha obrigatória para RabbitMQ. |
 | `OCI_QUEUE_ID` | — | OCID obrigatório para OCI Queue. |
-| `OCI_QUEUE_MESSAGES_ENDPOINT` | — | Endpoint obrigatório para OCI Queue. |
 | `OCI_REGION` | `sa-saopaulo-1` | Região dos serviços OCI. |
+| `OCI_AUTH_MODE` | `config_file` | Autenticação OCI: `config_file` ou `instance_principal`. |
+| `OCI_CONFIG_FILE` | — | Arquivo de configuração OCI quando aplicável. |
+| `OCI_CONFIG_PROFILE` | `DEFAULT` | Profile usado no arquivo OCI. |
 | `EMAIL_PROVIDER` | `smtp` | `smtp` ou `oci`. |
 | `EMAIL_TEMPLATES_PATH` | `app/templates/emails` | Diretório dos templates HTML. |
 | `SMTP_HOST` | — | Host utilizado pelo provider SMTP. |
@@ -238,11 +253,15 @@ cd services/notification-service
 ### Propósito do `startdev.sh`
 
 O script `startdev.sh` automatiza a execução local do
-`notification-service`. Ele configura o RabbitMQ como provider de mensageria,
-seleciona SMTP com Mailpit como provider de e-mail, define a fila
-`notifications-queue`, cria e ativa o ambiente virtual `.venv` quando
-necessário, instala as dependências de `requirements.txt` e inicia o Uvicorn
-com recarregamento automático na porta `8005`.
+`notification-service`. Ele carrega as configurações do ambiente, cria e ativa
+o ambiente virtual `.venv` quando necessário, instala as dependências de
+`requirements.txt` e inicia o Uvicorn com recarregamento automático na porta
+`8005`.
+
+Quando `MESSAGING_PROVIDER=oci_queue` e `OCI_QUEUE_ID` estiver vazio, consulta
+a OCI por `QUEUE_NAME` e `QUEUE_COMPARTMENT_ID` para localizar a fila. Ele não
+cria filas. Para a configuração local padrão, utiliza RabbitMQ e SMTP com
+Mailpit.
 
 Ao iniciar o FastAPI, o ciclo de vida da aplicação também inicia o worker que
 consome as mensagens da fila. Portanto, o script não apenas inicia o endpoint
@@ -253,7 +272,7 @@ e Mailpit são valores locais e não devem ser utilizadas em produção; nesse
 ambiente, selecione os providers e forneça as credenciais por configuração
 segura.
 
-O `startdev.sh` configura diretamente RabbitMQ e SMTP com Mailpit. Para manter
+O `startdev.sh` configura diretamente RabbitMQ e SMTP com Mailpit por padrão. Para manter
 uma configuração local própria ou selecionar outros providers, copie o arquivo
 de exemplo e inicie o Uvicorn sem o script:
 

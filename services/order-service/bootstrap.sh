@@ -12,8 +12,12 @@
 #  3. Atualiza o pip e instala as dependências do serviço.
 #  4. Cria o arquivo .env local, caso ele ainda não exista.
 #  5. Carrega as variáveis de ambiente do serviço.
-#  6. Cria a tabela de pedidos e seus índices no Oracle NoSQL.
-#  7. Finaliza o bootstrap deixando o serviço pronto para execução.
+#  6. Valida os providers e as configurações obrigatórias do ambiente.
+#  7. Garante a tabela de pedidos e seus índices no backend NoSQL selecionado.
+#  8. Verifica a existência da fila de mensagens sem criá-la.
+#  9. Em development, persiste um pedido de demonstração e publica sua
+#     notificação utilizando as bibliotecas da própria aplicação.
+# 10. Finaliza o bootstrap deixando o serviço pronto para execução.
 #
 # Uso:
 #
@@ -95,8 +99,16 @@ DEBUG=true
 PERSISTENCE_PROVIDER=nosql
 
 # Oracle NoSQL
+NOSQL_PROVIDER=local
 NOSQL_TABLE_NAME=orders
 NOSQL_ENDPOINT=http://localhost:18080
+NOSQL_COMPARTMENT_ID=
+
+# Autenticação OCI
+OCI_REGION=sa-saopaulo-1
+OCI_AUTH_MODE=config_file
+OCI_CONFIG_FILE=
+OCI_CONFIG_PROFILE=DEFAULT
 
 # Mensageria
 MESSAGING_PROVIDER=rabbitmq
@@ -107,6 +119,9 @@ RABBITMQ_HOST=localhost
 RABBITMQ_PORT=5672
 RABBITMQ_USERNAME=oci_pizza
 RABBITMQ_PASSWORD=oci_pizza
+
+# OCI Queue
+OCI_QUEUE_ID=
 
 # JWT
 JWT_ISSUER=user-service
@@ -141,14 +156,179 @@ ensure_env_variable 'RABBITMQ_HOST' 'localhost'
 ensure_env_variable 'RABBITMQ_PORT' '5672'
 ensure_env_variable 'RABBITMQ_USERNAME' 'oci_pizza'
 ensure_env_variable 'RABBITMQ_PASSWORD' 'oci_pizza'
+ensure_env_variable 'NOSQL_PROVIDER' 'local'
+ensure_env_variable 'NOSQL_COMPARTMENT_ID' ''
+ensure_env_variable 'OCI_REGION' 'sa-saopaulo-1'
+ensure_env_variable 'OCI_AUTH_MODE' 'config_file'
+ensure_env_variable 'OCI_CONFIG_FILE' ''
+ensure_env_variable 'OCI_CONFIG_PROFILE' 'DEFAULT'
+ensure_env_variable 'OCI_QUEUE_ID' ''
 
 # Exporta as configurações para que o módulo Settings e o cliente Oracle
 # NoSQL compartilhem exatamente os mesmos valores durante o bootstrap.
 echo 'Carregando configurações do ambiente...'
 
+# Variáveis exportadas pelo ambiente externo têm precedência sobre o .env.
+# Preserva esses valores antes do carregamento e restaura-os em seguida.
+declare -A ENVIRONMENT_OVERRIDES
+
+for variable in \
+    APP_NAME APP_ENV DEBUG LOG_LEVEL \
+    PERSISTENCE_PROVIDER NOSQL_PROVIDER NOSQL_TABLE_NAME NOSQL_ENDPOINT \
+    NOSQL_COMPARTMENT_ID OCI_REGION OCI_AUTH_MODE OCI_CONFIG_FILE \
+    OCI_CONFIG_PROFILE MESSAGING_PROVIDER QUEUE_NAME OCI_QUEUE_ID \
+    RABBITMQ_HOST RABBITMQ_PORT RABBITMQ_USERNAME RABBITMQ_PASSWORD \
+    JWT_ISSUER JWT_AUDIENCE JWT_JWKS_URL OCI_LOG_ID; do
+    if [[ -v "$variable" ]]; then
+        ENVIRONMENT_OVERRIDES["$variable"]="${!variable}"
+    fi
+done
+
 set -a
 source "$ENV_FILE"
 set +a
+
+for variable in "${!ENVIRONMENT_OVERRIDES[@]}"; do
+    export "$variable=${ENVIRONMENT_OVERRIDES[$variable]}"
+done
+
+export NOSQL_PROVIDER="${NOSQL_PROVIDER:-local}"
+export MESSAGING_PROVIDER="${MESSAGING_PROVIDER:-rabbitmq}"
+
+# Quando o modo config_file é utilizado sem um caminho explícito, usa o
+# arquivo padrão criado pelo OCI CLI no diretório pessoal do usuário.
+export OCI_CONFIG_FILE="${OCI_CONFIG_FILE:-${HOME}/.oci/config}"
+
+if [ "${NOSQL_PROVIDER}" != 'local' ] && \
+   [ "${NOSQL_PROVIDER}" != 'oci' ]; then
+    echo "Provider NoSQL não suportado: ${NOSQL_PROVIDER}"
+    echo 'Utilize NOSQL_PROVIDER=local ou NOSQL_PROVIDER=oci.'
+    exit 1
+fi
+
+if [ "${NOSQL_PROVIDER}" = 'oci' ] && \
+   [ -z "${NOSQL_COMPARTMENT_ID:-}" ]; then
+    echo 'Erro: NOSQL_COMPARTMENT_ID é obrigatório quando '
+    echo 'NOSQL_PROVIDER=oci.'
+    exit 1
+fi
+
+if [ "${MESSAGING_PROVIDER}" != 'rabbitmq' ] && \
+   [ "${MESSAGING_PROVIDER}" != 'oci_queue' ]; then
+    echo "Provider de mensageria não suportado: ${MESSAGING_PROVIDER}"
+    echo 'Utilize MESSAGING_PROVIDER=rabbitmq ou MESSAGING_PROVIDER=oci_queue.'
+    exit 1
+fi
+
+if [ "${MESSAGING_PROVIDER}" = 'rabbitmq' ]; then
+    for required_variable in \
+        RABBITMQ_HOST RABBITMQ_PORT RABBITMQ_USERNAME RABBITMQ_PASSWORD; do
+        if [ -z "${!required_variable:-}" ]; then
+            echo "Erro: ${required_variable} é obrigatório para RabbitMQ."
+            exit 1
+        fi
+    done
+fi
+
+if [ "${NOSQL_PROVIDER}" = 'oci' ] || \
+   [ "${MESSAGING_PROVIDER}" = 'oci_queue' ]; then
+    if [ "${OCI_AUTH_MODE}" != 'config_file' ] && \
+       [ "${OCI_AUTH_MODE}" != 'instance_principal' ]; then
+        echo "Modo de autenticação OCI não suportado: ${OCI_AUTH_MODE}"
+        echo 'Utilize OCI_AUTH_MODE=config_file ou '
+        echo 'OCI_AUTH_MODE=instance_principal.'
+        exit 1
+    fi
+fi
+
+if [ "${OCI_AUTH_MODE}" = 'config_file' ] && \
+   { [ "${NOSQL_PROVIDER}" = 'oci' ] || \
+     [ "${MESSAGING_PROVIDER}" = 'oci_queue' ]; } && \
+   [ -z "${OCI_CONFIG_FILE:-}" ]; then
+    echo 'Erro: OCI_CONFIG_FILE é obrigatório quando um provider OCI '
+    echo 'utiliza OCI_AUTH_MODE=config_file.'
+    exit 1
+fi
+
+if [ "${OCI_AUTH_MODE}" = 'config_file' ] && \
+   { [ "${NOSQL_PROVIDER}" = 'oci' ] || \
+     [ "${MESSAGING_PROVIDER}" = 'oci_queue' ]; } && \
+   [ ! -f "${OCI_CONFIG_FILE}" ]; then
+    echo "Erro: arquivo de configuração OCI não encontrado: ${OCI_CONFIG_FILE}"
+    exit 1
+fi
+
+if [ "${MESSAGING_PROVIDER}" = 'rabbitmq' ]; then
+    display_step 'Verificando a fila RabbitMQ'
+
+    python <<'PYTHON'
+import os
+
+import pika
+
+
+credentials = pika.PlainCredentials(
+    os.environ['RABBITMQ_USERNAME'],
+    os.environ['RABBITMQ_PASSWORD']
+)
+parameters = pika.ConnectionParameters(
+    host=os.environ['RABBITMQ_HOST'],
+    port=int(os.environ['RABBITMQ_PORT']),
+    credentials=credentials
+)
+
+connection = pika.BlockingConnection(parameters)
+try:
+    channel = connection.channel()
+
+    # O modo passivo somente consulta a fila; ele não a declara nem cria.
+    channel.queue_declare(
+        queue=os.environ['QUEUE_NAME'],
+        passive=True
+    )
+finally:
+    connection.close()
+
+print(f"Fila RabbitMQ existente: {os.environ['QUEUE_NAME']}")
+PYTHON
+else
+    display_step 'Verificando a fila OCI Queue'
+
+    if [ -z "${OCI_QUEUE_ID:-}" ]; then
+        echo 'Erro: OCI_QUEUE_ID é obrigatório quando '
+        echo 'MESSAGING_PROVIDER=oci_queue.'
+        exit 1
+    fi
+
+    python <<'PYTHON'
+import os
+
+import oci
+from oci.auth.signers import InstancePrincipalsSecurityTokenSigner
+
+
+if os.environ['OCI_AUTH_MODE'] == 'config_file':
+    config = oci.config.from_file(
+        file_location=os.environ['OCI_CONFIG_FILE'],
+        profile_name=os.environ.get('OCI_CONFIG_PROFILE')
+    )
+    config['region'] = os.environ['OCI_REGION']
+    queue_admin_client = oci.queue.QueueAdminClient(config=config)
+else:
+    signer = InstancePrincipalsSecurityTokenSigner()
+    queue_admin_client = oci.queue.QueueAdminClient(
+        config={'region': signer.region},
+        signer=signer
+    )
+
+# Consulta somente os metadados da fila. Nenhuma fila é criada pelo script.
+queue_admin_client.get_queue(
+    queue_id=os.environ['OCI_QUEUE_ID']
+)
+
+print(f"Fila OCI Queue existente: {os.environ['OCI_QUEUE_ID']}")
+PYTHON
+fi
 
 display_step 'Inicialização da persistência'
 
@@ -162,15 +342,21 @@ fi
 echo 'Inicializando persistência Oracle NoSQL...'
 
 python <<'PYTHON'
-import os
 import re
+import time
 
-from borneo import TableRequest
+from app.config.settings import settings
+from borneo import TableLimits, TableRequest
 
 from app.repositories.nosql.connection import create_nosql_handle
 
 
-table_name = os.getenv('NOSQL_TABLE_NAME', 'orders')
+table_name = settings.nosql_table_name
+
+# O Oracle NoSQL limita o tenant a quatro operações DDL por minuto. O
+# bootstrap cria a tabela e vários índices, portanto cada operação aguarda
+# este intervalo antes de permitir a próxima submissão.
+DDL_INTERVAL_SECONDS = 16
 
 # O nome participa diretamente das instruções DDL. A validação impede que um
 # valor arbitrário vindo do ambiente altere a estrutura dos comandos.
@@ -180,13 +366,18 @@ if not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*', table_name):
 handle = create_nosql_handle()
 
 
-def execute_ddl(statement: str, description: str) -> None:
+def execute_ddl(
+    statement: str,
+    description: str,
+    table_limits: TableLimits | None = None
+) -> None:
     """
     Executa uma instrução DDL e aguarda sua conclusão no Oracle NoSQL.
 
     Args:
         statement: Instrução DDL que será submetida ao banco de dados.
         description: Mensagem que identifica a operação em andamento.
+        table_limits: Limites de capacidade utilizados na criação da tabela.
 
     Returns:
         None.
@@ -198,19 +389,22 @@ def execute_ddl(statement: str, description: str) -> None:
 
     print(description)
     request = TableRequest().set_statement(statement)
+
+    if table_limits is not None:
+        request.set_table_limits(table_limits)
+
     result = handle.table_request(request)
     result.wait_for_completion(handle, 60000, 1000)
 
+    # Mantém as operações abaixo do limite de DDL do tenant, inclusive quando
+    # a instrução utiliza IF NOT EXISTS e a estrutura já está criada.
+    time.sleep(DDL_INTERVAL_SECONDS)
 
-drop_statement = f'DROP TABLE IF EXISTS {table_name}'
 
-execute_ddl(
-    drop_statement,
-    f'Excluindo tabela {table_name}, caso exista...'
-)
-
+# O UUID do pedido já é único. Usá-lo sozinho evita ultrapassar o limite de
+# 64 caracteres que seria excedido ao combinar dois UUIDs na chave primária.
 table_statement = f'''
-    CREATE TABLE {table_name} (
+    CREATE TABLE IF NOT EXISTS {table_name} (
         id STRING,
         user_id STRING,
         customer RECORD(
@@ -244,56 +438,53 @@ table_statement = f'''
         idempotency_key STRING,
         created_at TIMESTAMP(3),
         updated_at TIMESTAMP(3),
-        PRIMARY KEY(SHARD(user_id), id)
+        PRIMARY KEY(id)
     )
 '''
 
+# O Oracle NoSQL permite no máximo cinco índices por tabela. A seleção abaixo
+# cobre as consultas administrativas, por usuário e por idempotência sem
+# ultrapassar esse limite.
 index_statements = (
     (
-        f'CREATE INDEX idx_orders_id ON {table_name}(id)',
+        f'CREATE INDEX IF NOT EXISTS idx_orders_id ON {table_name}(id)',
         'Criando índice para consulta administrativa por pedido...'
     ),
     (
-        f'CREATE INDEX idx_orders_user_created_at '
+        f'CREATE INDEX IF NOT EXISTS idx_orders_user_created_at '
         f'ON {table_name}(user_id, created_at)',
         'Criando índice para ordenar os pedidos de um usuário...'
     ),
     (
-        f'CREATE INDEX idx_orders_user_idempotency '
-        f'ON {table_name}(user_id, idempotency_key)',
+        f'CREATE INDEX IF NOT EXISTS idx_orders_idempotency '
+        f'ON {table_name}(idempotency_key)',
         'Criando índice para consulta por idempotência...'
     ),
     (
-        f'CREATE INDEX idx_orders_status '
+        f'CREATE INDEX IF NOT EXISTS idx_orders_status '
         f'ON {table_name}(status)',
         'Criando índice para consulta dos pedidos por status...'
     ),
     (
-        f'CREATE INDEX idx_orders_created_at '
+        f'CREATE INDEX IF NOT EXISTS idx_orders_created_at '
         f'ON {table_name}(created_at)',
         'Criando índice para ordenar todos os pedidos...'
-    ),
-    (
-        f'CREATE INDEX idx_orders_status_created_at '
-        f'ON {table_name}(status, created_at)',
-        'Criando índice para ordenar os pedidos por status...'
-    ),
-    (
-        f'CREATE INDEX idx_orders_payment_created_at '
-        f'ON {table_name}(payment_status, created_at)',
-        'Criando índice para ordenar os pedidos por pagamento...'
-    ),
-    (
-        f'CREATE INDEX idx_orders_status_payment_created_at '
-        f'ON {table_name}(status, payment_status, created_at)',
-        'Criando índice para ordenar os pedidos pelos dois status...'
     )
+)
+
+# O Oracle NoSQL exige limites de capacidade durante a criação da tabela.
+# Estes valores iniciais são fixos para manter o bootstrap previsível.
+table_limits = TableLimits(
+    read_units=5,
+    write_units=5,
+    storage_gb=1
 )
 
 try:
     execute_ddl(
         table_statement,
-        f'Criando tabela {table_name}...'
+        f'Garantindo a tabela {table_name}...',
+        table_limits=table_limits
     )
 
     for statement, description in index_statements:
@@ -303,6 +494,104 @@ finally:
 
 print(f'Tabela {table_name} e índices prontos para utilização.')
 PYTHON
+
+if [ "${APP_ENV}" = 'development' ]; then
+    display_step 'Criando pedido e publicando notificação de demonstração'
+
+    python <<'PYTHON'
+from datetime import datetime, timezone
+from decimal import Decimal
+from uuid import UUID
+
+from app.config.settings import settings
+from app.dependencies.messaging import get_message_publisher
+from app.messaging.message_publisher import MessagePublisher
+from app.models.order import (
+    CustomerSnapshot,
+    DeliveryAddressSnapshot,
+    Order,
+    OrderItem,
+    OrderStatus,
+    PaymentStatus
+)
+from app.repositories.nosql.connection import create_nosql_handle
+from app.repositories.nosql.nosql_order_repository import (
+    NosqlOrderRepository
+)
+from app.services.order_email_service import OrderEmailService
+
+
+demo_user_id = UUID('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+demo_order_id = UUID('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')
+demo_idempotency_key = UUID('cccccccc-cccc-4ccc-8ccc-cccccccccccc')
+now = datetime.now(timezone.utc)
+
+demo_order = Order(
+    id=demo_order_id,
+    user_id=demo_user_id,
+    customer=CustomerSnapshot(
+        name='Usuário de demonstração',
+        email='demo@example.com',
+        whatsapp='15999999999'
+    ),
+    delivery_address=DeliveryAddressSnapshot(
+        zip_code='18000001',
+        street='Rua de Demonstração',
+        number='100',
+        complement=None,
+        neighborhood='Centro',
+        city='Sorocaba',
+        state='SP'
+    ),
+    items=[
+        OrderItem(
+            pizza_id=UUID('11111111-1111-4111-8111-111111111111'),
+            name='Abobrinha',
+            quantity=1,
+            unit_price=Decimal('49.90'),
+            subtotal=Decimal('49.90')
+        )
+    ],
+    subtotal=Decimal('49.90'),
+    delivery_fee=Decimal('5.00'),
+    total=Decimal('54.90'),
+    status=OrderStatus.RECEIVED,
+    payment_status=PaymentStatus.PAID,
+    idempotency_key=demo_idempotency_key,
+    created_at=now,
+    updated_at=now
+)
+
+handle = create_nosql_handle()
+repository = NosqlOrderRepository(
+    handle=handle,
+    table_name=settings.nosql_table_name,
+    use_client_side_sort=settings.app_env == 'development'
+)
+
+try:
+    existing_order = repository.get_by_id(
+        order_id=demo_order.id,
+        user_id=demo_order.user_id
+    )
+
+    if existing_order is not None:
+        print(f'Pedido de demonstração já existe: {demo_order.id}')
+    else:
+        # Persiste o modelo pelo mesmo repositório usado pela aplicação.
+        repository.create(demo_order)
+        print(f'Pedido de demonstração criado: {demo_order.id}')
+
+        # Publica a mensagem pela mesma abstração utilizada pela API. Assim,
+        # RabbitMQ e OCI Queue são exercitados pelo provider selecionado.
+        message_publisher: MessagePublisher = get_message_publisher()
+        order_email_service = OrderEmailService(message_publisher)
+        order_email_service.send_order_received(demo_order)
+        print('Notificação de pedido de demonstração publicada.')
+finally:
+    handle.close()
+PYTHON
+fi
 
 display_step 'Bootstrap do order-service concluído com sucesso'
 

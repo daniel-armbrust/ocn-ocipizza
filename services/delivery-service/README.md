@@ -129,6 +129,10 @@ docker compose ps delivery-service
 9. Em `APP_ENV=development`, cadastra as 30 faixas de CEP de demonstração
 10. Confirma que os 30 registros foram efetivamente persistidos
 
+As operações DDL do Oracle NoSQL são espaçadas pelo script para respeitar o
+limite de operações por minuto da tenancy. Variáveis exportadas no ambiente
+têm precedência sobre os valores do arquivo `.env`.
+
 Os UUIDs das áreas são derivados de suas faixas de CEP. Dessa forma, o
 bootstrap pode ser executado novamente com os mesmos identificadores sem
 duplicar registros. O seed só é executado em `APP_ENV=development`, e o
@@ -159,7 +163,8 @@ O script `startdev.sh` inicia o `delivery-service` diretamente no ambiente de
 desenvolvimento. Ele carrega o `.env`, aplica valores padrão, valida o
 provider NoSQL e as configurações de autenticação OCI, ativa o ambiente
 virtual preparado pelo `bootstrap.sh` e inicia o Uvicorn com recarregamento
-automático na porta `8003`.
+automático na porta `8003`. Variáveis exportadas no ambiente têm precedência
+sobre o `.env`.
 
 O `startdev.sh` não cria o ambiente virtual, instala dependências, recria a
 tabela nem cadastra as áreas de demonstração. Execute primeiro o
@@ -199,7 +204,8 @@ O valor `nosql` utiliza a tabela definida por `NOSQL_TABLE_NAME`. Quando
 Quando `NOSQL_PROVIDER=oci`, o serviço utiliza o Oracle NoSQL Cloud Service,
 exige `NOSQL_COMPARTMENT_ID` e autentica conforme `OCI_AUTH_MODE`:
 
-- `config_file`: exige `OCI_CONFIG_FILE` e utiliza `OCI_CONFIG_PROFILE`.
+- `config_file`: utiliza `OCI_CONFIG_FILE` e `OCI_CONFIG_PROFILE`. Quando
+  `OCI_CONFIG_FILE` estiver vazio, os scripts utilizam `${HOME}/.oci/config`.
 - `instance_principal`: utiliza a identidade da instância no OCI.
 
 `OCI_REGION` identifica a região quando o modo `config_file` é utilizado.

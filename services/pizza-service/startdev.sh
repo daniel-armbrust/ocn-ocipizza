@@ -9,12 +9,31 @@ set -e
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_DIR"
 
-# Carrega configurações personalizadas antes de aplicar os valores padrão.
+# Variáveis exportadas pelo ambiente externo têm precedência sobre o .env.
+declare -A ENVIRONMENT_OVERRIDES
+
+for variable in \
+    APP_ENV LOG_LEVEL PERSISTENCE_PROVIDER NOSQL_PROVIDER \
+    NOSQL_TABLE_NAME NOSQL_ENDPOINT NOSQL_COMPARTMENT_ID \
+    OBJECTSTORAGE_PROVIDER OBJECTSTORAGE_ENDPOINT OBJECTSTORAGE_BUCKET \
+    OBJECTSTORAGE_ACCESS_KEY OBJECTSTORAGE_SECRET_KEY \
+    OBJECTSTORAGE_COMPARTMENT_ID OCI_REGION OCI_AUTH_MODE \
+    OCI_CONFIG_FILE OCI_CONFIG_PROFILE JWT_ISSUER JWT_AUDIENCE \
+    JWT_JWKS_URL; do
+    if [[ -v "$variable" ]]; then
+        ENVIRONMENT_OVERRIDES["$variable"]="${!variable}"
+    fi
+done
+
 if [ -f '.env' ]; then
     set -a
     source .env
     set +a
 fi
+
+for variable in "${!ENVIRONMENT_OVERRIDES[@]}"; do
+    export "$variable=${ENVIRONMENT_OVERRIDES[$variable]}"
+done
 
 # Valores padrão utilizados quando não foram definidos no ambiente ou no .env.
 export APP_ENV="${APP_ENV:-development}"
@@ -36,7 +55,7 @@ export OBJECTSTORAGE_COMPARTMENT_ID="${OBJECTSTORAGE_COMPARTMENT_ID:-}"
 
 export OCI_REGION="${OCI_REGION:-sa-saopaulo-1}"
 export OCI_AUTH_MODE="${OCI_AUTH_MODE:-config_file}"
-export OCI_CONFIG_FILE="${OCI_CONFIG_FILE:-}"
+export OCI_CONFIG_FILE="${OCI_CONFIG_FILE:-${HOME}/.oci/config}"
 export OCI_CONFIG_PROFILE="${OCI_CONFIG_PROFILE:-DEFAULT}"
 
 export JWT_ISSUER="${JWT_ISSUER:-user-service}"
@@ -97,9 +116,8 @@ fi
 if [ "${OCI_AUTH_MODE}" = 'config_file' ] && \
    { [ "${NOSQL_PROVIDER}" = 'oci' ] || \
      [ "${OBJECTSTORAGE_PROVIDER}" = 'oci' ]; } && \
-   [ -z "${OCI_CONFIG_FILE}" ]; then
-    echo 'Erro: OCI_CONFIG_FILE é obrigatório quando um provider OCI '
-    echo 'utiliza OCI_AUTH_MODE=config_file.'
+   [ ! -f "${OCI_CONFIG_FILE}" ]; then
+    echo "Erro: arquivo de configuração OCI não encontrado: ${OCI_CONFIG_FILE}"
     exit 1
 fi
 

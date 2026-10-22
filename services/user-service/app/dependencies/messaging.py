@@ -49,28 +49,14 @@ def get_message_publisher() -> MessagePublisher:
         )
 
     if settings.messaging_provider == 'oci_queue':
-        oci_queue_settings = {
-            'queue_id': settings.oci_queue_id,
-            'messages_endpoint': settings.oci_queue_messages_endpoint,
-            'region': settings.oci_region
-        }
-
-        missing_settings = [
-            name
-            for name, value in oci_queue_settings.items()
-            if value is None
-        ]
-
-        if missing_settings:
+        if not settings.oci_queue_id:
             raise ValueError(
-                'Missing OCI Queue settings: '
-                f'{", ".join(missing_settings)}.'
+                'OCI_QUEUE_ID is required when '
+                'MESSAGING_PROVIDER is oci_queue.'
             )
 
         return OCIQueueMessagePublisher(
-            queue_id=settings.oci_queue_id,
-            messages_endpoint=settings.oci_queue_messages_endpoint,
-            region=settings.oci_region
+            queue_id=settings.oci_queue_id
         )
 
     raise ValueError(

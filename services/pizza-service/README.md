@@ -74,6 +74,10 @@ provider é diferente de `local`, `NOSQL_COMPARTMENT_ID` é obrigatório para a
 configuração do Oracle NoSQL no OCI. A tabela é garantida com a estrutura
 necessária sem ser recriada a cada execução.
 
+Variáveis exportadas no ambiente têm precedência sobre valores equivalentes do
+arquivo `.env`, o que permite executar o bootstrap para homologação no OCI sem
+alterar a configuração local persistida.
+
 ### Pré-requisitos
 
 - Python 3.11
@@ -182,6 +186,8 @@ OCI_REGION=sa-saopaulo-1
 
 `OBJECTSTORAGE_COMPARTMENT_ID` só é utilizado quando o bucket precisa ser
 criado. Se o bucket já existir, o bootstrap apenas o reutiliza.
+O bucket é mantido privado; as imagens são disponibilizadas pela rota da API,
+que aplica a autenticação e devolve o conteúdo com o tipo MIME da imagem.
 
 ## `startdev.sh` — Execução local do serviço
 
@@ -196,6 +202,9 @@ cria a tabela, não cadastra as pizzas de demonstração e não prepara o MinIO.
 Execute primeiro o `bootstrap.sh` e garanta que o Oracle NoSQL, o Object
 Storage e o `user-service` estejam disponíveis. O script é exclusivo para
 desenvolvimento local e não deve ser utilizado como processo de produção.
+
+Variáveis exportadas no ambiente têm precedência sobre o arquivo `.env`,
+permitindo iniciar o serviço com providers OCI durante a homologação.
 
 Para executá-lo:
 

@@ -93,6 +93,7 @@ class ObjectStorageService:
                     profile_name=settings.oci_config_profile
                 )
 
+                # Obtém a região a partir do arquivo de configuração.
                 self.region = settings.oci_region
                 config['region'] = settings.oci_region
 
@@ -106,8 +107,8 @@ class ObjectStorageService:
             elif settings.oci_auth_mode == 'instance_principal':
                 signer = oci.auth.signers.InstancePrincipalSecurityTokenSigner()
 
-                # Obtém automaticamente a região do OCI associada à 
-                # Compute Instance.
+                # Obtém a região automaticamente com base na localidade 
+                # em que a aplicação está sendo executada no OCI.
                 self.region = signer.region
 
                 self.client = (

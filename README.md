@@ -133,6 +133,43 @@ disponível:
 make development-services
 ```
 
+### Homologação local utilizando recursos reais do OCI
+
+O projeto também permite executar os containers localmente utilizando os
+providers reais do OCI. Esse fluxo não faz deployment na OCI: os processos
+continuam sendo executados pelo Docker Compose na máquina local, mas podem
+acessar OCI NoSQL, OCI Object Storage, OCI Queue e OCI Email Delivery.
+
+Crie o arquivo local `.env.oci` (ele é ignorado pelo Git) e informe os
+identificadores da tenancy e os parâmetros de autenticação. No mínimo, o
+ambiente precisa definir:
+
+- `NOSQL_COMPARTMENT_ID`;
+- `OCI_QUEUE_ID` da fila `notifications-queue`;
+- `OCI_EMAIL_DELIVERY_COMPARTMENT_ID`;
+- `OCI_AUTH_MODE=config_file` e `OCI_HOST_CONFIG_FILE`, quando for utilizada
+  autenticação por arquivo; ou `OCI_AUTH_MODE=instance_principal` quando a
+  identidade OCI estiver disponível no ambiente de execução.
+
+Depois, carregue as variáveis no shell e inicie o ambiente:
+
+```bash
+${EDITOR:-vi} .env.oci
+source ./scripts/use-oci-env.sh
+make development-oci
+```
+
+O script `scripts/use-oci-env.sh` valida a configuração e exporta os
+providers `oci`, `oci_queue` e `oci` para NoSQL, Object Storage, mensageria e
+e-mail, respectivamente. O alvo `development-oci` usa essas variáveis ao
+iniciar os microsserviços. As dependências locais ainda declaradas no
+`docker-compose.yaml`, como Redis ou MySQL quando necessárias por um serviço,
+continuam sendo iniciadas localmente.
+
+Esse fluxo é uma homologação local da integração com OCI. Ele não substitui o
+bootstrap dos recursos, a configuração de IAM, a montagem do arquivo OCI nos
+containers ou um deployment em Container Instances/OKE.
+
 Para executar os `bootstrap.sh` dos serviços que possuem esse script:
 
 ```bash

@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     app_env: str = 'development'
     debug: bool = False
 
-    oci_region: str = 'sa-saopaulo-1'
+    oci_region: str | None = 'sa-saopaulo-1'
 
     # Nome do cookie utilizado para identificar a sessão 
     # administrativa. 
@@ -49,8 +49,7 @@ class Settings(BaseSettings):
     user_service_url: str
     delivery_service_url: str
     order_service_url: str
-    notification_service_url: str
-
+    
     # Timeout padrão utilizado nas chamadas HTTP realizadas 
     # aos microserviços.
     http_client_timeout: float = 10.0

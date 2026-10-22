@@ -13,15 +13,15 @@ class EmailSender(ABC):
     def send(self,
              recipient: str,
              subject: str,
-             body_text: str,
-             body_html: str | None = None) -> None:
+             body_html: str,
+             body_text: str | None = None) -> None:
         """
         Envia um e-mail para o destinatário informado.
 
         Args:
             recipient: Endereço de e-mail do destinatário.
             subject: Assunto do e-mail.
-            body_text: Conteúdo do e-mail em texto simples.
-            body_html: Conteúdo opcional do e-mail em HTML.
+            body_html: Conteúdo do e-mail em HTML.
+            body_text: Conteúdo opcional do e-mail em texto simples.
         """
         pass

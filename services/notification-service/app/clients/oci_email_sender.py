@@ -38,7 +38,11 @@ class OciEmailSender(EmailSender):
         self.sender_email = sender_email
         self.sender_name = sender_name
 
-    def send(self, recipient: str, subject: str, body_html: str) -> None:
+    def send(self,
+             recipient: str,
+             subject: str,
+             body_html: str,
+             body_text: str | None = None) -> None:
         """
         Envia um e-mail em formato HTML utilizando o OCI Email Delivery.
 
@@ -46,6 +50,7 @@ class OciEmailSender(EmailSender):
             recipient: Endereço de e-mail do destinatário.
             subject: Assunto do e-mail.
             body_html: Conteúdo HTML do e-mail.
+            body_text: Conteúdo opcional em texto simples.
         """
 
         # Define o remetente utilizando um endereço previamente
@@ -74,7 +79,8 @@ class OciEmailSender(EmailSender):
                 sender=sender,
                 recipients=recipients,
                 subject=subject,
-                body_html=body_html
+                body_html=body_html,
+                body_text=body_text
             )
         )
 

@@ -5,6 +5,8 @@
 .env
 .env.*
 !.env.example
+# Configuração local utilizada para homologação com recursos OCI.
+.env.oci
 
 *.secret
 *.key

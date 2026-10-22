@@ -18,6 +18,8 @@ services:
       APP_ENV: development
       LOG_LEVEL: INFO
 
+      OCI_REGION: ${OCI_REGION:-sa-saopaulo-1}
+
       # Provider de persistência.
       PERSISTENCE_PROVIDER: ${PERSISTENCE_PROVIDER:-nosql}
 
@@ -42,11 +44,18 @@ services:
       JWT_AUDIENCE: ocipizza
       JWT_JWKS_URL: http://user-service:8000/.well-known/jwks.json
 
-      OCI_AUTH_MODE: config_file
-      OCI_CONFIG_FILE: /app/.oci/config
-      OCI_CONFIG_PROFILE: DEFAULT
+      OCI_AUTH_MODE: ${OCI_AUTH_MODE:-config_file}
+      OCI_CONFIG_FILE: ${OCI_CONFIG_FILE:-/app/.oci/config}
+      OCI_CONFIG_PROFILE: ${OCI_CONFIG_PROFILE:-DEFAULT}
     volumes:
-      - ${HOME}/.oci:/app/.oci:ro
+      - ${HOME}/.oci-container:/app/.oci:ro
+    depends_on:
+      user-service:
+        condition: service_started
+      nosql:
+        condition: service_started
+      objectstorage:
+        condition: service_started
 
   # Microserviço responsável pelo ciclo de vida dos usuários.
   # Persiste dados no MySQL e publica notificações no RabbitMQ
@@ -64,13 +73,16 @@ services:
       APP_ENV: development
       LOG_LEVEL: INFO
 
+      OCI_REGION: ${OCI_REGION:-sa-saopaulo-1}
+
       # Provider de persistência.
-      PERSISTENCE_PROVIDER: sqlalchemy
-      DATABASE_URL: mysql+pymysql://user_service:user_service@mysql:3306/users
+      PERSISTENCE_PROVIDER: ${PERSISTENCE_PROVIDER:-sqlalchemy}
+      DATABASE_URL: ${DATABASE_URL:-mysql+pymysql://user_service:user_service@mysql:3306/users}
 
       # Mensageria
-      MESSAGING_PROVIDER: rabbitmq
+      MESSAGING_PROVIDER: ${MESSAGING_PROVIDER:-rabbitmq}
       QUEUE_NAME: notifications-queue
+      OCI_QUEUE_ID: ${OCI_QUEUE_ID:-}
 
       # Configurações de conexão com o RabbitMQ.
       RABBITMQ_HOST: rabbitmq
@@ -91,7 +103,12 @@ services:
 
       # Refresh token.
       REFRESH_TOKEN_EXPIRATION_DAYS: 30
+
+      OCI_AUTH_MODE: ${OCI_AUTH_MODE:-config_file}
+      OCI_CONFIG_FILE: ${OCI_CONFIG_FILE:-/app/.oci/config}
+      OCI_CONFIG_PROFILE: ${OCI_CONFIG_PROFILE:-DEFAULT}
     volumes:
+      - ${HOME}/.oci-container:/app/.oci:ro
       - ./services/user-service/secrets/jwt_private_key.pem:/run/secrets/jwt_private_key.pem:ro
       - ./services/user-service/secrets/jwt_public_key.pem:/run/secrets/jwt_public_key.pem:ro
     depends_on:
@@ -99,7 +116,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-
+      
   # Microserviço responsável por validar a elegibilidade da entrega
   # e calcular a cotação com base no CEP informado.
   delivery-service:
@@ -115,6 +132,8 @@ services:
       APP_ENV: development
       LOG_LEVEL: INFO
 
+      OCI_REGION: ${OCI_REGION:-sa-saopaulo-1}
+
       # Provider de persistência.
       PERSISTENCE_PROVIDER: ${PERSISTENCE_PROVIDER:-nosql}
 
@@ -127,12 +146,17 @@ services:
       JWT_AUDIENCE: ocipizza
       JWT_JWKS_URL: http://user-service:8000/.well-known/jwks.json
 
-      OCI_AUTH_MODE: config_file
-      OCI_CONFIG_FILE: /app/.oci/config
-      OCI_CONFIG_PROFILE: DEFAULT
+      OCI_AUTH_MODE: ${OCI_AUTH_MODE:-config_file}
+      OCI_CONFIG_FILE: ${OCI_CONFIG_FILE:-/app/.oci/config}
+      OCI_CONFIG_PROFILE: ${OCI_CONFIG_PROFILE:-DEFAULT}
     volumes:
-      - ${HOME}/.oci:/app/.oci:ro
-    
+      - ${HOME}/.oci-container:/app/.oci:ro
+    depends_on:
+      user-service:
+        condition: service_started
+      nosql:
+        condition: service_started
+      
   # Microserviço responsável por processar os pedidos, validar os valores
   # e coordenar o pagamento antes da confirmação do pedido.
   order-service:
@@ -148,14 +172,20 @@ services:
       APP_ENV: development
       LOG_LEVEL: INFO
 
-      PERSISTENCE_PROVIDER: nosql
+      OCI_REGION: ${OCI_REGION:-sa-saopaulo-1}
 
+      # Provider de persistência.
+      PERSISTENCE_PROVIDER: ${PERSISTENCE_PROVIDER:-nosql}
+
+      NOSQL_PROVIDER: ${NOSQL_PROVIDER:-local}
       NOSQL_ENDPOINT: http://nosql:8080
       NOSQL_TABLE_NAME: orders
-
+      NOSQL_COMPARTMENT_ID: ${NOSQL_COMPARTMENT_ID:-}
+      
       # Mensageria
-      MESSAGING_PROVIDER: rabbitmq
+      MESSAGING_PROVIDER: ${MESSAGING_PROVIDER:-rabbitmq}
       QUEUE_NAME: notifications-queue
+      OCI_QUEUE_ID: ${OCI_QUEUE_ID:-}
 
       # Configurações de conexão com o RabbitMQ.
       RABBITMQ_HOST: rabbitmq
@@ -166,7 +196,15 @@ services:
       JWT_ISSUER: user-service
       JWT_AUDIENCE: ocipizza
       JWT_JWKS_URL: http://user-service:8000/.well-known/jwks.json
+
+      OCI_AUTH_MODE: ${OCI_AUTH_MODE:-config_file}
+      OCI_CONFIG_FILE: ${OCI_CONFIG_FILE:-/app/.oci/config}
+      OCI_CONFIG_PROFILE: ${OCI_CONFIG_PROFILE:-DEFAULT}
+    volumes:
+      - ${HOME}/.oci-container:/app/.oci:ro
     depends_on:
+      user-service:
+        condition: service_started
       nosql:
         condition: service_started
       rabbitmq:
@@ -185,11 +223,14 @@ services:
       APP_ENV: development
       LOG_LEVEL: INFO
 
+      OCI_REGION: ${OCI_REGION:-sa-saopaulo-1}
+
       SITE_URL: http://localhost:8010
 
       # Mensageria
-      MESSAGING_PROVIDER: rabbitmq
+      MESSAGING_PROVIDER: ${MESSAGING_PROVIDER:-rabbitmq}
       QUEUE_NAME: notifications-queue
+      OCI_QUEUE_ID: ${OCI_QUEUE_ID:-}
   
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
@@ -200,7 +241,7 @@ services:
       NOTIFICATION_RETRY_INTERVAL: 3.0
 
       # SMTP
-      EMAIL_PROVIDER: smtp
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
       
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
@@ -208,11 +249,17 @@ services:
       SMTP_PASSWORD: ""
       SMTP_USE_TLS: "false"
       SMTP_FROM_EMAIL: no-reply@ocipizza.local
+
+      OCI_AUTH_MODE: ${OCI_AUTH_MODE:-config_file}
+      OCI_CONFIG_FILE: ${OCI_CONFIG_FILE:-/app/.oci/config}
+      OCI_CONFIG_PROFILE: ${OCI_CONFIG_PROFILE:-DEFAULT}
+    volumes:
+      - ${HOME}/.oci-container:/app/.oci:ro
     depends_on:
       rabbitmq:
         condition: service_healthy
       mailpit:
-        condition: service_started
+        condition: service_healthy
 
   # Microserviço responsável pela interface web da aplicação.
   frontend-service:
@@ -228,9 +275,11 @@ services:
         APP_ENV: development
         LOG_LEVEL: INFO
 
-        PERSISTENCE_PROVIDER: redis
+        OCI_REGION: ${OCI_REGION:-sa-saopaulo-1}
 
-        REDIS_ENDPOINT: redis://redis:6379/0
+        PERSISTENCE_PROVIDER: ${PERSISTENCE_PROVIDER:-redis}
+
+        REDIS_ENDPOINT: ${REDIS_ENDPOINT:-redis://redis:6379/0}
 
         SESSION_SECRET_KEY: "!!!Sup3rS3cr3t0!!!"
         CSRF_SECRET_KEY: "!!!Sup3rS3cr3t0!!!"
@@ -240,8 +289,8 @@ services:
         DELIVERY_SERVICE_URL: http://delivery-service:8000
         ORDER_SERVICE_URL: http://order-service:8000
     depends_on:
-      # pizza-service:
-      #   condition: service_started
+      pizza-service:
+        condition: service_started
       user-service:
         condition: service_started
       delivery-service:
@@ -266,7 +315,9 @@ services:
         APP_ENV: development
         LOG_LEVEL: INFO
 
-        REDIS_ENDPOINT: redis://redis:6379/1
+        OCI_REGION: ${OCI_REGION:-sa-saopaulo-1}
+
+        REDIS_ENDPOINT: ${REDIS_ENDPOINT:-redis://redis:6379/1}
 
         SESSION_SECRET_KEY: "!!!Sup3rS3cr3t0!!!"
         CSRF_SECRET_KEY: "!!!Sup3rS3cr3t0!!!"
@@ -275,8 +326,7 @@ services:
         USER_SERVICE_URL: http://user-service:8000
         DELIVERY_SERVICE_URL: http://delivery-service:8000
         ORDER_SERVICE_URL: http://order-service:8000
-        NOTIFICATION_SERVICE_URL: http://notification-service:8000
-
+        
         JWT_ISSUER: user-service
         JWT_AUDIENCE: ocipizza
         JWT_JWKS_URL: http://user-service:8000/.well-known/jwks.json
@@ -295,12 +345,8 @@ services:
         condition: service_started
       order-service:
         condition: service_started
-      notification-service:
-        condition: service_started
       redis:
         condition: service_healthy
-      objectstorage:
-        condition: service_started
 
   # Banco de dados NoSQL utilizado pelos serviços da 
   # aplicação que necessitam de persistência orientada 

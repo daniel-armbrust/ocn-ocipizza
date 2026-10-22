@@ -131,6 +131,7 @@ def _create_oci_nosql_handle() -> NoSQLHandle:
             profile_name=settings.oci_config_profile
         )
 
+        # Obtém a região a partir do arquivo de configuração.
         region = settings.oci_region
 
     # Utiliza a identidade da própria Compute Instance para autenticação,
@@ -140,6 +141,8 @@ def _create_oci_nosql_handle() -> NoSQLHandle:
             SignatureProvider.create_with_instance_principal()
         )
 
+        # Obtém a região automaticamente com base na localidade 
+        # em que a aplicação está sendo executada no OCI.
         region = authorization_provider.get_region()
 
         if not region:

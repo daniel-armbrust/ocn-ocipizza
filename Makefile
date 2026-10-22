@@ -3,7 +3,7 @@ INFRA_SERVICES := \
 	nosql \
 	rabbitmq \
 	redis \
-	object-storage \
+	objectstorage \
 	mailpit
 
 APPLICATION_SERVICES := \
@@ -17,19 +17,51 @@ APPLICATION_SERVICES := \
 
 BOOTSTRAP_SCRIPTS := $(wildcard services/*/bootstrap.sh)
 
-.DEFAULT_GOAL := help
-
-.PHONY: \
+MAKE_TARGETS := \
 	help \
 	build \
 	rebuild \
 	development \
+	development-oci \
 	development-infra \
 	development-bootstrap \
 	development-services \
 	development-rebuild \
 	development-logs \
 	development-down
+
+.DEFAULT_GOAL := help
+
+.PHONY: \
+	oci-pizza-banner \
+	help \
+	build \
+	rebuild \
+	development \
+	development-oci \
+	development-infra \
+	development-bootstrap \
+	development-services \
+	development-rebuild \
+	development-logs \
+	development-down
+
+# Exibe a identidade do projeto antes da execução de qualquer alvo.
+oci-pizza-banner:
+	@printf '%s\n' ''
+	@printf '%s\n' ' ██████╗  ██████╗██╗    ██████╗ ██╗███████╗███████╗ █████╗ '
+	@printf '%s\n' '██╔═══██╗██╔════╝██║    ██╔══██╗██║╚══███╔╝╚══███╔╝██╔══██╗'
+	@printf '%s\n' '██║   ██║██║     ██║    ██████╔╝██║  ███╔╝   ███╔╝ ███████║'
+	@printf '%s\n' '██║   ██║██║     ██║    ██╔═══╝ ██║ ███╔╝   ███╔╝  ██╔══██║'
+	@printf '%s\n' '╚██████╔╝╚██████╗██║    ██║     ██║███████╗███████╗██║  ██║'
+	@printf '%s\n' ' ╚═════╝  ╚═════╝╚═╝    ╚═╝     ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝'
+	@printf '%s\n' ''
+	@printf '%s\n' '   OCI Pizza - by Daniel Armbrust (darmbrust@gmail.com)    '
+	@printf '%s\n' '                                                           '
+	@printf '%s\n' ''
+
+# Todos os alvos públicos dependem do banner para manter a saída padronizada.
+$(MAKE_TARGETS): oci-pizza-banner
 
 help: ## Exibe os alvos disponíveis.
 	@echo "Alvos disponíveis:"
@@ -53,9 +85,20 @@ development-bootstrap: development-infra ## Executa os bootstraps dos serviços 
 development-services: ## Inicia somente os serviços da aplicação.
 	@echo "Iniciando os serviços da aplicação..."
 	docker compose up -d --no-deps $(APPLICATION_SERVICES)
+	@echo ""
+	@echo "Serviços disponíveis:"
+	@echo "  Frontend: http://localhost:8010"
+	@echo "  Admin:    http://localhost:8006/admin/login"
 
 development: development-infra ## Inicia a infraestrutura e os serviços da aplicação.
 	$(MAKE) development-services
+
+development-oci: development-infra ## Inicia os serviços locais utilizando providers reais do OCI.
+	@bash -c 'set -e; source ./scripts/use-oci-env.sh; docker compose up -d $(APPLICATION_SERVICES)'
+	@echo ""
+	@echo "Serviços disponíveis:"
+	@echo "  Frontend: http://localhost:8010"
+	@echo "  Admin:    http://localhost:8006/admin/login"
 
 build: ## Constrói as imagens dos serviços utilizando cache.
 	@echo "Construindo as imagens dos serviços..."

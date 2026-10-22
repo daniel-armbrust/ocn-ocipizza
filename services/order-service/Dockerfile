@@ -1,5 +1,5 @@
 #
-# user-service/Dockerfile
+# order-service/Dockerfile
 #
 FROM container-registry.oracle.com/os/oraclelinux:8-slim
 
@@ -18,14 +18,14 @@ RUN microdnf install -y python3.11 python3.11-pip shadow-utils \
     && useradd \
         --uid "$APP_UID" \
         --gid "$APP_GID" \
-        --home-dir /app \
+        --home-dir /order-service \
         --no-create-home \
         --shell /sbin/nologin \
         app \
     && microdnf clean all
 
 # Diretório de trabalho da aplicação.
-WORKDIR /app
+WORKDIR /order-service
 
 # Copia primeiro as dependências para aproveitar o cache do Docker.
 COPY requirements.txt .

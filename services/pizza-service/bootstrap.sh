@@ -55,6 +55,22 @@ ENV_FILE='.env'
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_DIR"
 
+# Variáveis exportadas pelo ambiente externo têm precedência sobre o .env.
+declare -A ENVIRONMENT_OVERRIDES
+
+for variable in \
+    APP_ENV LOG_LEVEL PERSISTENCE_PROVIDER NOSQL_PROVIDER \
+    NOSQL_TABLE_NAME NOSQL_ENDPOINT NOSQL_COMPARTMENT_ID \
+    OBJECTSTORAGE_PROVIDER OBJECTSTORAGE_ENDPOINT OBJECTSTORAGE_BUCKET \
+    OBJECTSTORAGE_ACCESS_KEY OBJECTSTORAGE_SECRET_KEY \
+    OBJECTSTORAGE_COMPARTMENT_ID OCI_REGION OCI_AUTH_MODE \
+    OCI_CONFIG_FILE OCI_CONFIG_PROFILE JWT_ISSUER JWT_AUDIENCE \
+    JWT_JWKS_URL; do
+    if [[ -v "$variable" ]]; then
+        ENVIRONMENT_OVERRIDES["$variable"]="${!variable}"
+    fi
+done
+
 display_step 'Iniciando o bootstrap do pizza-service'
 
 # Verifica se o script está sendo executado na raiz do pizza-service.
@@ -107,6 +123,7 @@ NOSQL_PROVIDER=local
 # Oracle NoSQL
 NOSQL_TABLE_NAME=pizzas
 NOSQL_ENDPOINT=http://localhost:18080
+NOSQL_COMPARTMENT_ID=
 
 # Object Storage local (MinIO)
 OBJECTSTORAGE_PROVIDER=local
@@ -114,8 +131,10 @@ OBJECTSTORAGE_ENDPOINT=http://localhost:9000
 OBJECTSTORAGE_BUCKET=pizza-images
 OBJECTSTORAGE_ACCESS_KEY=minioadmin
 OBJECTSTORAGE_SECRET_KEY=minioadmin
+OBJECTSTORAGE_COMPARTMENT_ID=
 
 # Autenticação OCI (utilizada quando um provider OCI for selecionado)
+OCI_REGION=sa-saopaulo-1
 OCI_AUTH_MODE=config_file
 OCI_CONFIG_FILE=
 OCI_CONFIG_PROFILE=DEFAULT
@@ -138,11 +157,24 @@ set -a
 source .env
 set +a
 
+for variable in "${!ENVIRONMENT_OVERRIDES[@]}"; do
+    export "$variable=${ENVIRONMENT_OVERRIDES[$variable]}"
+done
+
 # Providers possuem valores padrão equivalentes aos definidos em Settings.
 # A validação ocorre antes de iniciar qualquer recurso para evitar um
 # bootstrap parcialmente executado por configuração incompleta.
+export APP_ENV="${APP_ENV:-development}"
+export LOG_LEVEL="${LOG_LEVEL:-INFO}"
+export PERSISTENCE_PROVIDER="${PERSISTENCE_PROVIDER:-nosql}"
 export NOSQL_PROVIDER="${NOSQL_PROVIDER:-local}"
+export NOSQL_COMPARTMENT_ID="${NOSQL_COMPARTMENT_ID:-}"
 export OBJECTSTORAGE_PROVIDER="${OBJECTSTORAGE_PROVIDER:-local}"
+export OBJECTSTORAGE_COMPARTMENT_ID="${OBJECTSTORAGE_COMPARTMENT_ID:-}"
+export OCI_REGION="${OCI_REGION:-sa-saopaulo-1}"
+export OCI_AUTH_MODE="${OCI_AUTH_MODE:-config_file}"
+export OCI_CONFIG_FILE="${OCI_CONFIG_FILE:-}"
+export OCI_CONFIG_PROFILE="${OCI_CONFIG_PROFILE:-DEFAULT}"
 
 if [ "${NOSQL_PROVIDER}" != 'local' ] && \
    [ "${NOSQL_PROVIDER}" != 'oci' ]; then
@@ -181,6 +213,8 @@ if [ "${PERSISTENCE_PROVIDER}" = "nosql" ]; then
     # O handle é criado pela mesma fábrica utilizada pela aplicação. Dessa
     # forma, NOSQL_PROVIDER seleciona automaticamente o backend local ou OCI.
     python <<'PYTHON'
+import time
+
 from app.config.settings import settings
 from app.repositories.nosql.connection import create_nosql_handle
 from borneo import TableLimits, TableRequest
@@ -222,6 +256,9 @@ try:
     )
     result = handle.table_request(request)
     result.wait_for_completion(handle, 60000, 1000)
+
+    # Respeita o limite de quatro operações DDL por minuto do Oracle NoSQL.
+    time.sleep(16)
     print(f'Tabela {table_name} pronta para utilização.')
 finally:
     handle.close()

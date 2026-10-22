@@ -58,12 +58,11 @@ O ambiente de execução utiliza Python 3.11.
 ## `bootstrap.sh` — Bootstrap do ambiente local
 
 O script `bootstrap.sh` prepara o ambiente Python, cria a configuração local e
-recria a tabela e os índices utilizados pelo serviço no Oracle NoSQL.
+garante a tabela e os índices utilizados pelo serviço no Oracle NoSQL.
 
-> **Atenção:** o bootstrap é destrutivo e deve ser utilizado somente para
-> preparar o ambiente de desenvolvimento. Ele executa `DROP TABLE IF EXISTS`
-> antes de recriar a tabela `orders`; portanto, todos os pedidos existentes na
-> tabela configurada serão removidos.
+O bootstrap utiliza `CREATE TABLE IF NOT EXISTS` e não remove a tabela nem os
+pedidos existentes. Em `development`, ele também cria um pedido de demonstração
+de forma idempotente e publica a notificação correspondente.
 
 ### Pré-requisitos
 
@@ -119,9 +118,10 @@ docker compose ps order-service
 3. Atualiza o `pip` e instala o `requirements.txt`
 4. Cria o arquivo `.env`, caso ele ainda não exista
 5. Carrega as configurações locais
-6. Valida o provider definido em `PERSISTENCE_PROVIDER`
-7. Exclui a tabela `orders`, caso ela exista
-8. Recria a tabela e os índices utilizados nas consultas e ordenações
+6. Preserva variáveis exportadas externamente e valida os providers configurados
+7. Verifica a existência da fila configurada, sem criá-la
+8. Garante a tabela `orders` e os índices utilizados nas consultas e ordenações
+9. Em `development`, cria o pedido de demonstração e publica sua notificação
 
 ### Configuração local criada
 
@@ -146,15 +146,20 @@ bootstrap sem sobrescrever as definições existentes.
 ## `startdev.sh` — Execução local do serviço
 
 O script `startdev.sh` inicia o `order-service` diretamente em modo de
-desenvolvimento. Ele configura Oracle NoSQL, RabbitMQ, a fila
-`notifications-queue` e a validação JWT, cria e ativa o ambiente virtual
-`.venv` quando necessário, instala as dependências e inicia o Uvicorn com
-recarregamento automático na porta `8004`.
+desenvolvimento. Ele carrega as configurações do ambiente, cria e ativa o
+ambiente virtual `.venv` quando necessário, instala as dependências e inicia o
+Uvicorn com recarregamento automático na porta `8004`.
+
+Quando `MESSAGING_PROVIDER=oci_queue` e `OCI_QUEUE_ID` estiver vazio, o script
+consulta a OCI usando `QUEUE_NAME` e `QUEUE_COMPARTMENT_ID` para localizar a
+fila. Ele não cria filas. Quando `OCI_QUEUE_ID` já estiver definido, utiliza o
+OCID informado diretamente.
 
 O `startdev.sh` não cria a tabela, os índices ou os dados do serviço. Execute o
 `bootstrap.sh` antes da primeira execução ou quando precisar recriar a
-estrutura local. A infraestrutura Oracle NoSQL, RabbitMQ e o `user-service`
-também devem estar disponíveis previamente.
+estrutura local. A infraestrutura Oracle NoSQL, RabbitMQ ou OCI Queue e o
+`user-service` também devem estar disponíveis previamente. Para OCI Queue, o
+`bootstrap.sh` ainda exige `OCI_QUEUE_ID` para validar a fila antes da execução.
 
 O script é exclusivo para desenvolvimento local e não deve ser utilizado como
 processo de produção.
@@ -216,13 +221,20 @@ A tabela `orders` contém os campos:
 | `created_at` | timestamp | Data e hora de criação em UTC. |
 | `updated_at` | timestamp | Data e hora da última atualização em UTC. |
 
-O bootstrap cria índices para:
+O bootstrap cria no máximo cinco índices, limite aplicado pelo Oracle NoSQL:
 
+- Consulta administrativa por identificador do pedido
 - Pedidos por usuário e data de criação
 - Chave de idempotência
 - Status do pedido
-- Status do pagamento
-- Combinação dos dois status com ordenação por data
+- Data de criação para ordenação administrativa
+
+Filtros combinados ou por `payment_status` podem exigir uma varredura da
+tabela quando não forem atendidos por esses índices.
+
+O campo `id` é a chave primária da tabela. O `user_id` é consultado por índice;
+essa modelagem evita ultrapassar o limite de 64 caracteres do Oracle NoSQL ao
+combinar dois UUIDs na chave primária.
 
 ### Unidade de trabalho
 
@@ -288,13 +300,11 @@ do broker. Host, porta, usuário e senha são obrigatórios.
 
 ### OCI Queue
 
-Com `MESSAGING_PROVIDER=oci_queue`, o publicador envia o JSON ao
-`OCI_QUEUE_MESSAGES_ENDPOINT` da fila identificada por `OCI_QUEUE_ID`. A
-autenticação utiliza Instance Principal; a instância deve pertencer a um
-Dynamic Group autorizado por uma IAM Policy a publicar mensagens na fila.
-
-O endpoint configurado deve ser o `messagesEndpoint` específico da fila, e não
-o endpoint administrativo do serviço OCI Queue.
+Com `MESSAGING_PROVIDER=oci_queue`, o publicador consulta os metadados da fila
+identificada por `OCI_QUEUE_ID` e obtém automaticamente o `messagesEndpoint`
+específico antes de publicar o JSON. A autenticação utiliza o modo definido em
+`OCI_AUTH_MODE`; a identidade utilizada deve possuir uma IAM Policy autorizando
+a publicação de mensagens na fila.
 
 <!-- TODO: Implementar um mecanismo transacional de outbox ou retry persistente
 para evitar a perda da notificação quando a fila estiver indisponível depois do
@@ -751,12 +761,15 @@ Os handlers globais utilizam códigos com o prefixo `ORDER_SERVICE_`:
 | `DATABASE_URL` | — | URL reservada para o provider SQLAlchemy. |
 | `MESSAGING_PROVIDER` | Obrigatório | Provider de mensageria: `rabbitmq` ou `oci_queue`. |
 | `QUEUE_NAME` | `notifications-queue` | Nome lógico da fila de notificações. |
+| `QUEUE_COMPARTMENT_ID` | — | Compartment usado para localizar a fila OCI quando o OCID não foi informado. |
 | `RABBITMQ_HOST` | — | Host obrigatório para RabbitMQ. |
 | `RABBITMQ_PORT` | — | Porta obrigatória para RabbitMQ. |
 | `RABBITMQ_USERNAME` | — | Usuário obrigatório para RabbitMQ. |
 | `RABBITMQ_PASSWORD` | — | Senha obrigatória para RabbitMQ. |
 | `OCI_QUEUE_ID` | — | OCID obrigatório para OCI Queue. |
-| `OCI_QUEUE_MESSAGES_ENDPOINT` | — | Endpoint de mensagens obrigatório para OCI Queue. |
+| `OCI_AUTH_MODE` | `config_file` | Autenticação OCI: `config_file` ou `instance_principal`. |
+| `OCI_CONFIG_FILE` | — | Arquivo de configuração OCI quando `OCI_AUTH_MODE=config_file`. |
+| `OCI_CONFIG_PROFILE` | `DEFAULT` | Profile utilizado no arquivo de configuração OCI. |
 | `HTTP_CLIENT_TIMEOUT` | `10.0` | Timeout da consulta HTTP ao JWKS, em segundos. |
 | `JWT_ISSUER` | `user-service` | Emissor esperado no access token. |
 | `JWT_AUDIENCE` | `ocipizza` | Audiência esperada no access token. |

@@ -2107,33 +2107,55 @@ h1 {
     white-space: normal;
 }
 
-.app-message-modal .pizza-added-modal-content {
+.app-message-modal-content {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
     padding: 24px;
-    border-color: rgb(35 145 190 / 42%);
+    border: 2px solid rgb(35 145 190 / 42%);
+    background: var(--white);
+    border-radius: var(--radius-medium);
     gap: 16px;
 }
 
-.app-message-modal.message-success .pizza-added-modal-content {
+.app-message-modal.message-success .app-message-modal-content {
     border-color: rgb(32 122 72 / 42%);
 }
 
-.app-message-modal.message-warning .pizza-added-modal-content {
+.app-message-modal.message-warning .app-message-modal-content {
     border-color: rgb(244 154 32 / 55%);
 }
 
-.app-message-modal.message-error .pizza-added-modal-content {
+.app-message-modal.message-error .app-message-modal-content {
     border-color: rgb(185 20 29 / 46%);
 }
 
-.app-message-modal.message-success .pizza-added-modal-content h2 {
+.app-message-modal-content h2,
+.app-message-modal-content p {
+    margin: 0;
+}
+
+.app-message-modal-content h2 {
+    margin-top: 2px;
+    font-size: clamp(1.35rem, 3vw, 1.7rem);
+}
+
+.app-message-modal-content p {
+    margin-top: 6px;
+    color: var(--ink-700);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.app-message-modal.message-success .app-message-modal-content h2 {
     color: #17653a;
 }
 
-.app-message-modal.message-warning .pizza-added-modal-content h2 {
+.app-message-modal.message-warning .app-message-modal-content h2 {
     color: #7a4a00;
 }
 
-.app-message-modal.message-info .pizza-added-modal-content h2 {
+.app-message-modal.message-info .app-message-modal-content h2 {
     color: #145d7a;
 }
 
@@ -2170,7 +2192,7 @@ h1 {
 }
 
 @media (max-width: 480px) {
-    .app-message-modal .pizza-added-modal-content {
+    .app-message-modal-content {
         grid-template-columns: 1fr;
         padding: 22px;
         text-align: center;
@@ -2506,13 +2528,45 @@ h1 {
     }
 }
 
-.app-message-modal .pizza-added-modal-content > div {
+.app-message-modal-content > div {
     min-width: 0;
 }
 
-.app-message-modal .pizza-added-modal-content p {
+.app-message-modal-content p {
     overflow-wrap: anywhere;
     word-break: normal;
+}
+
+/* Mantém as mensagens do carrinho proporcionais aos demais modais da aplicação. */
+.app-message-modal.cart-notice {
+    width: min(420px, calc(100vw - 32px));
+    max-width: 420px;
+}
+
+.app-message-modal.cart-notice .app-message-modal-content {
+    grid-template-columns: 1fr;
+    padding: 20px;
+    gap: 14px;
+    text-align: center;
+}
+
+.app-message-modal.cart-notice .app-modal-icon {
+    width: 54px;
+    height: 54px;
+    margin-inline: auto;
+    font-size: 1.7rem;
+}
+
+.app-message-modal.cart-notice .app-message-modal-content h2 {
+    font-size: clamp(1.35rem, 3vw, 1.7rem);
+}
+
+.app-message-modal.cart-notice .app-message-modal-content p {
+    font-size: 1rem;
+}
+
+.app-message-modal.cart-notice .button {
+    margin-inline: auto;
 }
 
 .profile-order-success-modal .pizza-added-modal-content {

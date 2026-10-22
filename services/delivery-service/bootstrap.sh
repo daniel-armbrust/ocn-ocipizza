@@ -126,14 +126,36 @@ fi
 # Carrega as variáveis do arquivo .env no ambiente do processo atual.
 echo 'Carregando configurações do ambiente...'
 
+# Variáveis exportadas pelo ambiente externo têm precedência sobre o .env.
+declare -A ENVIRONMENT_OVERRIDES
+
+for variable in \
+    APP_NAME APP_ENV DEBUG LOG_LEVEL PERSISTENCE_PROVIDER NOSQL_PROVIDER \
+    NOSQL_TABLE_NAME NOSQL_ENDPOINT NOSQL_COMPARTMENT_ID OCI_REGION \
+    OCI_AUTH_MODE OCI_CONFIG_FILE OCI_CONFIG_PROFILE JWT_ISSUER \
+    JWT_AUDIENCE JWT_JWKS_URL OCI_LOG_ID; do
+    if [[ -v "$variable" ]]; then
+        ENVIRONMENT_OVERRIDES["$variable"]="${!variable}"
+    fi
+done
+
 set -a
 source "$ENV_FILE"
 set +a
+
+for variable in "${!ENVIRONMENT_OVERRIDES[@]}"; do
+    export "$variable=${ENVIRONMENT_OVERRIDES[$variable]}"
+done
 
 # O provider determina se o handle será conectado ao Oracle NoSQL local ou
 # ao Oracle NoSQL Cloud Service. O compartment é obrigatório para o provider
 # OCI porque identifica onde a tabela será criada.
 export NOSQL_PROVIDER="${NOSQL_PROVIDER:-local}"
+export PERSISTENCE_PROVIDER="${PERSISTENCE_PROVIDER:-nosql}"
+export OCI_REGION="${OCI_REGION:-sa-saopaulo-1}"
+export OCI_AUTH_MODE="${OCI_AUTH_MODE:-config_file}"
+export OCI_CONFIG_FILE="${OCI_CONFIG_FILE:-${HOME}/.oci/config}"
+export OCI_CONFIG_PROFILE="${OCI_CONFIG_PROFILE:-DEFAULT}"
 
 if [ "${NOSQL_PROVIDER}" != 'local' ] && \
    [ "${NOSQL_PROVIDER}" != 'oci' ]; then
@@ -146,6 +168,22 @@ if [ "${NOSQL_PROVIDER}" != 'local' ] && \
    [ -z "${NOSQL_COMPARTMENT_ID:-}" ]; then
     echo 'Erro: NOSQL_COMPARTMENT_ID é obrigatório quando '
     echo 'NOSQL_PROVIDER for diferente de local.'
+    exit 1
+fi
+
+if [ "${NOSQL_PROVIDER}" = 'oci' ] && \
+   [ "${OCI_AUTH_MODE}" != 'config_file' ] && \
+   [ "${OCI_AUTH_MODE}" != 'instance_principal' ]; then
+    echo "Modo de autenticação OCI não suportado: ${OCI_AUTH_MODE}"
+    echo 'Utilize OCI_AUTH_MODE=config_file ou '
+    echo 'OCI_AUTH_MODE=instance_principal.'
+    exit 1
+fi
+
+if [ "${NOSQL_PROVIDER}" = 'oci' ] && \
+   [ "${OCI_AUTH_MODE}" = 'config_file' ] && \
+   [ ! -f "${OCI_CONFIG_FILE}" ]; then
+    echo "Erro: arquivo de configuração OCI não encontrado: ${OCI_CONFIG_FILE}"
     exit 1
 fi
 
@@ -162,6 +200,8 @@ fi
 echo 'Inicializando persistência Oracle NoSQL...'
 
 python <<'PYTHON'
+import time
+
 from app.config.settings import settings
 from borneo import TableLimits, TableRequest
 
@@ -204,6 +244,9 @@ request = (
 )
 result = handle.table_request(request)
 result.wait_for_completion(handle, 60000, 1000)
+
+# Respeita o limite de quatro operações DDL por minuto do Oracle NoSQL.
+time.sleep(16)
 
 print(f'Tabela {table_name} pronta para utilização.')
 

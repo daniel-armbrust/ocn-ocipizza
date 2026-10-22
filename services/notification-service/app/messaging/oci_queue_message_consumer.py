@@ -4,9 +4,11 @@
 
 import json
 
+import oci
 from oci.auth.signers import InstancePrincipalsSecurityTokenSigner
 from oci.queue import QueueClient
 
+from app.config.settings import settings
 from app.messaging.exceptions import MessageConsumeError
 from app.messaging.message_consumer import MessageConsumer
 
@@ -14,10 +16,7 @@ from app.messaging.message_consumer import MessageConsumer
 class OCIQueueMessageConsumer(MessageConsumer):
     """Implementação de MessageConsumer utilizando OCI Queue."""
 
-    def __init__(self,
-                 queue_id: str,
-                 messages_endpoint: str,
-                 region: str) -> None:
+    def __init__(self, queue_id: str) -> None:
         """
         Inicializa o consumidor de mensagens do OCI Queue.
 
@@ -28,9 +27,7 @@ class OCIQueueMessageConsumer(MessageConsumer):
         """
 
         self.queue_id = queue_id
-        self.messages_endpoint = messages_endpoint
-        self.region = region
-        self._client: QueueClient | None = None
+        self._client = None
 
     def receive(self) -> list[dict]:
         """
@@ -109,19 +106,67 @@ class OCIQueueMessageConsumer(MessageConsumer):
 
     def _get_client(self) -> QueueClient:
         """
-        Cria o client OCI Queue autenticado por Instance Principal.
+        Cria o cliente OCI Queue utilizando a estratégia de autenticação 
+        configurada.
+
+        A região é identificada a partir do profile OCI ou automaticamente
+        pela Compute Instance. O endpoint de mensagens é obtido por meio
+        dos metadados da fila.
 
         Returns:
-            Client configurado com o endpoint de mensagens da fila.
+            Cliente OCI Queue configurado para publicação e consumo de 
+                mensagens.
         """
 
         if self._client is None:
-            signer = InstancePrincipalsSecurityTokenSigner()
-            
-            self._client = QueueClient(
-                config={'region': self.region},
-                signer=signer,
-                service_endpoint=self.messages_endpoint
-            )
+            # Utiliza o arquivo de configuração OCI para autenticação,
+            # normalmente durante a execução local da aplicação.
+            if settings.oci_auth_mode == 'config_file':
+
+                config = oci.config.from_file(
+                    file_location=settings.oci_config_file,
+                    profile_name=settings.oci_config_profile
+                )
+                
+                # Obtém a região a partir do arquivo de configuração.
+                self.region = settings.oci_region
+                config['region'] = settings.oci_region
+
+                # Consulta os metadados da fila para obter seu endpoint 
+                # de mensagens.
+                admin_client = oci.queue.QueueAdminClient(config=config)
+                queue = admin_client.get_queue(queue_id=self.queue_id).data
+
+                self._client = QueueClient(
+                    config=config,
+                    service_endpoint=queue.messages_endpoint
+                )
+
+            elif settings.oci_auth_mode == 'instance_principal':
+                signer = InstancePrincipalsSecurityTokenSigner()
+
+                # Obtém a região automaticamente com base na localidade 
+                # em que a aplicação está sendo executada no OCI.
+                self.region = signer.region
+
+                config = {
+                    'region': self.region
+                }
+
+                # Consulta os metadados da fila para obter seu endpoint 
+                # de mensagens.
+                admin_client = oci.queue.QueueAdminClient(
+                    config=config,
+                    signer=signer
+                )
+
+                queue = admin_client.get_queue(queue_id=self.queue_id).data
+
+                # Inicializa o cliente utilizando o endpoint da fila.
+                self._client = QueueClient(
+                    config=config,
+                    signer=signer,
+                    service_endpoint=queue.messages_endpoint
+                )
 
         return self._client

@@ -10,7 +10,6 @@ from uuid import UUID
 
 from borneo import (
     DeleteRequest,
-    GetRequest,
     NoSQLHandle,
     PutOption,
     PutRequest,
@@ -115,31 +114,25 @@ class NosqlOrderRepository(OrderRepository):
             Pedido encontrado ou `None` quando ele não existir.
         """
 
-        if user_id is not None:
-            request = (
-                GetRequest()
-                .set_table_name(self.table_name)
-                .set_key({
-                    'user_id': str(user_id),
-                    'id': str(order_id)
-                })
-            )
+        # A tabela utiliza somente `id` como chave primária. Quando a rota de
+        # usuário informa `user_id`, ele é aplicado como filtro adicional.
+        user_filter = (
+            f' AND user_id = "{user_id}"'
+            if user_id is not None
+            else ''
+        )
 
-            row = self.handle.get(request).get_value()
-        else:
-            # Consultas administrativas não conhecem o user_id. O índice
-            # simples em `id` permite localizar o pedido sem usar GetRequest,
-            # que exige a chave composta completa.
-            statement = f'''
-                SELECT id, user_id, customer, delivery_address, items,
-                       subtotal, delivery_fee, total, status, payment_status,
-                       idempotency_key, created_at, updated_at
-                FROM {self.table_name}
-                WHERE id = "{order_id}"
-                LIMIT 1
-            '''
-            rows = self._query(statement)
-            row = rows[0] if rows else None
+        statement = f'''
+            SELECT id, user_id, customer, delivery_address, items,
+                   subtotal, delivery_fee, total, status, payment_status,
+                   idempotency_key, created_at, updated_at
+            FROM {self.table_name}
+            WHERE id = "{order_id}"{user_filter}
+            LIMIT 1
+        '''
+
+        rows = self._query(statement)
+        row = rows[0] if rows else None
 
         return self._to_model(row) if row is not None else None
 
@@ -201,10 +194,26 @@ class NosqlOrderRepository(OrderRepository):
                    idempotency_key, created_at, updated_at
             FROM {self.table_name}
             WHERE user_id = "{user_id}"
-            ORDER BY created_at DESC
-            LIMIT {limit}
-            OFFSET {offset}
         '''
+
+        if self.use_client_side_sort:
+            orders = [
+                self._to_model(row)
+                for row in self._query(statement)
+            ]
+
+            orders.sort(
+                key=lambda order: order.created_at,
+                reverse=True
+            )
+            
+            return orders[offset:offset + limit]
+
+        statement += (
+            ' ORDER BY created_at DESC'
+            f' LIMIT {limit}'
+            f' OFFSET {offset}'
+        )
 
         return [self._to_model(row) for row in self._query(statement)]
 
@@ -408,7 +417,7 @@ class NosqlOrderRepository(OrderRepository):
 
     def delete(self, order: Order) -> None:
         """
-        Remove um pedido usando sua chave primária composta.
+        Remove um pedido usando o identificador que compõe sua chave primária.
 
         Args:
             order: Pedido que será removido.
@@ -424,7 +433,6 @@ class NosqlOrderRepository(OrderRepository):
             DeleteRequest()
             .set_table_name(self.table_name)
             .set_key({
-                'user_id': str(order.user_id),
                 'id': str(order.id)
             })
         )
