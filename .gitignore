@@ -144,6 +144,10 @@ coverage/
 
 .terraform/
 
+# Chaves SSH locais usadas pelo Compute Firewall.
+terraform/compute-firewall/keys/*
+!terraform/compute-firewall/keys/README.md
+
 *.tfstate
 *.tfstate.*
 .terraform.tfstate.lock.info

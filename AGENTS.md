@@ -57,10 +57,19 @@ consulte a documentação que realmente existir.
 
 ### terraform/
 
-Diretório que contém o código e documentação relacionada à infraestrutura como código.
+Diretório que contém o código Terraform da infraestrutura cloud da OCI Pizza,
+incluindo rede multi-região, segurança, conectividade, compute, OKE, Container
+Instances e serviços gerenciados da OCI.
 
-Alterações neste diretório devem considerar as instruções em
-`terraform/AGENTS.md` e os arquivos de configuração existentes.
+Antes de criar, alterar ou remover qualquer arquivo dentro de `terraform/`, o
+agente DEVE consultar `terraform/AGENTS.md`. Esse arquivo contém as regras
+específicas da infraestrutura, incluindo a arquitetura ativo/ativo, VCNs,
+Hub-and-Spoke com DRG, inspeção pelo firewall, IAM, providers regionais,
+módulos e validações Terraform.
+
+As regras da raiz continuam aplicáveis. O `terraform/AGENTS.md` complementa
+essas regras e deve ser seguido para decisões específicas do diretório
+`terraform/`.
 
 ### kubernetes/
 
