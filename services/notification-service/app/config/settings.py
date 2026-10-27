@@ -26,7 +26,8 @@ class Settings(BaseSettings):
     app_env: str = 'development'
     debug: bool = False
 
-    oci_region: str | None = 'sa-saopaulo-1'
+    # Região do OCI onde a aplicação será executada.
+    oci_region: str | None
 
     # URL base pública utilizada para construir links 
     # enviados aos usuários.

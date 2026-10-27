@@ -13,7 +13,7 @@ repositório:
 
 ```bash
 ssh-keygen -t ed25519 -N '' \
-  -C 'oci-pizza-compute-firewall' \
+  -C 'ocipizza-compute-firewall' \
   -f terraform/compute-firewall/keys/firewall
 ```
 

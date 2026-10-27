@@ -34,6 +34,8 @@ Os módulos regionais reutilizáveis ficam em diretórios próprios:
 
 - `vcn-firewall/`, `vcn-oke/`, `vcn-ci/`, `vcn-db/` e `vcn-services/`:
   redes, gateways, sub-redes, Route Tables e Security Lists;
+- `vcn-onpremises/`: VCN de laboratório em GRU para simular a rede on-premises
+  de uma futura conexão VPN;
 - `oke/`: cluster OKE e node pool;
 - `compute-firewall/`: instâncias de firewall e cloud-init;
 - `nlb/`: Network Load Balancer e backends;
@@ -87,6 +89,9 @@ Para arquivos diretamente em `terraform/`, use somente o nome do arquivo:
   definida no módulo.
 - Ao alterar rotas, verifique também o caminho de retorno e as regras de
   Security List.
+- A VCN `vcn-onpremises/` possui uma única sub-rede pública, Security List
+  stateful sem ingressos e rota padrão para o Internet Gateway; ela não deve
+  ser anexada ao DRG. Não crie uma réplica em VCP sem solicitação explícita.
 
 ## OKE
 

@@ -329,7 +329,7 @@ def health_check() -> dict:
 
     return {
         'status': 'success', 
-        'data': {'service': 'frontend-service'}
+        'data': {'service': 'admin-service'}
     }
 
 # Rotas responsáveis pelos fluxos de autenticação dos usuários.

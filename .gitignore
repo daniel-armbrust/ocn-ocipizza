@@ -74,6 +74,8 @@ wheels/
 *.swp
 *.swo
 
+*~
+
 # --------------------------------------------------
 # Sistema operacional
 # --------------------------------------------------
@@ -107,6 +109,7 @@ temp/
 *.tmp
 *.bak
 *.backup
+*.orig
 
 # --------------------------------------------------
 # Bancos de dados locais
@@ -148,6 +151,10 @@ coverage/
 terraform/compute-firewall/keys/*
 !terraform/compute-firewall/keys/README.md
 
+# Chaves SSH locais dos worker nodes do laboratório OKE Fundamentals.
+oke-fundamentals/terraform/oke/keys/*
+!oke-fundamentals/terraform/oke/keys/README.md
+
 *.tfstate
 *.tfstate.*
 .terraform.tfstate.lock.info
@@ -170,13 +177,26 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-# --------------------------------------------------
-# Arquivos locais do Kubernetes
-# --------------------------------------------------
+# =========================================================
+# Kubernetes
+# =========================================================
 
-*.kubeconfig
-kubeconfig/
 .kube/
+
+# Kubernetes - ConfigMaps temporários gerados durante o deployment.
+kubernetes/overlays/*/configmap.env
+
+# Arquivos de bloqueio dos scripts de deployment.
+kubernetes/overlays/*/.deploy.lock
+
+# Kubeconfigs e credenciais locais
+kubeconfig
+kubeconfig.*
+*.kubeconfig
+
+# Secrets Kubernetes locais
+kubernetes/**/secrets/*.env
+kubernetes/**/secrets/*.yaml
 
 # --------------------------------------------------
 # Documentação gerada

@@ -46,7 +46,6 @@ build/
 *.egg-info/
 
 # Arquivos usados somente no desenvolvimento
-README.md
 AGENTS.md
 PLANS.md
 docs/

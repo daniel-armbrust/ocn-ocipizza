@@ -1,0 +1,17 @@
+# Define o deployment do pizza-service nos clusters OKE de GRU e VCP.
+# Reutiliza os recursos Kubernetes compartilhados da base.
+# O ConfigMap é gerado a partir de um arquivo temporário preparado
+# pelo deploy-pizza-service.sh com os outputs regionais do Terraform.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: oci-pizza
+
+resources:
+  - ../../base/pizza-service
+
+configMapGenerator:
+  - name: pizza-service-config
+    envs:
+      - configmap.env

@@ -1,0 +1,17 @@
+# Define o deployment multirregião do frontend-service nos clusters OKE.
+# Reutiliza os recursos Kubernetes da base compartilhada e gera
+# o ConfigMap a partir do arquivo temporário configmap.env, preparado
+# pelo script deploy-frontend-service.sh com as configurações da aplicação.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: oci-pizza
+
+resources:
+  - ../../base/frontend-service
+
+configMapGenerator:
+  - name: frontend-service-config
+    envs:
+      - configmap.env

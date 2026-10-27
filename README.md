@@ -21,6 +21,33 @@ desenvolvimento sem dependência de uma conta OCI. Na OCI, endpoints,
 credenciais e autenticação são trocados pelas configurações dos serviços
 gerenciados, mantendo a mesma aplicação e o mesmo comportamento esperado.
 
+## Disclaimer
+
+Este repositório é um projeto de estudos **NÃO OFICIAL**, criado para
+demonstrar conceitos de desenvolvimento de aplicações cloud-native,
+microsserviços, containers, Kubernetes, Infrastructure as Code e serviços da
+Oracle Cloud Infrastructure (OCI).
+
+O conteúdo reflete exclusivamente o entendimento e as experiências do autor.
+Ele **NÃO SUBSTITUI** a documentação oficial da Oracle e é disponibilizado
+**SEM GARANTIAS** de funcionamento, precisão, segurança, compatibilidade ou
+adequação para ambientes de produção.
+
+A OCI evolui continuamente, com novos serviços, funcionalidades, versões e
+mudanças em limites, preços e comportamentos. Por isso, exemplos,
+configurações e procedimentos deste repositório podem ficar desatualizados.
+
+O autor não se responsabiliza por perdas, danos, indisponibilidade, custos,
+incidentes de segurança ou quaisquer outras consequências, diretas ou
+indiretas, decorrentes do uso total ou parcial deste conteúdo. A utilização
+dos exemplos, códigos e configurações deste repositório é de inteira
+responsabilidade do usuário.
+
+Antes de utilizar qualquer conteúdo, especialmente em ambientes reais,
+consulte a [documentação oficial da Oracle Cloud Infrastructure](https://docs.oracle.com/en-us/iaas/Content/home.htm),
+revise os impactos de segurança e custos e adapte as configurações às
+necessidades do seu ambiente.
+
 ## Instruções para agentes (`AGENTS.md`)
 
 O repositório possui arquivos `AGENTS.md` distribuídos pelos diretórios para

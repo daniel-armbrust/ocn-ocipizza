@@ -1,0 +1,12 @@
+# Define os recursos Kubernetes compartilhados do frontend-service,
+# independentemente da região de deployment (GRU ou VCP).
+# O overlay utiliza esta base para implantar o microsserviço nos clusters OKE.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - serviceaccount.yaml
+  #- networkpolicy.yaml

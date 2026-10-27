@@ -1,0 +1,12 @@
+# Define os recursos Kubernetes compartilhados do pizza-service,
+# independentemente da região (GRU ou VCP).
+# Os overlays regionais utilizam esta base para realizar o deployment.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - serviceaccount.yaml
+  #- networkpolicy.yaml

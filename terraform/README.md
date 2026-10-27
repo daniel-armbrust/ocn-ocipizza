@@ -65,6 +65,14 @@ terraform/
 │   ├── route-table.tf        # Rota padrão para DRG e Service Gateway
 │   ├── security-list.tf      # Security List da sub-rede
 │   └── subnet.tf             # Sub-rede privada de serviços
+├── vcn-onpremises/
+│   ├── locals.tf             # CIDRs e regras da rede simulada
+│   ├── vcn.tf                # VCN on-premises em GRU
+│   ├── gateway.tf            # Internet Gateway
+│   ├── dhcp.tf               # DHCP Options
+│   ├── route-table.tf        # Rotas para DRG e Internet Gateway
+│   ├── security-list.tf      # Security List stateful sem ingress
+│   └── subnet.tf             # Única sub-rede pública
 ├── nlb/
 │   ├── nlb.tf                # Network Load Balancer privado
 │   ├── backendset.tf         # Backend set dos firewalls
@@ -147,6 +155,12 @@ O módulo `email-delivery/` configura o domínio, DKIM e o remetente aprovado
 `no-reply@ocipizza.com.br`. O módulo `dns/` cria a zona pública
 `ocipizza.com.br`, enquanto `public-ip/` reserva os endereços regionais usados
 pelos load balancers.
+
+O módulo `vcn-onpremises/` cria somente em GRU uma VCN de laboratório que
+simula o ambiente on-premises de uma futura VPN. Ela possui uma única sub-rede
+pública, Internet Gateway, uma Security List stateful sem regras de ingresso e
+uma rota padrão para o Internet Gateway. A VCN permanece isolada e não possui
+attachment ao DRG; o recurso de VPN será adicionado posteriormente.
 
 O módulo `vcn-db/` cria uma VCN privada para o MySQL HeatWave em cada região.
 Cada VCN possui uma sub-rede exclusiva para o banco, com Route Table,

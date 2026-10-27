@@ -71,6 +71,17 @@ module "vcn_services_gru" {
   drg_id         = module.drg_gru.drg_id
 }
 
+# VCN isolada que simula a origem do ambiente on-premises em GRU.
+module "vcn_onpremises_gru" {
+  source = "./vcn-onpremises"
+
+  providers = {
+    oci = oci.gru
+  }
+
+  compartment_id = var.compartment_id
+}
+
 # Cluster OCI Cache Valkey em São Paulo.
 module "valkey_gru" {
   source = "./valkey"
