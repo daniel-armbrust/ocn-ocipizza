@@ -1,0 +1,76 @@
+# Cria um Pod Kubernetes para executar o order-service no OKE.
+# O serviço é responsável pelo processamento e registro dos pedidos
+# do OCI Pizza, incluindo a validação de pagamentos e publicação
+# de eventos para o notification-service.
+# Utiliza serviços locais do cluster para persistência e mensageria.
+# Este Pod é destinado exclusivamente ao laboratório de desenvolvimento.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: order-service
+  labels:
+    app: order-service
+    rel: beta
+    env: development
+  namespace: ocipizza-services
+spec:
+  containers:
+    - name: order-service
+
+      # Imagem Docker do order-service publicada no OCIR.
+      image: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/order-service:1.0.0
+
+      ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+
+      env:
+        - name: APP_ENV
+          value: "development"
+
+        - name: LOG_LEVEL
+          value: "INFO"
+
+        - name: OCI_REGION
+          value: "sa-saopaulo-1"
+
+        - name: PERSISTENCE_PROVIDER
+          value: "nosql"
+        
+        - name: NOSQL_PROVIDER
+          value: "local"
+
+        - name: NOSQL_ENDPOINT
+          value: "http://nosql.ocipizza-infra.svc.cluster.local:8080" 
+        
+        - name: NOSQL_TABLE_NAME
+          value: "orders"
+
+        - name: MESSAGING_PROVIDER
+          value: "rabbitmq"
+
+        - name: QUEUE_NAME
+          value: "notifications-queue"
+
+        - name: RABBITMQ_HOST
+          value: "rabbitmq.ocipizza-infra.svc.cluster.local"
+
+        - name: RABBITMQ_PORT
+          value: "5672"
+
+        - name: RABBITMQ_USERNAME
+          value: "oci_pizza"
+
+        - name: RABBITMQ_PASSWORD
+          value: "oci_pizza"
+
+        - name: JWT_ISSUER
+          value: "user-service"
+
+        - name: JWT_AUDIENCE
+          value: "ocipizza"
+
+        - name: JWT_JWKS_URL
+          value: "http://user-service.ocipizza.svc.cluster.local:8000/.well-known/jwks.json"

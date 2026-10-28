@@ -105,7 +105,7 @@ NOSQL_COMPARTMENT_ID=
 
 # Autenticação OCI (utilizada quando NOSQL_PROVIDER=oci)
 OCI_REGION=sa-saopaulo-1
-OCI_AUTH_MODE=config_file
+OCI_AUTH_MODE=
 OCI_CONFIG_FILE=
 OCI_CONFIG_PROFILE=DEFAULT
 
@@ -153,7 +153,7 @@ done
 export NOSQL_PROVIDER="${NOSQL_PROVIDER:-local}"
 export PERSISTENCE_PROVIDER="${PERSISTENCE_PROVIDER:-nosql}"
 export OCI_REGION="${OCI_REGION:-sa-saopaulo-1}"
-export OCI_AUTH_MODE="${OCI_AUTH_MODE:-config_file}"
+export OCI_AUTH_MODE="${OCI_AUTH_MODE:-}"
 export OCI_CONFIG_FILE="${OCI_CONFIG_FILE:-${HOME}/.oci/config}"
 export OCI_CONFIG_PROFILE="${OCI_CONFIG_PROFILE:-DEFAULT}"
 

@@ -43,7 +43,7 @@ export NOSQL_ENDPOINT="${NOSQL_ENDPOINT:-http://localhost:18080}"
 export NOSQL_COMPARTMENT_ID="${NOSQL_COMPARTMENT_ID:-}"
 
 export OCI_REGION="${OCI_REGION:-sa-saopaulo-1}"
-export OCI_AUTH_MODE="${OCI_AUTH_MODE:-config_file}"
+export OCI_AUTH_MODE="${OCI_AUTH_MODE:-}"
 export OCI_CONFIG_FILE="${OCI_CONFIG_FILE:-${HOME}/.oci/config}"
 export OCI_CONFIG_PROFILE="${OCI_CONFIG_PROFILE:-DEFAULT}"
 

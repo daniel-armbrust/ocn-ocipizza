@@ -1,0 +1,32 @@
+# Cria um Pod Kubernetes para executar o Mailpit no OKE.
+# O Mailpit simula um servidor SMTP para capturar e visualizar
+# os e-mails enviados pelos microsserviços do OCI Pizza.
+# Disponibiliza SMTP na porta 1025 e interface web na porta 8025.
+# Este Pod é destinado exclusivamente ao laboratório de desenvolvimento.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mailpit
+  labels:
+    app: mailpit
+    rel: stable
+    env: development
+  namespace: ocipizza-infra
+spec:
+  containers:
+    - name: mailpit
+
+      # Imagem oficial do Mailpit.
+      image: axllent/mailpit:latest
+
+      ports:
+        # Porta utilizada pelos microsserviços para envio SMTP.
+        - name: smtp
+          containerPort: 1025
+          protocol: TCP
+
+        # Porta utilizada pela interface web do Mailpit.
+        - name: http
+          containerPort: 8025
+          protocol: TCP

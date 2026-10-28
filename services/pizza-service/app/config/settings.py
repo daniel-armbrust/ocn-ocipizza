@@ -16,7 +16,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file='.env',
         env_file_encoding='utf-8',
-        extra='ignore'
+        env_ignore_empty=True,
+        extra='ignore',
     )
 
     app_name: str = 'pizza-service'
@@ -63,12 +64,18 @@ class Settings(BaseSettings):
     log_level: str = 'INFO'
     oci_log_id: str | None = None
 
-    # Estratégia de autenticação utilizada para acessar os serviços
-    # do OCI.
+    # Define o método de autenticação utilizado para acessar os
+    # serviços OCI:
+    #   None desabilita a autenticação OCI, permitindo o uso de
+    #       serviços locais.
+    #   "config_file" utiliza as credenciais configuradas na máquina
+    #       de desenvolvimento.
+    #   "instance_principal" utiliza a identidade da instância Compute
+    #       no OCI.
     oci_auth_mode: Literal[
-        'config_file', 
-        'instance_principal'
-    ] = 'instance_principal'
+        'config_file',
+        'instance_principal',
+    ] | None = None
 
     # Caminho do arquivo de configuração e profile usados para
     # autenticação nos serviços do OCI.

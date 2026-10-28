@@ -1,0 +1,36 @@
+# Cria um Pod Kubernetes para executar o MySQL no OKE.
+# O MySQL fornece armazenamento relacional para os microsserviços
+# do OCI Pizza, como user-service e order-service.
+# As configurações são definidas diretamente no manifesto,
+# sem utilizar ConfigMaps, Secrets ou serviços gerenciados da OCI.
+# Este Pod é destinado exclusivamente ao laboratório de desenvolvimento.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+    rel: stable
+    env: development
+  namespace: ocipizza-infra
+spec:
+  containers:
+    - name: mysql
+
+      # Imagem oficial do MySQL.
+      image: mysql:8.4
+
+      ports:
+        - name: mysql
+          containerPort: 3306
+          protocol: TCP
+
+      env:
+        # Senha do usuário administrador do MySQL.
+        # Valor utilizado exclusivamente no laboratório.
+        - name: MYSQL_ROOT_PASSWORD
+          value: "root"
+        
+        - name: MYSQL_ROOT_HOST
+          value: "%"

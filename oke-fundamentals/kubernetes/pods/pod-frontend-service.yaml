@@ -1,0 +1,63 @@
+# Cria um Pod Kubernetes para executar o frontend-service no OKE.
+# O serviço disponibiliza a interface web do OCI Pizza e atua como BFF,
+# comunicando-se com os demais microsserviços da aplicação.
+# Utiliza Redis para armazenar sessões e serviços locais do cluster,
+# sem depender de serviços gerenciados da OCI.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frontend-service
+  labels:
+    app: frontend-service
+    rel: beta
+    env: development
+  namespace: ocipizza-services
+spec:
+  containers:
+    - name: frontend-service
+
+      # Imagem Docker do frontend-service publicada no OCIR.
+      image: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/frontend-service:1.0.0
+
+      ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+
+      env:
+        - name: APP_ENV
+          value: "development"
+        
+        - name: LOG_LEVEL
+          value: "INFO"
+
+        - name: OCI_REGION
+          value: "sa-saopaulo-1"
+
+        - name: PERSISTENCE_PROVIDER
+          value: "redis"
+
+        - name: REDIS_ENDPOINT
+          value: "redis://redis.ocipizza-infra.svc.cluster.local:6379/0"
+
+        - name: SESSION_SECRET_KEY
+          value: "!!!Sup3rS3cr3t0!!!"
+
+        - name: CSRF_SECRET_KEY
+          value: "!!!Sup3rS3cr3t0!!!"
+
+        - name: PIZZA_SERVICE_URL
+          value: "http://pizza-service.ocipizza-services.svc.cluster.local:8000"
+
+        - name: USER_SERVICE_URL
+          value: "http://user-service.ocipizza.svc.cluster.local:8000"
+
+        - name: ORDER_SERVICE_URL
+          value: "http://order-service.ocipizza-services.svc.cluster.local:8000"
+
+        - name: DELIVERY_SERVICE_URL
+          value: "http://delivery-service.ocipizza-services.svc.cluster.local:8000"
+
+        - name: CHATBOT_SERVICE_URL
+          value: "http://chatbot-service.ocipizza-services.svc.cluster.local:8000"

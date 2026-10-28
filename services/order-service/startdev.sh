@@ -45,7 +45,7 @@ export NOSQL_ENDPOINT="${NOSQL_ENDPOINT:-http://localhost:18080}"
 export NOSQL_COMPARTMENT_ID="${NOSQL_COMPARTMENT_ID:-}"
 
 export OCI_REGION="${OCI_REGION:-sa-saopaulo-1}"
-export OCI_AUTH_MODE="${OCI_AUTH_MODE:-config_file}"
+export OCI_AUTH_MODE="${OCI_AUTH_MODE:-}"
 export OCI_CONFIG_FILE="${OCI_CONFIG_FILE:-${HOME}/.oci/config}"
 export OCI_CONFIG_PROFILE="${OCI_CONFIG_PROFILE:-DEFAULT}"
 
@@ -81,6 +81,17 @@ source .venv/bin/activate
 
 echo "Instalando dependências..."
 pip install -r requirements.txt
+
+if [ "${NOSQL_PROVIDER}" = 'oci' ] || \
+   [ "${MESSAGING_PROVIDER}" = 'oci_queue' ]; then
+    if [ "${OCI_AUTH_MODE}" != 'config_file' ] && \
+       [ "${OCI_AUTH_MODE}" != 'instance_principal' ]; then
+        echo "Modo de autenticação OCI não suportado: ${OCI_AUTH_MODE}"
+        echo 'Utilize OCI_AUTH_MODE=config_file ou '
+        echo 'OCI_AUTH_MODE=instance_principal.'
+        exit 1
+    fi
+fi
 
 if [ "${OCI_AUTH_MODE}" = 'config_file' ] && \
    { [ "${NOSQL_PROVIDER}" = 'oci' ] || \

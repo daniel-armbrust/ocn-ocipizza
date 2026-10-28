@@ -1,0 +1,46 @@
+# Cria um Pod Kubernetes para executar o MinIO no OKE.
+# O MinIO fornece armazenamento de objetos compatível com S3,
+# utilizado pelo OCI Pizza para armazenar imagens das pizzas.
+# Mantém a mesma imagem e configuração do docker-compose.yaml.
+# Este Pod é destinado exclusivamente ao laboratório de desenvolvimento.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: objectstorage
+  labels:
+    app: objectstorage
+    rel: stable
+    env: development
+  namespace: ocipizza-infra  
+spec:
+  containers:
+    - name: objectstorage
+
+      # Imagem do MinIO utilizada no Docker Compose.
+      image: ghcr.io/coollabsio/minio@sha256:69b55a1c1c5dc285ce04db96689f5b2102317fc77a50680a1874ca6efd1c87f9
+
+      # Inicializa o servidor MinIO e a interface administrativa.
+      args:
+        - server
+        - /data
+        - --console-address
+        - ":9001"
+
+      ports:
+        # Porta utilizada para acessar a API S3.
+        - name: api
+          containerPort: 9000
+          protocol: TCP
+
+        # Porta utilizada para acessar a interface web.
+        - name: console
+          containerPort: 9001
+          protocol: TCP
+
+      env:
+        - name: MINIO_ROOT_USER
+          value: "minioadmin"
+
+        - name: MINIO_ROOT_PASSWORD
+          value: "minioadmin"

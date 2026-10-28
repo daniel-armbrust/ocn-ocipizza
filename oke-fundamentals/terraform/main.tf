@@ -26,6 +26,9 @@ module "oke" {
   kube_api_subnet_id      = module.vcn_oke.subnet_ids["kube_api"]
   worker_subnet_id        = module.vcn_oke.subnet_ids["worker_nodes"]
   kubernetes_version      = var.kubernetes_version
+  cni_type                = var.cni_type
+  pod_subnet_id           = var.pod_subnet_id
+  cluster_type            = var.cluster_type
   worker_image_id         = var.worker_image_id
 }
 

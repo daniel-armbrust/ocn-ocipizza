@@ -1,0 +1,76 @@
+# Cria um Pod Kubernetes para executar o pizza-service no OKE.
+# Todas as configurações da aplicação são definidas diretamente
+# neste manifesto, sem utilizar ConfigMaps ou Secrets.
+#
+# Objetivo: demonstrar a criação e execução de um Pod Kubernetes.
+
+# Executa o pizza-service no laboratório OKE.
+# Utiliza serviços internos do cluster, sem dependências
+# de serviços gerenciados OCI.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pizza-service
+  labels:
+    app: pizza-service
+    rel: beta
+    env: development
+  namespace: ocipizza-services
+spec:
+  containers:
+    - name: pizza-service
+
+      # Imagem Docker do pizza-service publicada no OCIR.
+      image: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/pizza-service:1.0.0
+      
+      ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+      
+      env:
+        - name: APP_ENV
+          value: "development"
+        
+        - name: LOG_LEVEL
+          value: "INFO"
+
+        - name: OCI_REGION
+          value: "sa-saopaulo-1"
+        
+        - name: PERSISTENCE_PROVIDER
+          value: "nosql"
+        
+        - name: NOSQL_PROVIDER
+          value: "local"
+
+        - name: NOSQL_ENDPOINT
+          value: "http://nosql.ocipizza-infra.svc.cluster.local:8080" 
+        
+        - name: NOSQL_TABLE_NAME
+          value: "pizzas"
+
+        - name: OBJECTSTORAGE_PROVIDER
+          value: "local"
+
+        - name: OBJECTSTORAGE_BUCKET
+          value: "pizza-images"
+
+        - name: OBJECTSTORAGE_ENDPOINT
+          value: "http://objectstorage.ocipizza-infra.svc.cluster.local:9000"
+
+        - name: OBJECTSTORAGE_ACCESS_KEY
+          value: "minioadmin"
+
+        - name: OBJECTSTORAGE_SECRET_KEY
+          value: "minioadmin"
+        
+        - name: JWT_ISSUER
+          value: "user-service"
+        
+        - name: JWT_AUDIENCE
+          value: "ocipizza"
+        
+        - name: JWT_JWKS_URL
+          value: "http://user-service.ocipizza.svc.cluster.local:8000/.well-known/jwks.json"

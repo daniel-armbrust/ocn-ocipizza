@@ -1,0 +1,83 @@
+# Cria um Pod Kubernetes para executar o admin-service no OKE.
+# O serviço disponibiliza a interface administrativa do OCI Pizza.
+# As configurações são definidas diretamente no manifesto, utilizando
+# os serviços internos do cluster, sem dependências de serviços OCI.
+#
+# Objetivo: demonstrar a execução do admin-service como um Pod independente.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: admin-service
+  labels:
+    app: admin-service
+    rel: beta
+    env: development
+  namespace: ocipizza-services
+spec:
+  containers:
+    - name: admin-service
+
+      # Imagem Docker do pizza-service publicada no OCIR.
+      image: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/admin-service:1.0.0
+
+      # Porta HTTP utilizada pela aplicação FastAPI.
+      ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+
+      env:
+        - name: APP_ENV
+          value: "development"
+
+        - name: LOG_LEVEL
+          value: "INFO"
+        
+        - name: OCI_REGION
+          value: "sa-saopaulo-1"
+        
+        - name: REDIS_ENDPOINT
+          value: "redis://redis.ocipizza-infra.svc.cluster.local:6379/1"
+        
+        - name: SESSION_SECRET_KEY
+          value: "!!!Sup3rS3cr3t0!!!"
+
+        - name: CSRF_SECRET_KEY
+          value: "!!!Sup3rS3cr3t0!!!"
+
+        - name: PIZZA_SERVICE_URL
+          value: "http://pizza-service.ocipizza.svc.cluster.local:8000"
+
+        - name: USER_SERVICE_URL
+          value: "http://user-service.ocipizza.svc.cluster.local:8000"
+
+        - name: DELIVERY_SERVICE_URL
+          value: "http://delivery-service.ocipizza.svc.cluster.local:8000"
+        
+        - name: ORDER_SERVICE_URL
+          value: "http://order-service.ocipizza.svc.cluster.local:8000"
+
+        - name: JWT_ISSUER
+          value: "user-service"
+        
+        - name: JWT_AUDIENCE
+          value: "ocipizza"
+        
+        - name: JWT_JWKS_URL
+          value: "http://user-service.ocipizza.svc.cluster.local:8000/.well-known/jwks.json"
+
+        - name: OBJECTSTORAGE_ENDPOINT
+          value: "http://objectstorage.ocipizza-infra.svc.cluster.local:9000"
+
+        - name: OBJECTSTORAGE_ACCESS_KEY
+          value: "minioadmin"
+
+        - name: OBJECTSTORAGE_SECRET_KEY
+          value: "minioadmin"
+
+        - name: PIZZA_IMAGES_OBJECTSTORAGE_BUCKET
+          value: "pizza-images" 
+
+        
+        

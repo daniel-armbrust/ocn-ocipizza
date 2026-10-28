@@ -306,6 +306,10 @@ específico antes de publicar o JSON. A autenticação utiliza o modo definido e
 `OCI_AUTH_MODE`; a identidade utilizada deve possuir uma IAM Policy autorizando
 a publicação de mensagens na fila.
 
+`OCI_AUTH_MODE` vazio ou ausente resulta em `None` no Python e deve ser usado
+quando os providers forem locais. Providers OCI exigem `config_file` ou
+`instance_principal`.
+
 <!-- TODO: Implementar um mecanismo transacional de outbox ou retry persistente
 para evitar a perda da notificação quando a fila estiver indisponível depois do
 commit do pedido. -->
@@ -767,7 +771,7 @@ Os handlers globais utilizam códigos com o prefixo `ORDER_SERVICE_`:
 | `RABBITMQ_USERNAME` | — | Usuário obrigatório para RabbitMQ. |
 | `RABBITMQ_PASSWORD` | — | Senha obrigatória para RabbitMQ. |
 | `OCI_QUEUE_ID` | — | OCID obrigatório para OCI Queue. |
-| `OCI_AUTH_MODE` | `config_file` | Autenticação OCI: `config_file` ou `instance_principal`. |
+| `OCI_AUTH_MODE` | — (`None` no Python) | Autenticação OCI: vazia, `config_file` ou `instance_principal`. |
 | `OCI_CONFIG_FILE` | — | Arquivo de configuração OCI quando `OCI_AUTH_MODE=config_file`. |
 | `OCI_CONFIG_PROFILE` | `DEFAULT` | Profile utilizado no arquivo de configuração OCI. |
 | `HTTP_CLIENT_TIMEOUT` | `10.0` | Timeout da consulta HTTP ao JWKS, em segundos. |

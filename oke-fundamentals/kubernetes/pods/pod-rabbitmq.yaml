@@ -1,0 +1,50 @@
+# Cria um Pod Kubernetes para executar o RabbitMQ no OKE.
+# O RabbitMQ fornece mensageria assíncrona para os microsserviços
+# do OCI Pizza, utilizando o protocolo AMQP.
+# Mantém a mesma imagem, credenciais e verificação de saúde do Docker Compose.
+# Este Pod é destinado exclusivamente ao laboratório de desenvolvimento.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rabbitmq
+  labels:
+    app: rabbitmq
+    rel: beta
+    env: development
+  namespace: ocipizza-infra
+spec:
+  containers:
+    - name: rabbitmq
+
+      # Imagem utilizada no Docker Compose.
+      image: rabbitmq:4.1.4-management
+
+      ports:
+        # Porta utilizada pelos clientes AMQP.
+        - name: amqp
+          containerPort: 5672
+          protocol: TCP
+
+        # Interface web de administração do RabbitMQ.
+        - name: management
+          containerPort: 15672
+          protocol: TCP
+
+      env:
+        - name: RABBITMQ_DEFAULT_USER
+          value: "oci_pizza"
+
+        - name: RABBITMQ_DEFAULT_PASS
+          value: "oci_pizza"
+
+      # Verifica se o processo RabbitMQ está em execução.
+      livenessProbe:
+        exec:
+          command:
+            - rabbitmq-diagnostics
+            - check_running
+        initialDelaySeconds: 20
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 10

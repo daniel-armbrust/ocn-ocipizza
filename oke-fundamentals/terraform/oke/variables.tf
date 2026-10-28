@@ -33,6 +33,33 @@ variable "kubernetes_version" {
   default     = "v1.34.10"
 }
 
+variable "cni_type" {
+  description = "Plugin de rede dos pods conforme a API do OKE: OCI_VCN_IP_NATIVE ou FLANNEL_OVERLAY."
+  type        = string
+
+  validation {
+    condition     = contains(["OCI_VCN_IP_NATIVE", "FLANNEL_OVERLAY"], var.cni_type)
+    error_message = "cni_type deve ser OCI_VCN_IP_NATIVE ou FLANNEL_OVERLAY."
+  }
+}
+
+variable "pod_subnet_id" {
+  description = "OCID da sub-rede dos pods, obrigatório quando cni_type for OCI_VCN_IP_NATIVE."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "cluster_type" {
+  description = "Tipo do cluster OKE: BASIC ou ENHANCED."
+  type        = string
+
+  validation {
+    condition     = contains(["BASIC", "ENHANCED"], var.cluster_type)
+    error_message = "cluster_type deve ser BASIC ou ENHANCED."
+  }
+}
+
 variable "worker_image_id" {
   description = "OCID opcional de uma imagem x86 compatível com a versão do Kubernetes."
   type        = string

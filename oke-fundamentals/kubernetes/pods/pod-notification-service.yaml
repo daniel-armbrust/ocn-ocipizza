@@ -1,0 +1,74 @@
+# Cria um Pod Kubernetes para executar o notification-service no OKE.
+# O serviço consome mensagens da fila local e processa notificações
+# utilizando o Mailpit como servidor SMTP para envio de e-mails.
+# As configurações são definidas diretamente no manifesto,
+# sem utilizar ConfigMaps, Secrets ou serviços gerenciados da OCI.
+# Este Pod é destinado exclusivamente ao laboratório de desenvolvimento.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: notification-service
+  labels:
+    app: notification-service
+    rel: beta
+    env: development
+  namespace: ocipizza-services
+spec:
+  containers:
+    - name: notification-service
+
+      # Imagem Docker do notification-service publicada no OCIR.
+      image: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/notification-service:1.0.0
+
+      env:
+        - name: APP_ENV
+          value: "development"
+
+        - name: LOG_LEVEL
+          value: "INFO"
+
+        - name: OCI_REGION
+          value: "sa-saopaulo-1"
+
+        - name: SITE_URL
+          value: "http://lb.ocipizza.com.br"
+        
+        - name: MESSAGING_PROVIDER
+          value: "rabbitmq"
+
+        - name: QUEUE_NAME
+          value: "notifications-queue"
+
+        - name: RABBITMQ_HOST
+          value: "rabbitmq.ocipizza-infra.svc.cluster.local"
+
+        - name: RABBITMQ_PORT
+          value: "5672"
+
+        - name: RABBITMQ_USERNAME
+          value: "oci_pizza"
+
+        - name: RABBITMQ_PASSWORD
+          value: "oci_pizza"
+
+        - name: EMAIL_PROVIDER
+          value: "smtp"
+
+        - name: SMTP_HOST
+          value: "mailpit.ocipizza-infra.svc.cluster.local"
+
+        - name: SMTP_PORT
+          value: "1025"
+
+        - name: SMTP_USERNAME
+          value: ""
+
+        - name: SMTP_PASSWORD
+          value: ""
+
+        - name: SMTP_USE_TLS
+          value: "false"
+
+        - name: SMTP_FROM_EMAIL
+          value: "no-reply@ocipizza.local"       

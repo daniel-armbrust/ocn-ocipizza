@@ -149,7 +149,7 @@ O `.env` criado pelo bootstrap utiliza:
 - Tabela `delivery_areas`
 - Oracle NoSQL em `http://localhost:18080`
 - `NOSQL_COMPARTMENT_ID` vazio para o provider local
-- `OCI_AUTH_MODE=config_file`, com profile `DEFAULT`
+- `OCI_AUTH_MODE` vazio (`None` no Python)
 - Emissor JWT `user-service`
 - Audiência JWT `ocipizza`
 - JWKS em `http://localhost:8002/.well-known/jwks.json`
@@ -207,6 +207,9 @@ exige `NOSQL_COMPARTMENT_ID` e autentica conforme `OCI_AUTH_MODE`:
 - `config_file`: utiliza `OCI_CONFIG_FILE` e `OCI_CONFIG_PROFILE`. Quando
   `OCI_CONFIG_FILE` estiver vazio, os scripts utilizam `${HOME}/.oci/config`.
 - `instance_principal`: utiliza a identidade da instância no OCI.
+
+Quando `NOSQL_PROVIDER=local`, `OCI_AUTH_MODE` pode permanecer vazio e seu
+valor será `None` no Python.
 
 `OCI_REGION` identifica a região quando o modo `config_file` é utilizado.
 
@@ -454,7 +457,7 @@ Os handlers globais utilizam códigos com o prefixo `DELIVERY_SERVICE_`:
 | `NOSQL_ENDPOINT` | `http://localhost:18080` | Endpoint do Oracle NoSQL local quando `NOSQL_PROVIDER=local`. |
 | `NOSQL_COMPARTMENT_ID` | — | OCID obrigatório quando `NOSQL_PROVIDER=oci`. |
 | `OCI_REGION` | `sa-saopaulo-1` | Região usada no acesso ao OCI NoSQL com arquivo de configuração. |
-| `OCI_AUTH_MODE` | `config_file` | Autenticação OCI: `config_file` ou `instance_principal`. |
+| `OCI_AUTH_MODE` | — (`None` no Python) | Autenticação OCI: vazia, `config_file` ou `instance_principal`. |
 | `OCI_CONFIG_FILE` | — | Caminho do arquivo OCI quando `OCI_AUTH_MODE=config_file`. |
 | `OCI_CONFIG_PROFILE` | `DEFAULT` | Profile do arquivo de configuração OCI. |
 | `DATABASE_URL` | — | URL reservada para o provider SQLAlchemy. |

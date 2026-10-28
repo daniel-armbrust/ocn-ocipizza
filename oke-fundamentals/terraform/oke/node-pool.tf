@@ -17,6 +17,17 @@ resource "oci_containerengine_node_pool" "this" {
       subnet_id           = var.worker_subnet_id
     }
 
+    # O VCN Native atribui endereços da sub-rede informada diretamente aos
+    # pods. O Flannel não utiliza esta configuração no node pool.
+    dynamic "node_pool_pod_network_option_details" {
+      for_each = var.cni_type == "OCI_VCN_IP_NATIVE" ? [1] : []
+
+      content {
+        cni_type       = local.cni_type
+        pod_subnet_ids = var.pod_subnet_id == null ? [] : [var.pod_subnet_id]
+      }
+    }
+
     size = local.node_pool_size
   }
 

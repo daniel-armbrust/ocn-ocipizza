@@ -125,7 +125,7 @@ OCI_EMAIL_SENDER_NAME="OCI Pizza"
 
 # Autenticação dos serviços OCI.
 OCI_REGION=sa-saopaulo-1
-OCI_AUTH_MODE=config_file
+OCI_AUTH_MODE=
 OCI_CONFIG_FILE=
 OCI_CONFIG_PROFILE=DEFAULT
 
@@ -164,7 +164,7 @@ ensure_env_variable 'SMTP_EMAIL_SENDER' 'no-reply@ocipizza.local'
 ensure_env_variable 'OCI_EMAIL_DELIVERY_COMPARTMENT_ID' ''
 ensure_env_variable 'OCI_EMAIL_SENDER_NAME' 'OCI Pizza'
 ensure_env_variable 'OCI_REGION' 'sa-saopaulo-1'
-ensure_env_variable 'OCI_AUTH_MODE' 'config_file'
+ensure_env_variable 'OCI_AUTH_MODE' ''
 ensure_env_variable 'OCI_CONFIG_FILE' ''
 ensure_env_variable 'OCI_CONFIG_PROFILE' 'DEFAULT'
 

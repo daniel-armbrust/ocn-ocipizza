@@ -1,0 +1,7 @@
+# Agrupa os serviços de infraestrutura utilizados pelo
+# OCI Pizza no laboratório introdutório de Kubernetes.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ocipizza-infra

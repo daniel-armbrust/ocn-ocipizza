@@ -6,7 +6,7 @@ resource "oci_containerengine_cluster" "this" {
   compartment_id     = var.compartment_id
   kubernetes_version = var.kubernetes_version
   name               = local.cluster_name
-  type               = "BASIC_CLUSTER"
+  type               = local.cluster_type
   vcn_id             = var.vcn_id
 
   # O endpoint público é criado na sub-rede kube_api. A Security List dessa
@@ -24,5 +24,15 @@ resource "oci_containerengine_cluster" "this" {
 
   cluster_pod_network_options {
     cni_type = local.cni_type
+  }
+
+  lifecycle {
+    precondition {
+      condition = (
+        var.cni_type != "OCI_VCN_IP_NATIVE"
+        || (var.pod_subnet_id != null && trimspace(var.pod_subnet_id) != "")
+      )
+      error_message = "pod_subnet_id é obrigatório quando cni_type for OCI_VCN_IP_NATIVE."
+    }
   }
 }

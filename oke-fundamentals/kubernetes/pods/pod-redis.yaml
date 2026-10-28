@@ -1,0 +1,48 @@
+# Cria um Pod Kubernetes para executar o Redis no OKE.
+# O Redis fornece armazenamento em memória para as sessões
+# utilizadas pelo frontend-service do OCI Pizza.
+# Mantém a mesma imagem e configuração do Docker Compose,
+# sem persistência em disco e com verificação de saúde.
+# Este Pod é destinado exclusivamente ao laboratório de desenvolvimento.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis
+  labels:
+    app: redis
+    rel: stable
+    env: development
+  namespace: ocipizza-infra
+spec:
+  containers:
+    - name: redis
+
+      # Imagem utilizada no Docker Compose.
+      image: redis:7.0
+
+      # Inicializa o Redis sem persistência em disco.
+      command:
+        - redis-server
+
+      args:
+        - --appendonly
+        - "no"
+        - --save
+        - ""
+
+      ports:
+        # Porta utilizada pelos clientes Redis.
+        - name: redis
+          containerPort: 6379
+          protocol: TCP
+
+      # Verifica se o Redis está respondendo aos comandos.
+      livenessProbe:
+        exec:
+          command:
+            - redis-cli
+            - ping
+        periodSeconds: 5
+        timeoutSeconds: 3
+        failureThreshold: 10

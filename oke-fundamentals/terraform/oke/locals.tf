@@ -13,9 +13,15 @@ locals {
     file(local.worker_ssh_public_key_path)
   ) : null
 
-  # FLANNEL_OVERLAY mantém a rede dos pods sobreposta à VCN e dispensa uma
-  # sub-rede adicional para endereços de pods.
-  cni_type = "FLANNEL_OVERLAY"
+  # Converte o nome amigável do tipo de cluster no valor esperado pelo OKE.
+  cluster_types = {
+    BASIC    = "BASIC_CLUSTER"
+    ENHANCED = "ENHANCED_CLUSTER"
+  }
+
+  # O tipo de CNI já utiliza diretamente o valor esperado pela API do OKE.
+  cni_type     = var.cni_type
+  cluster_type = local.cluster_types[var.cluster_type]
 
   # Configuração didática dos três worker nodes x86 AMD.
   node_shape     = "VM.Standard.E4.Flex"

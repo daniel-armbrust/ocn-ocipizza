@@ -1,0 +1,35 @@
+# Cria um Pod Kubernetes para executar o Oracle NoSQL Database no OKE.
+# Utiliza a edição Community Edition (KVLite) com NoSQL Proxy,
+# permitindo que os microsserviços do OCI Pizza acessem o banco local.
+# Este Pod é destinado exclusivamente ao laboratório de desenvolvimento,
+# sem autenticação OCI ou armazenamento persistente.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nosql
+  labels:
+    app: nosql
+    rel: stable
+    env: development
+  namespace: ocipizza-infra
+spec:
+  containers:
+    - name: nosql
+
+      # Imagem Oracle NoSQL Database Community Edition.
+      image: ghcr.io/oracle/nosql:latest-ce
+
+      ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+
+      env:
+        # Habilita o NoSQL Proxy na porta 8080.
+        - name: KV_PROXY_PORT
+          value: "8080"
+
+        # Define o tamanho máximo do armazenamento local em GB.
+        - name: KV_STORAGESIZE
+          value: "1"

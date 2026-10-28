@@ -90,7 +90,9 @@ locals {
       }
     }
 
-    # Security Lists associadas individualmente às três sub-redes.
+    # Security Lists associadas individualmente às três sub-redes. Todas as
+    # regras são stateful para que o tráfego de resposta seja permitido
+    # automaticamente pela OCI.
     security_lists = {
 
       # HTTP e HTTPS são públicos para permitir o acesso às aplicações
@@ -102,14 +104,14 @@ locals {
             source      = "0.0.0.0/0"
             source_type = "CIDR_BLOCK"
             protocol    = "6"
-            stateless   = true
+            stateless   = false
             tcp_options = { min = 80, max = 80 }
           },
           {
             source      = "0.0.0.0/0"
             source_type = "CIDR_BLOCK"
             protocol    = "6"
-            stateless   = true
+            stateless   = false
             tcp_options = { min = 443, max = 443 }
           }
         ]
@@ -118,7 +120,7 @@ locals {
           destination      = "0.0.0.0/0"
           destination_type = "CIDR_BLOCK"
           protocol         = "all"
-          stateless        = true
+          stateless        = false
         }]
       }
 
@@ -130,14 +132,14 @@ locals {
           source      = "0.0.0.0/0"
           source_type = "CIDR_BLOCK"
           protocol    = "all"
-          stateless   = true
+          stateless   = false
         }]
 
         egress = [{
           destination      = "0.0.0.0/0"
           destination_type = "CIDR_BLOCK"
           protocol         = "all"
-          stateless        = true
+          stateless        = false
         }]
       }
 
@@ -151,14 +153,14 @@ locals {
             source      = var.public_access_cidr
             source_type = "CIDR_BLOCK"
             protocol    = "6"
-            stateless   = true
+            stateless   = false
             tcp_options = { min = 6443, max = 6443 }
           },
           {
             source      = local.vcn_cidr_block
             source_type = "CIDR_BLOCK"
             protocol    = "all"
-            stateless   = true
+            stateless   = false
           }
         ]
 
@@ -166,7 +168,7 @@ locals {
           destination      = "0.0.0.0/0"
           destination_type = "CIDR_BLOCK"
           protocol         = "all"
-          stateless        = true
+          stateless        = false
         }]
       }
 

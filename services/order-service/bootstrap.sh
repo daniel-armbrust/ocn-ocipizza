@@ -106,7 +106,7 @@ NOSQL_COMPARTMENT_ID=
 
 # Autenticação OCI
 OCI_REGION=sa-saopaulo-1
-OCI_AUTH_MODE=config_file
+OCI_AUTH_MODE=
 OCI_CONFIG_FILE=
 OCI_CONFIG_PROFILE=DEFAULT
 
@@ -159,7 +159,7 @@ ensure_env_variable 'RABBITMQ_PASSWORD' 'oci_pizza'
 ensure_env_variable 'NOSQL_PROVIDER' 'local'
 ensure_env_variable 'NOSQL_COMPARTMENT_ID' ''
 ensure_env_variable 'OCI_REGION' 'sa-saopaulo-1'
-ensure_env_variable 'OCI_AUTH_MODE' 'config_file'
+ensure_env_variable 'OCI_AUTH_MODE' ''
 ensure_env_variable 'OCI_CONFIG_FILE' ''
 ensure_env_variable 'OCI_CONFIG_PROFILE' 'DEFAULT'
 ensure_env_variable 'OCI_QUEUE_ID' ''

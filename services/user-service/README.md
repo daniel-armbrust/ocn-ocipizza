@@ -72,7 +72,7 @@ definidas em `requirements.txt`.
 | `QUEUE_NAME` | — | Nome lógico da fila utilizada pelo provider de mensageria. |
 | `OCI_QUEUE_ID` | — | OCID da fila utilizada pelo provider OCI Queue. |
 | `OCI_REGION` | — | Região dos serviços OCI utilizados pela instância. |
-| `OCI_AUTH_MODE` | `instance_principal` | Autenticação OCI: `config_file` ou `instance_principal`. |
+| `OCI_AUTH_MODE` | — (`None` no Python) | Autenticação OCI: vazia, `config_file` ou `instance_principal`. |
 | `OCI_CONFIG_FILE` | — | Caminho do arquivo de configuração OCI quando `OCI_AUTH_MODE=config_file`. |
 | `OCI_CONFIG_PROFILE` | — | Profile usado no arquivo de configuração OCI. |
 | `REFRESH_TOKEN_EXPIRATION_DAYS` | `30` | Validade do refresh token em dias. |
@@ -86,11 +86,12 @@ definidas em `requirements.txt`.
 | `LOG_LEVEL` | `INFO` | Nível global de logging da aplicação. |
 | `OCI_LOG_ID` | — | OCID do Custom Log, obrigatório fora de desenvolvimento. |
 
-Quando `MESSAGING_PROVIDER=oci_queue`, o serviço utiliza o modo definido em
-`OCI_AUTH_MODE`. O modo `config_file` usa `OCI_CONFIG_FILE` e
-`OCI_CONFIG_PROFILE`; o modo `instance_principal` usa a identidade da
-instância no OCI. Em ambos os casos, a identidade deve possuir uma IAM Policy
-autorizando a publicação na fila configurada.
+`OCI_AUTH_MODE` vazio ou ausente resulta em `None` no Python e não configura
+autenticação OCI. Quando `MESSAGING_PROVIDER=oci_queue`, deve ser utilizado um
+dos modos de autenticação disponíveis: `config_file` usa `OCI_CONFIG_FILE` e
+`OCI_CONFIG_PROFILE`; `instance_principal` usa a identidade da instância no
+OCI. Em ambos os casos, a identidade deve possuir uma IAM Policy autorizando a
+publicação na fila configurada.
 
 O publisher consulta os metadados da fila e obtém automaticamente o
 `messagesEndpoint` específico. Portanto, não é necessário configurar uma

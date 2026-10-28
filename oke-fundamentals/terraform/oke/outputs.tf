@@ -26,3 +26,13 @@ output "public_endpoint" {
   description = "Endpoint público do Kubernetes API Server."
   value       = oci_containerengine_cluster.this.endpoints[0].public_endpoint
 }
+
+output "cni_type" {
+  description = "Tipo de CNI configurado no cluster."
+  value       = var.cni_type
+}
+
+output "cluster_type" {
+  description = "Tipo do cluster OKE."
+  value       = var.cluster_type
+}

@@ -1,0 +1,81 @@
+# Cria um Pod Kubernetes para executar o user-service no OKE.
+# O serviço gerencia usuários, autenticação JWT, endereços e
+# confirmação de cadastro por e-mail no OCI Pizza.
+# Utiliza MySQL e RabbitMQ locais, sem serviços gerenciados da OCI.
+# Este Pod é destinado exclusivamente ao laboratório de desenvolvimento.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: user-service
+  labels:
+    app: user-service
+    rel: beta
+    env: development
+  namespace: ocipizza-services
+spec:
+  containers:
+    - name: user-service
+
+      # Imagem Docker do user-service publicada no OCIR.
+      image: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/user-service:1.0.0
+
+      ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+
+      env:
+        - name: APP_ENV
+          value: "development"
+
+        - name: OCI_REGION
+          value: "sa-saopaulo-1"
+        
+        - name: LOG_LEVEL
+          value: "INFO"
+
+        - name: PERSISTENCE_PROVIDER
+          value: "sqlalchemy"
+        
+        - name: DATABASE_URL
+          value: "mysql+pymysql://user_service:user_service@mysql.ocipizza-infra.svc.cluster.local:3306/users"
+
+        - name: MESSAGING_PROVIDER
+          value: "rabbitmq"
+
+        - name: QUEUE_NAME
+          value: "notifications-queue"
+
+        - name: RABBITMQ_HOST
+          value: "rabbitmq.ocipizza-infra.svc.cluster.local"
+
+        - name: RABBITMQ_PORT
+          value: "5672"
+
+        - name: RABBITMQ_USERNAME
+          value: "oci_pizza"
+
+        - name: RABBITMQ_PASSWORD
+          value: "oci_pizza"
+
+        - name: JWT_KEY_PROVIDER
+          value: "local"
+
+        - name: JWT_ISSUER
+          value: "user-service"
+
+        - name: JWT_AUDIENCE
+          value: "ocipizza"
+
+        - name: JWT_ACCESS_TOKEN_EXPIRATION_MINUTES
+          value: "15"
+
+        - name: JWT_PRIVATE_KEY_PATH
+          value: "/run/secrets/jwt_private_key.pem"
+        
+        - name: JWT_PUBLIC_KEY_PATH
+          value: "/run/secrets/jwt_public_key.pem"
+
+        - name: REFRESH_TOKEN_EXPIRATION_DAYS
+          value: "30"

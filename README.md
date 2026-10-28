@@ -1,6 +1,6 @@
 # OCI Pizza
 
-![Logo OCI Pizza](img/ocipizza-logo.png)
+![Logo OCI Pizza](docs/img/ocipizza-logo.png)
 
 O OCI Pizza é uma aplicação cloud native de referência criada para estudar, na
 prática, conceitos de arquitetura de microsserviços e desenvolvimento de

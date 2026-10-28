@@ -1,0 +1,7 @@
+# Define o namespace Kubernetes utilizado pelos microsserviços
+# da aplicação OCI Pizza, separando-os dos serviços de infraestrutura.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ocipizza-services

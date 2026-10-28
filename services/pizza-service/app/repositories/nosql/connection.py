@@ -109,7 +109,7 @@ def _create_oci_nosql_handle() -> NoSQLHandle:
             definida ou o modo de autenticação não seja suportado.
     """
 
-    region = None  
+    region = None
 
     # Utiliza o arquivo de configuração OCI para autenticação,
     # normalmente durante a execução local da aplicação.

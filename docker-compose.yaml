@@ -44,7 +44,7 @@ services:
       JWT_AUDIENCE: ocipizza
       JWT_JWKS_URL: http://user-service:8000/.well-known/jwks.json
 
-      OCI_AUTH_MODE: ${OCI_AUTH_MODE:-config_file}
+      OCI_AUTH_MODE: ${OCI_AUTH_MODE:-}
       OCI_CONFIG_FILE: ${OCI_CONFIG_FILE:-/app/.oci/config}
       OCI_CONFIG_PROFILE: ${OCI_CONFIG_PROFILE:-DEFAULT}
     volumes:
@@ -104,7 +104,7 @@ services:
       # Refresh token.
       REFRESH_TOKEN_EXPIRATION_DAYS: 30
 
-      OCI_AUTH_MODE: ${OCI_AUTH_MODE:-config_file}
+      OCI_AUTH_MODE: ${OCI_AUTH_MODE:-}
       OCI_CONFIG_FILE: ${OCI_CONFIG_FILE:-/app/.oci/config}
       OCI_CONFIG_PROFILE: ${OCI_CONFIG_PROFILE:-DEFAULT}
     volumes:
@@ -146,7 +146,7 @@ services:
       JWT_AUDIENCE: ocipizza
       JWT_JWKS_URL: http://user-service:8000/.well-known/jwks.json
 
-      OCI_AUTH_MODE: ${OCI_AUTH_MODE:-config_file}
+      OCI_AUTH_MODE: ${OCI_AUTH_MODE:-}
       OCI_CONFIG_FILE: ${OCI_CONFIG_FILE:-/app/.oci/config}
       OCI_CONFIG_PROFILE: ${OCI_CONFIG_PROFILE:-DEFAULT}
     volumes:
@@ -197,7 +197,7 @@ services:
       JWT_AUDIENCE: ocipizza
       JWT_JWKS_URL: http://user-service:8000/.well-known/jwks.json
 
-      OCI_AUTH_MODE: ${OCI_AUTH_MODE:-config_file}
+      OCI_AUTH_MODE: ${OCI_AUTH_MODE:-}
       OCI_CONFIG_FILE: ${OCI_CONFIG_FILE:-/app/.oci/config}
       OCI_CONFIG_PROFILE: ${OCI_CONFIG_PROFILE:-DEFAULT}
     volumes:
@@ -250,7 +250,7 @@ services:
       SMTP_USE_TLS: "false"
       SMTP_FROM_EMAIL: no-reply@ocipizza.local
 
-      OCI_AUTH_MODE: ${OCI_AUTH_MODE:-config_file}
+      OCI_AUTH_MODE: ${OCI_AUTH_MODE:-}
       OCI_CONFIG_FILE: ${OCI_CONFIG_FILE:-/app/.oci/config}
       OCI_CONFIG_PROFILE: ${OCI_CONFIG_PROFILE:-DEFAULT}
     volumes:

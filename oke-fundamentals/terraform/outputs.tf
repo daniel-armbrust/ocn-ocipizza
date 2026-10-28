@@ -22,6 +22,16 @@ output "oke_public_endpoint" {
   value       = module.oke.public_endpoint
 }
 
+output "oke_cni_type" {
+  description = "Tipo de CNI configurado no cluster OKE."
+  value       = module.oke.cni_type
+}
+
+output "oke_cluster_type" {
+  description = "Tipo do cluster OKE."
+  value       = module.oke.cluster_type
+}
+
 output "dns_zone_id" {
   description = "OCID da zona DNS pública ocipizza.com.br."
   value       = module.dns_public.zone_id

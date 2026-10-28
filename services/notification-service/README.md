@@ -170,6 +170,9 @@ arquivo de configuração ou `OCI_AUTH_MODE=instance_principal` para execução 
 um recurso OCI. A identidade utilizada deve possuir uma IAM Policy autorizando
 consultar e excluir mensagens.
 
+Quando `MESSAGING_PROVIDER=rabbitmq` e `EMAIL_PROVIDER=smtp`,
+`OCI_AUTH_MODE` pode permanecer vazio e seu valor será `None` no Python.
+
 ## Providers de e-mail
 
 O provider é selecionado por `EMAIL_PROVIDER`.
@@ -221,7 +224,7 @@ permitindo executar o bootstrap com configurações de homologação no OCI.
 | `RABBITMQ_PASSWORD` | — | Senha obrigatória para RabbitMQ. |
 | `OCI_QUEUE_ID` | — | OCID obrigatório para OCI Queue. |
 | `OCI_REGION` | `sa-saopaulo-1` | Região dos serviços OCI. |
-| `OCI_AUTH_MODE` | `config_file` | Autenticação OCI: `config_file` ou `instance_principal`. |
+| `OCI_AUTH_MODE` | — (`None` no Python) | Autenticação OCI: vazia, `config_file` ou `instance_principal`. |
 | `OCI_CONFIG_FILE` | — | Arquivo de configuração OCI quando aplicável. |
 | `OCI_CONFIG_PROFILE` | `DEFAULT` | Profile usado no arquivo OCI. |
 | `EMAIL_PROVIDER` | `smtp` | `smtp` ou `oci`. |

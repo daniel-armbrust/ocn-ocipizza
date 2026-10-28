@@ -250,8 +250,10 @@ o ambiente previsível: `read_units=5`, `write_units=5` e `storage_gb=1`.
 
 #### Autenticação OCI
 
-Quando `NOSQL_PROVIDER=oci`, o bootstrap exige `NOSQL_COMPARTMENT_ID` e utiliza
-o modo definido em `OCI_AUTH_MODE`:
+`OCI_AUTH_MODE` possui três estados possíveis:
+
+- não definida ou vazia: resulta em `None` no Python, não configura
+  autenticação OCI e deve ser utilizada quando os providers forem locais;
 
 - `config_file`: exige `OCI_CONFIG_FILE` apontando para o arquivo de
   configuração OCI. `OCI_CONFIG_PROFILE` identifica o profile utilizado; quando
@@ -261,6 +263,9 @@ o modo definido em `OCI_AUTH_MODE`:
   `OCI_CONFIG_PROFILE`. A execução precisa ocorrer em um recurso OCI com
   Instance Principal configurado e permissões para acessar o NoSQL. A região é
   obtida a partir da identidade do recurso.
+
+Quando `NOSQL_PROVIDER=oci`, o bootstrap exige `NOSQL_COMPARTMENT_ID` e um modo
+de autenticação OCI diferente de `None`.
 
 O mesmo `OCI_AUTH_MODE` é utilizado pelo Object Storage quando
 `OBJECTSTORAGE_PROVIDER=oci`. No modo `config_file`, o arquivo e o profile OCI
@@ -594,7 +599,7 @@ expõem detalhes internos e retornam `INTERNAL_SERVER_ERROR`.
 | `DATABASE_URL` | — | URL de conexão utilizada pelo SQLAlchemy. |
 | `DATABASE_PROVIDER` | `local` | Provider de banco relacional reservado para o SQLAlchemy. |
 | `OCI_REGION` | `sa-saopaulo-1` | Região utilizada pelos providers OCI. |
-| `OCI_AUTH_MODE` | `config_file` | Autenticação OCI: `config_file` ou `instance_principal`. |
+| `OCI_AUTH_MODE` | — (`None` no Python) | Autenticação OCI: vazia, `config_file` ou `instance_principal`. |
 | `OCI_CONFIG_FILE` | — | Caminho do arquivo de configuração OCI quando aplicável. |
 | `OCI_CONFIG_PROFILE` | `DEFAULT` | Profile do arquivo de configuração OCI. |
 | `JWT_ISSUER` | `user-service` | Emissor esperado no JWT. |

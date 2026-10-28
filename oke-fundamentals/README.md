@@ -30,12 +30,16 @@ Use o OCID da tenancy em `tenancy_id`, o OCID do compartment do laboratório em
 terraform plan \
   -var='tenancy_id=<ocid-da-tenancy>' \
   -var='compartment_id=<ocid>' \
-  -var='public_access_cidr=203.0.113.10/32'
+  -var='public_access_cidr=203.0.113.10/32' \
+  -var='cni_type=FLANNEL_OVERLAY' \
+  -var='cluster_type=BASIC'
 
 terraform apply \
   -var='tenancy_id=<ocid-da-tenancy>' \
   -var='compartment_id=<ocid>' \
-  -var='public_access_cidr=203.0.113.10/32'
+  -var='public_access_cidr=203.0.113.10/32' \
+  -var='cni_type=FLANNEL_OVERLAY' \
+  -var='cluster_type=BASIC'
 ```
 
 Para evitar repetir os valores em cada comando, utilize as variáveis de
@@ -46,8 +50,13 @@ export TF_VAR_tenancy_id='<ocid-da-tenancy>'
 export TF_VAR_compartment_id='<ocid-do-compartment>'
 export TF_VAR_public_access_cidr='203.0.113.10/32'
 
-terraform plan
-terraform apply
+terraform plan \
+  -var='cni_type=FLANNEL_OVERLAY' \
+  -var='cluster_type=BASIC'
+
+terraform apply \
+  -var='cni_type=FLANNEL_OVERLAY' \
+  -var='cluster_type=BASIC'
 ```
 
 O OCID da tenancy normalmente está no campo `tenancy` do profile configurado
@@ -80,9 +89,43 @@ obrigatoriamente criados no Root Compartment.
 
 ## Cluster OKE
 
-O cluster utiliza o tipo `BASIC_CLUSTER` e a rede de pods
-`FLANNEL_OVERLAY`. O node pool possui três workers x86 com as seguintes
-características:
+O tipo padrão do cluster é `BASIC`, convertido internamente em
+`BASIC_CLUSTER`. Também é possível usar `ENHANCED`, convertido em
+`ENHANCED_CLUSTER`. A configuração pode ser informada por linha de comando ou
+pela variável de ambiente do Terraform:
+
+```bash
+export TF_VAR_cluster_type='BASIC'
+```
+
+O CNI padrão é `OCI_VCN_IP_NATIVE`, nome utilizado pela API do OKE para o modo
+VCN Native. Nesse modo, `pod_subnet_id` é obrigatório e identifica a sub-rede
+usada pelos pods:
+
+```bash
+export TF_VAR_cni_type='OCI_VCN_IP_NATIVE'
+export TF_VAR_pod_subnet_id='<ocid-da-sub-rede-dos-pods>'
+```
+
+Para utilizar Flannel, informe `FLANNEL_OVERLAY` explicitamente nos comandos
+Terraform. Nesse modo, `pod_subnet_id` é opcional e não é enviado ao node
+pool:
+
+```bash
+terraform plan \
+  -var='cni_type=FLANNEL_OVERLAY' \
+  -var='cluster_type=BASIC'
+
+terraform apply \
+  -var='cni_type=FLANNEL_OVERLAY' \
+  -var='cluster_type=BASIC'
+```
+
+O Terraform reconhece variáveis de ambiente de entrada apenas com o prefixo
+`TF_VAR_`; portanto, `CNI_TYPE`, `CLUSTER_TYPE` e `POD_SUBNET_ID` sem esse
+prefixo não são consumidas automaticamente.
+
+O node pool possui três workers x86 com as seguintes características:
 
 - shape `VM.Standard.E4.Flex`;
 - 2 OCPUs e 4 GB de memória por worker;
@@ -103,6 +146,8 @@ terraform plan \
   -var='tenancy_id=<ocid-da-tenancy>' \
   -var='compartment_id=<ocid>' \
   -var='public_access_cidr=203.0.113.10/32' \
+  -var='cni_type=FLANNEL_OVERLAY' \
+  -var='cluster_type=BASIC' \
   -var='kubernetes_version=v1.35.2'
 ```
 
@@ -142,6 +187,97 @@ Valide o acesso ao cluster e aos worker nodes com:
 kubectl cluster-info
 kubectl get nodes
 ```
+
+## Deploy dos Pods
+
+O script `scripts/pods-deploy.sh` cria primeiro os namespaces definidos em
+`kubernetes/namespaces/`. Em seguida, aplica os Pods de infraestrutura — Redis,
+NoSQL, Object Storage, MySQL, RabbitMQ e Mailpit — antes dos Pods dos
+microsserviços. O `envsubst` substitui `REGISTRY` e `OCI_NAMESPACE` nas
+referências às imagens armazenadas no OCIR.
+
+Os valores podem ser informados diretamente na linha de comando:
+
+```bash
+./scripts/pods-deploy.sh \
+  --registry gru.ocir.io \
+  --oci-namespace '<TENANCY_NAMESPACE>'
+```
+
+Também é possível defini-los por variáveis de ambiente:
+
+```bash
+export REGISTRY='gru.ocir.io'
+export OCI_NAMESPACE="$(oci os ns get --query data --raw-output)"
+
+./scripts/pods-deploy.sh
+```
+
+Os parâmetros `--registry` e `--oci-namespace` têm precedência sobre as
+variáveis de ambiente. O script requer `kubectl`, `envsubst` e um contexto
+Kubernetes configurado para acessar o cluster.
+
+Para aplicar manualmente somente o Pod do `pizza-service`, primeiro crie o
+namespace utilizado pelos serviços:
+
+```bash
+kubectl apply -f kubernetes/namespaces/ocipizza-services.yaml
+```
+
+Defina o endereço do OCIR e obtenha o namespace da tenancy. Em seguida,
+processe o manifesto com `envsubst` e envie o resultado diretamente ao
+`kubectl`:
+
+```bash
+export REGISTRY='gru.ocir.io'
+export OCI_NAMESPACE="$(oci os ns get --query data --raw-output)"
+
+envsubst '${REGISTRY} ${OCI_NAMESPACE}' \
+  < kubernetes/pods/pod-pizza-service.yaml \
+  | kubectl apply -f -
+```
+
+Verifique o estado, os eventos e os logs do Pod:
+
+```bash
+kubectl get pod pizza-service -n ocipizza-services
+kubectl describe pod pizza-service -n ocipizza-services
+kubectl logs pod/pizza-service -n ocipizza-services
+```
+
+Para excluir os Pods e depois remover os namespaces do laboratório, utilize os
+mesmos valores usados no deploy:
+
+```bash
+./scripts/pods-delete.sh \
+  --registry gru.ocir.io \
+  --oci-namespace '<TENANCY_NAMESPACE>'
+```
+
+O script ignora recursos que já não existem. A remoção dos namespaces também
+exclui qualquer recurso Kubernetes remanescente dentro deles.
+
+### Bootstrap do pizza-service no OKE
+
+O script `bootstrap/bootstrap-pizza-service.sh` reutiliza o bootstrap do
+`pizza-service` para criar a tabela, cadastrar as pizzas de demonstração, criar
+o bucket e enviar as imagens aos Pods de infraestrutura do cluster. Para isso,
+ele abre temporariamente os seguintes forwards:
+
+- `localhost:18080` para `pod/nosql:8080`;
+- `localhost:9000` para `pod/objectstorage:9000`.
+
+Execute o script depois que os Pods de infraestrutura estiverem disponíveis:
+
+```bash
+./bootstrap/bootstrap-pizza-service.sh
+```
+
+O script aguarda os Pods `nosql` e `objectstorage`, executa
+`services/pizza-service/bootstrap.sh` com os endpoints locais e encerra os
+processos de `kubectl port-forward` ao terminar ou receber uma interrupção.
+As portas locais podem ser alteradas por `NOSQL_LOCAL_PORT` e
+`OBJECTSTORAGE_LOCAL_PORT`.
 
 ## Construção e publicação de imagem no OCIR
 
