@@ -1,0 +1,25 @@
+# Cria um Service interno para disponibilizar o MySQL aos microsserviços.
+# O Service seleciona o Pod do MySQL e encaminha as conexões recebidas
+# na porta TCP 3306 para a porta nomeada mysql do container.
+# Este recurso utiliza o tipo ClusterIP e não possui exposição externa direta.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: ocipizza-infra
+spec:
+  # Expõe o banco somente por meio da rede interna do cluster.
+  type: ClusterIP
+
+  # Seleciona o Pod gerenciado pelo controlador do MySQL.
+  selector:
+    app: mysql
+    rel: stable
+    env: development
+
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql
+      protocol: TCP

@@ -1,0 +1,106 @@
+# Cria um ReplicationController para executar o notification-service no OKE.
+# Mantém duas réplicas do notification-service em execução e recria os Pods
+# automaticamente caso algum seja excluído ou apresente falha.
+# Utiliza os serviços locais de RabbitMQ e Mailpit do laboratório.
+# Este recurso é utilizado para estudar ReplicationControllers no Kubernetes.
+
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: notification-service
+  namespace: ocipizza-services
+spec:
+  # Define a quantidade desejada de Pods em execução.
+  replicas: 1
+
+  # Seleciona os Pods que possuem os labels abaixo:
+  selector:
+    app: notification-service
+    rel: beta
+    env: development
+
+  # Define como os Pods devem ser criados.
+  template:
+    metadata:
+      labels:
+        app: notification-service
+        rel: beta
+        env: development
+    spec:
+      # Credenciais para baixar imagens privadas do OCIR.
+      imagePullSecrets:
+        - name: ocir-secret
+
+      containers:
+        - name: notification-service
+
+          # Imagem Docker do notification-service publicada no OCIR.
+          image: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/notification-service:1.0.0
+
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          # Verifica se o processo FastAPI continua respondendo.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+            successThreshold: 1
+
+          env:
+            - name: APP_ENV
+              value: "development"
+
+            - name: LOG_LEVEL
+              value: "INFO"
+
+            - name: OCI_REGION
+              value: "sa-saopaulo-1"
+
+            - name: SITE_URL
+              value: "http://lb.ocipizza.com.br"
+
+            - name: MESSAGING_PROVIDER
+              value: "rabbitmq"
+
+            - name: QUEUE_NAME
+              value: "notifications-queue"
+
+            - name: RABBITMQ_HOST
+              value: "rabbitmq.ocipizza-infra.svc.cluster.local"
+
+            - name: RABBITMQ_PORT
+              value: "5672"
+
+            - name: RABBITMQ_USERNAME
+              value: "oci_pizza"
+
+            - name: RABBITMQ_PASSWORD
+              value: "oci_pizza"
+
+            - name: EMAIL_PROVIDER
+              value: "smtp"
+
+            - name: SMTP_HOST
+              value: "mailpit.ocipizza-infra.svc.cluster.local"
+
+            - name: SMTP_PORT
+              value: "1025"
+
+            - name: SMTP_USERNAME
+              value: ""
+
+            - name: SMTP_PASSWORD
+              value: ""
+
+            - name: SMTP_USE_TLS
+              value: "false"
+
+            - name: SMTP_FROM_EMAIL
+              value: "no-reply@ocipizza.local"

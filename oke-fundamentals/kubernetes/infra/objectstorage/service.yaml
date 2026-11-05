@@ -1,0 +1,32 @@
+# Cria um Service interno para disponibilizar o MinIO aos microsserviços.
+# O Service encaminha as conexões da API S3 na porta 9000 e disponibiliza
+# o console administrativo na porta 9001 dentro do cluster.
+# Este recurso utiliza o tipo ClusterIP e não possui exposição externa direta.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: objectstorage
+  namespace: ocipizza-infra
+spec:
+  # Expõe o MinIO somente por meio da rede interna do cluster.
+  type: ClusterIP
+
+  # Seleciona o Pod gerenciado pelo controlador do Object Storage.
+  selector:
+    app: objectstorage
+    rel: stable
+    env: development
+
+  ports:
+    # Porta utilizada pelos microsserviços para acessar a API S3.
+    - name: api
+      port: 9000
+      targetPort: api
+      protocol: TCP
+
+    # Porta utilizada para acessar o console administrativo.
+    - name: console
+      port: 9001
+      targetPort: console
+      protocol: TCP

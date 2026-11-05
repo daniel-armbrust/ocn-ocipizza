@@ -1,0 +1,25 @@
+# Cria um Service interno para expor o pizza-service dentro do cluster.
+# O Service seleciona os Pods do pizza-service e distribui as conexões
+# recebidas na porta 8000 entre as réplicas disponíveis.
+# Este recurso utiliza o tipo ClusterIP e não possui exposição externa direta.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: pizza-service
+  namespace: ocipizza-services
+spec:
+  # Expõe o serviço somente por meio da rede interna do cluster.
+  type: ClusterIP
+
+  # Seleciona os Pods gerenciados pelo controlador do pizza-service.
+  selector:
+    app: pizza-service
+    rel: beta
+    env: development
+
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP

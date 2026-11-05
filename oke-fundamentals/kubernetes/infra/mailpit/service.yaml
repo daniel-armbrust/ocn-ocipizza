@@ -1,0 +1,32 @@
+# Cria um Service interno para disponibilizar o Mailpit aos microsserviços.
+# O Service encaminha as conexões SMTP na porta 1025 e disponibiliza a
+# interface web na porta 8025 para acessos realizados dentro do cluster.
+# Este recurso utiliza o tipo ClusterIP e não possui exposição externa direta.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailpit
+  namespace: ocipizza-infra
+spec:
+  # Expõe o Mailpit somente por meio da rede interna do cluster.
+  type: ClusterIP
+
+  # Seleciona o Pod gerenciado pelo controlador do Mailpit.
+  selector:
+    app: mailpit
+    rel: stable
+    env: development
+
+  ports:
+    # Porta utilizada pelos microsserviços para envio SMTP.
+    - name: smtp
+      port: 1025
+      targetPort: smtp
+      protocol: TCP
+
+    # Porta utilizada pela interface web do Mailpit.
+    - name: http
+      port: 8025
+      targetPort: http
+      protocol: TCP

@@ -1,0 +1,21 @@
+# Solicita um volume persistente para armazenar os dados do RabbitMQ.
+# O volume utiliza o OCI Block Volume por meio da StorageClass oci-bv.
+# Este recurso é destinado exclusivamente ao laboratório de desenvolvimento.
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rabbitmq-pvc
+  namespace: ocipizza-infra
+spec:
+  # Provisiona dinamicamente um OCI Block Volume para o claim.
+  storageClassName: "oci-bv"
+
+  # Permite que o volume seja montado para leitura e escrita por um único node.
+  accessModes:
+    - ReadWriteOnce
+
+  # Define a capacidade de armazenamento solicitada pelo RabbitMQ.
+  resources:
+    requests:
+      storage: 50Gi

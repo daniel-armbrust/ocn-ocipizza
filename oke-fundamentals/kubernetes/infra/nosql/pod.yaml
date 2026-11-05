@@ -1,0 +1,71 @@
+# Cria um Pod Kubernetes para executar o Oracle NoSQL Database no OKE.
+# Utiliza a edição Community Edition (KVLite) com NoSQL Proxy,
+# permitindo que os microsserviços do OCI Pizza acessem o banco local.
+# Este Pod é destinado exclusivamente ao laboratório de desenvolvimento,
+# sem autenticação OCI e com armazenamento persistente em OCI Block Volume.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nosql
+  labels:
+    app: nosql
+    rel: stable
+    env: development
+  namespace: ocipizza-infra
+spec:
+  # Garante que o usuário não-root da imagem possa gravar no PVC montado em
+  # /kvroot e criar o arquivo de configuração do KVLite.
+  securityContext:
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+
+  containers:
+    - name: nosql
+
+      # Imagem Oracle NoSQL Database Community Edition.
+      image: ghcr.io/oracle/nosql:latest-ce
+
+      ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+
+      # Verifica se o NoSQL Proxy continua aceitando conexões TCP.
+      livenessProbe:
+        tcpSocket:
+          port: http
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 6
+
+      # Libera o Pod para receber tráfego quando o NoSQL Proxy estiver pronto.
+      readinessProbe:
+        tcpSocket:
+          port: http
+        initialDelaySeconds: 10
+        periodSeconds: 5
+        timeoutSeconds: 3
+        failureThreshold: 6
+
+      # Monta o volume no diretório de dados utilizado pelo Oracle NoSQL.
+      volumeMounts:
+        - name: nosql-data
+          mountPath: /kvroot
+
+      env:
+        # Habilita o NoSQL Proxy na porta 8080.
+        - name: KV_PROXY_PORT
+          value: "8080"
+
+        # Define o tamanho máximo do armazenamento local em GB. A imagem
+        # exige um valor maior que 1.
+        - name: KV_STORAGESIZE
+          value: "2"
+
+  # Preserva os dados do Oracle NoSQL quando o Pod for recriado.
+  volumes:
+    - name: nosql-data
+      persistentVolumeClaim:
+        claimName: nosql-pvc

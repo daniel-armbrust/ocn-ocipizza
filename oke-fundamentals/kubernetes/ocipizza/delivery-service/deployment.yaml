@@ -1,0 +1,89 @@
+# Cria um Deployment para executar o delivery-service no OKE.
+# Mantém duas réplicas do delivery-service em execução e recria os Pods
+# automaticamente caso algum seja excluído ou apresente falha.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: delivery-service
+  namespace: ocipizza-services
+spec:
+  # Define a quantidade desejada de Pods em execução.
+  replicas: 2
+
+  # Atualiza os Pods gradualmente, mantendo a disponibilidade
+  # do delivery-service durante a substituição das instâncias.
+  strategy:
+    type: RollingUpdate
+
+  # Seleciona os Pods que possuem os labels abaixo.
+  selector:
+    matchLabels:
+      app: delivery-service
+      rel: beta
+      env: development
+
+  # Define como os Pods do delivery-service devem ser criados.
+  template:
+    metadata:
+      labels:
+        app: delivery-service
+        rel: beta
+        env: development
+    spec:
+      # Credenciais para baixar imagens privadas do OCIR.
+      imagePullSecrets:
+        - name: ocir-secret
+
+      containers:
+        - name: delivery-service
+
+          # Imagem Docker do delivery-service publicada no OCIR.
+          image: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/delivery-service:1.0.0
+
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          # Verifica se o processo FastAPI continua respondendo.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+            successThreshold: 1
+
+          env:
+            - name: APP_ENV
+              value: "development"
+
+            - name: LOG_LEVEL
+              value: "INFO"
+
+            - name: OCI_REGION
+              value: "sa-saopaulo-1"
+
+            - name: PERSISTENCE_PROVIDER
+              value: "nosql"
+
+            - name: NOSQL_PROVIDER
+              value: "local"
+
+            - name: NOSQL_ENDPOINT
+              value: "http://nosql.ocipizza-infra.svc.cluster.local:8080"
+
+            - name: NOSQL_TABLE_NAME
+              value: "delivery_areas"
+
+            - name: JWT_ISSUER
+              value: "user-service"
+
+            - name: JWT_AUDIENCE
+              value: "ocipizza"
+
+            - name: JWT_JWKS_URL
+              value: "http://user-service.ocipizza-services.svc.cluster.local:8000/.well-known/jwks.json"

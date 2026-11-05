@@ -64,17 +64,17 @@ definidas em `requirements.txt`.
 | `DEBUG` | `false` | Ativa o modo de depuração. |
 | `PERSISTENCE_PROVIDER` | `sqlalchemy` | Provider de persistência: `sqlalchemy` ou `nosql`. |
 | `DATABASE_URL` | — | URL de conexão utilizada pelo SQLAlchemy. |
-| `MESSAGING_PROVIDER` | — | Provider de mensageria: `rabbitmq` ou `oci_queue`. |
+| `MESSAGING_PROVIDER` | `rabbitmq` | Provider de mensageria: `rabbitmq` ou `oci_queue`. |
 | `RABBITMQ_HOST` | — | Host do RabbitMQ. |
 | `RABBITMQ_PORT` | — | Porta do RabbitMQ. |
 | `RABBITMQ_USERNAME` | — | Usuário utilizado na conexão com o RabbitMQ. |
 | `RABBITMQ_PASSWORD` | — | Senha utilizada na conexão com o RabbitMQ. |
-| `QUEUE_NAME` | — | Nome lógico da fila utilizada pelo provider de mensageria. |
+| `QUEUE_NAME` | `notifications-queue` | Nome lógico da fila utilizada pelo provider de mensageria. |
 | `OCI_QUEUE_ID` | — | OCID da fila utilizada pelo provider OCI Queue. |
-| `OCI_REGION` | — | Região dos serviços OCI utilizados pela instância. |
+| `OCI_REGION` | `sa-saopaulo-1` | Região dos serviços OCI utilizados pela instância. |
 | `OCI_AUTH_MODE` | — (`None` no Python) | Autenticação OCI: vazia, `config_file` ou `instance_principal`. |
 | `OCI_CONFIG_FILE` | — | Caminho do arquivo de configuração OCI quando `OCI_AUTH_MODE=config_file`. |
-| `OCI_CONFIG_PROFILE` | — | Profile usado no arquivo de configuração OCI. |
+| `OCI_CONFIG_PROFILE` | `DEFAULT` | Profile usado no arquivo de configuração OCI. |
 | `REFRESH_TOKEN_EXPIRATION_DAYS` | `30` | Validade do refresh token em dias. |
 | `JWT_KEY_PROVIDER` | `local` | Provider das chaves JWT: `local` ou `oci`. |
 | `JWT_ISSUER` | `user-service` | Emissor incluído e esperado nos access tokens. |
@@ -286,21 +286,28 @@ Quando o `.env` não existe, o script o cria com:
 - Mensageria via RabbitMQ em `127.0.0.1:5672`
 - Fila de notificações chamada `notifications-queue`
 - Emissor JWT `user-service` e audiência `ocipizza`
+- Região OCI `sa-saopaulo-1`
+- Validade do refresh token de `30` dias
+- Nível de logging `INFO`
 
 <!-- TODO: Adicionar ao .env as configurações locais necessárias para selecionar
 e conectar o provider de persistência OCI NoSQL. -->
 
-Se o `.env` já existir, seu conteúdo é preservado sem alterações. Portanto,
-confirme se a `DATABASE_URL` existente aponta para o MySQL esperado antes de
-executar o bootstrap.
+Se o `.env` já existir, seus valores são preservados. O bootstrap acrescenta
+somente as configurações ausentes para manter compatibilidade com arquivos
+criados por versões anteriores. Variáveis exportadas no ambiente têm
+precedência sobre os valores do `.env`.
 
 ## `startdev.sh` — Execução local do serviço
 
 O script `startdev.sh` inicia o `user-service` diretamente em modo de
-desenvolvimento. Ele configura o MySQL local, o RabbitMQ, a fila
-`notifications-queue`, as chaves JWT locais e a audiência `ocipizza`, cria e
-ativa o ambiente virtual `.venv` quando necessário, instala as dependências e
-inicia o Uvicorn com recarregamento automático na porta `8002`.
+desenvolvimento. Ele carrega o `.env`, aplica os valores locais padrão para
+MySQL, RabbitMQ, fila e chaves JWT, cria e ativa o ambiente virtual `.venv`
+quando necessário, instala as dependências e inicia o Uvicorn com
+recarregamento automático na porta `8002`.
+
+Variáveis exportadas no ambiente têm precedência sobre o `.env`, permitindo
+substituir os providers e suas configurações sem alterar o arquivo local.
 
 O `startdev.sh` não cria o banco, não executa migrations, não gera usuários de
 demonstração e não inicia MySQL ou RabbitMQ. Execute primeiro o `bootstrap.sh`

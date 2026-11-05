@@ -129,14 +129,22 @@ O `.env` criado pelo bootstrap utiliza:
 
 - `APP_NAME=order-service`
 - `APP_ENV=development`
+- `DEBUG=true`
 - `PERSISTENCE_PROVIDER=nosql`
+- `NOSQL_PROVIDER=local`
 - Tabela `orders`
 - Oracle NoSQL em `http://localhost:18080`
+- `NOSQL_COMPARTMENT_ID` vazio para o provider local
+- `DATABASE_URL` vazia enquanto o provider SQLAlchemy não for utilizado
 - Mensageria com RabbitMQ
 - Fila `notifications-queue`
+- `QUEUE_COMPARTMENT_ID` vazio para o provider RabbitMQ
+- Região OCI `sa-saopaulo-1`
+- `OCI_AUTH_MODE` vazio (`None` no Python)
 - Emissor JWT `user-service`
 - Audiência JWT `ocipizza`
 - JWKS em `http://localhost:8002/.well-known/jwks.json`
+- Timeout HTTP de 10 segundos
 - Logging com nível `INFO`
 
 Se o `.env` já existir, seus valores serão preservados. Configurações locais

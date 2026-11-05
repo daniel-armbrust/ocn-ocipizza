@@ -1,0 +1,25 @@
+# Cria um Service interno para disponibilizar o Redis aos microsserviços.
+# O Service seleciona o Pod do Redis e encaminha as conexões recebidas
+# na porta TCP 6379 para a porta nomeada redis do container.
+# Este recurso utiliza o tipo ClusterIP e não possui exposição externa direta.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: ocipizza-infra
+spec:
+  # Expõe o Redis somente por meio da rede interna do cluster.
+  type: ClusterIP
+
+  # Seleciona o Pod gerenciado pelo controlador do Redis.
+  selector:
+    app: redis
+    rel: stable
+    env: development
+
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+      protocol: TCP

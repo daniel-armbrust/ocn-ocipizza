@@ -1,0 +1,92 @@
+# Cria um ReplicaSet para executar o frontend-service no OKE.
+# Mantém duas réplicas do frontend-service em execução e recria os Pods
+# automaticamente caso algum seja excluído ou apresente falha.
+# Utiliza o Redis e os microsserviços locais do laboratório.
+# Este recurso é utilizado para estudar ReplicaSets no Kubernetes.
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: frontend-service
+  namespace: ocipizza-services
+spec:
+  # Define a quantidade desejada de Pods em execução.
+  replicas: 3
+
+  # Seleciona os Pods que possuem os labels abaixo:
+  selector:
+    matchLabels:
+      app: frontend-service
+      rel: beta
+      env: development
+
+  # Define como os Pods devem ser criados.
+  template:
+    metadata:
+      labels:
+        app: frontend-service
+        rel: beta
+        env: development
+    spec:
+      # Credenciais para baixar imagens privadas do OCIR.
+      imagePullSecrets:
+        - name: ocir-secret
+
+      containers:
+        - name: frontend-service
+
+          # Imagem Docker do frontend-service publicada no OCIR.
+          image: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/frontend-service:1.0.0
+
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          # Verifica se o processo FastAPI continua respondendo.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+            successThreshold: 1
+
+          env:
+            - name: APP_ENV
+              value: "development"
+
+            - name: LOG_LEVEL
+              value: "INFO"
+
+            - name: OCI_REGION
+              value: "sa-saopaulo-1"
+
+            - name: PERSISTENCE_PROVIDER
+              value: "redis"
+
+            - name: REDIS_ENDPOINT
+              value: "redis://redis.ocipizza-infra.svc.cluster.local:6379/0"
+
+            - name: SESSION_SECRET_KEY
+              value: "!!!Sup3rS3cr3t0!!!"
+
+            - name: CSRF_SECRET_KEY
+              value: "!!!Sup3rS3cr3t0!!!"
+
+            - name: PIZZA_SERVICE_URL
+              value: "http://pizza-service.ocipizza-services.svc.cluster.local:8000"
+
+            - name: USER_SERVICE_URL
+              value: "http://user-service.ocipizza-services.svc.cluster.local:8000"
+
+            - name: ORDER_SERVICE_URL
+              value: "http://order-service.ocipizza-services.svc.cluster.local:8000"
+
+            - name: DELIVERY_SERVICE_URL
+              value: "http://delivery-service.ocipizza-services.svc.cluster.local:8000"
+
+            - name: CHATBOT_SERVICE_URL
+              value: "http://chatbot-service.ocipizza-services.svc.cluster.local:8000"

@@ -1,0 +1,82 @@
+# Cria um ReplicationController para executar o MySQL no OKE.
+# Mantém uma réplica do MySQL em execução e recria o Pod automaticamente
+# caso ele seja excluído ou apresente falha.
+# Utiliza um PersistentVolumeClaim para armazenar os dados do banco.
+# Este recurso é utilizado para estudar ReplicationControllers no Kubernetes.
+
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: mysql
+  namespace: ocipizza-infra
+spec:
+  # Mantém apenas uma réplica porque o volume utiliza ReadWriteOnce.
+  replicas: 1
+
+  # Seleciona os Pods que possuem os labels abaixo.
+  selector:
+    app: mysql
+    rel: stable
+    env: development
+
+  # Define como o Pod do MySQL deve ser criado.
+  template:
+    metadata:
+      labels:
+        app: mysql
+        rel: stable
+        env: development
+    spec:
+      containers:
+        - name: mysql
+
+          # Imagem oficial do MySQL Community Server disponibilizada pela Oracle.
+          # https://container-registry.oracle.com/ords/ocr/ba/mysql/community-server
+          image: container-registry.oracle.com/mysql/community-server:8.4
+
+          ports:
+            - name: mysql
+              containerPort: 3306
+              protocol: TCP
+
+          # Verifica se o MySQL continua respondendo.
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - 'mysqladmin ping -h 127.0.0.1 -u root -p"$MYSQL_ROOT_PASSWORD"'
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+
+          # Verifica se o MySQL está pronto para receber conexões.
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - 'mysqladmin ping -h 127.0.0.1 -u root -p"$MYSQL_ROOT_PASSWORD"'
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # Monta o volume no diretório de dados do MySQL.
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+
+          env:
+            # Senha do usuário administrador utilizada somente no laboratório.
+            - name: MYSQL_ROOT_PASSWORD
+              value: "root"
+
+            - name: MYSQL_ROOT_HOST
+              value: "%"
+
+      volumes:
+        - name: mysql-data
+          persistentVolumeClaim:
+            claimName: mysql-pvc

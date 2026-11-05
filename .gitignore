@@ -16,6 +16,14 @@
 secrets/
 credentials/
 
+# Permite versionar somente scripts no diretório de automações de Secrets do
+# laboratório. Arquivos contendo credenciais continuam cobertos pelas demais
+# regras de segurança deste arquivo.
+!oke-fundamentals/kubernetes/secrets/
+oke-fundamentals/kubernetes/secrets/**
+!oke-fundamentals/kubernetes/secrets/**/
+!oke-fundamentals/kubernetes/secrets/**/*.sh
+
 # --------------------------------------------------
 # Python
 # --------------------------------------------------

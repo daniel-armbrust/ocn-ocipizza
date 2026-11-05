@@ -63,23 +63,6 @@
 
 set -e
 
-display_step() {
-    local message="$1"
-    local width=64
-    local border
-    local padding
-
-    printf -v border '%*s' "$width" ''
-    border=${border// /#}
-    printf -v padding '%*s' "$((width - 4 - ${#message}))" ''
-
-    echo
-    echo "$border"
-    echo "# $message$padding #"
-    echo "$border"
-    echo
-}
-
 # Configurações utilizadas pelo ambiente local de desenvolvimento.
 
 MYSQL_HOST='127.0.0.1'
@@ -98,6 +81,55 @@ ENV_FILE='.env'
 JWT_SECRETS_DIR='secrets'
 JWT_PRIVATE_KEY_FILE="${JWT_SECRETS_DIR}/jwt_private_key.pem"
 JWT_PUBLIC_KEY_FILE="${JWT_SECRETS_DIR}/jwt_public_key.pem"
+
+# Armazena os valores fornecidos pelo ambiente antes de carregar o .env.
+declare -A ENVIRONMENT_OVERRIDES
+
+# Exibe uma etapa do bootstrap em um bloco destacado no terminal.
+display_step() {
+    local message="$1"
+    local width=64
+    local border
+    local padding
+
+    printf -v border '%*s' "$width" ''
+    border=${border// /#}
+    printf -v padding '%*s' "$((width - 4 - ${#message}))" ''
+
+    echo
+    echo "$border"
+    echo "# $message$padding #"
+    echo "$border"
+    echo
+}
+
+# Acrescenta uma configuração ausente ao .env sem sobrescrever valores
+# definidos pelo desenvolvedor.
+ensure_env_variable() {
+    local name="$1"
+    local value="$2"
+
+    if ! grep -q "^${name}=" "$ENV_FILE"; then
+        printf '%s=%s\n' "$name" "$value" >> "$ENV_FILE"
+        echo "Configuração ${name} adicionada ao arquivo .env."
+    fi
+}
+
+# Variáveis exportadas pelo ambiente externo têm precedência sobre o .env.
+for variable in \
+    APP_NAME APP_ENV DEBUG LOG_LEVEL OCI_LOG_ID \
+    PERSISTENCE_PROVIDER DATABASE_URL \
+    MESSAGING_PROVIDER QUEUE_NAME RABBITMQ_HOST RABBITMQ_PORT \
+    RABBITMQ_USERNAME RABBITMQ_PASSWORD OCI_QUEUE_ID \
+    OCI_REGION OCI_AUTH_MODE OCI_CONFIG_FILE OCI_CONFIG_PROFILE \
+    JWT_KEY_PROVIDER JWT_ISSUER JWT_AUDIENCE \
+    JWT_ACCESS_TOKEN_EXPIRATION_MINUTES JWT_PRIVATE_KEY_PATH \
+    JWT_PUBLIC_KEY_PATH JWT_PRIVATE_KEY_SECRET_ID \
+    REFRESH_TOKEN_EXPIRATION_DAYS; do
+    if [[ -v "$variable" ]]; then
+        ENVIRONMENT_OVERRIDES["$variable"]="${!variable}"
+    fi
+done
 
 display_step 'Iniciando o bootstrap do user-service'
 
@@ -173,6 +205,11 @@ APP_NAME=user-service
 APP_ENV=development
 DEBUG=true
 
+OCI_REGION=sa-saopaulo-1
+OCI_AUTH_MODE=
+OCI_CONFIG_FILE=
+OCI_CONFIG_PROFILE=DEFAULT
+
 # Persistência
 PERSISTENCE_PROVIDER=sqlalchemy
 
@@ -187,22 +224,98 @@ RABBITMQ_USERNAME=oci_pizza
 RABBITMQ_PASSWORD=oci_pizza
 QUEUE_NAME=notifications-queue
 
+# OCI Queue
+OCI_QUEUE_ID=
+
 # JWT
+JWT_KEY_PROVIDER=local
 JWT_ISSUER=user-service
 JWT_AUDIENCE=ocipizza
+JWT_ACCESS_TOKEN_EXPIRATION_MINUTES=15
+JWT_PRIVATE_KEY_PATH=secrets/jwt_private_key.pem
+JWT_PUBLIC_KEY_PATH=secrets/jwt_public_key.pem
+JWT_PRIVATE_KEY_SECRET_ID=
+
+# Refresh token
+REFRESH_TOKEN_EXPIRATION_DAYS=30
+
+# Logging
+LOG_LEVEL=INFO
+OCI_LOG_ID=
 EOF
 
 else
-    echo 'Arquivo .env já existe. Nenhuma alteração será realizada.'
+    echo 'Arquivo .env já existe. Os valores atuais serão preservados.'
 fi
+
+# Acrescenta configurações ausentes de arquivos criados por versões anteriores.
+ensure_env_variable 'APP_NAME' 'user-service'
+ensure_env_variable 'APP_ENV' 'development'
+ensure_env_variable 'DEBUG' 'true'
+ensure_env_variable 'PERSISTENCE_PROVIDER' 'sqlalchemy'
+ensure_env_variable 'DATABASE_URL' "mysql+pymysql://${DATABASE_USER}:${DATABASE_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${DATABASE_NAME}"
+ensure_env_variable 'MESSAGING_PROVIDER' 'rabbitmq'
+ensure_env_variable 'QUEUE_NAME' 'notifications-queue'
+ensure_env_variable 'RABBITMQ_HOST' '127.0.0.1'
+ensure_env_variable 'RABBITMQ_PORT' '5672'
+ensure_env_variable 'RABBITMQ_USERNAME' 'oci_pizza'
+ensure_env_variable 'RABBITMQ_PASSWORD' 'oci_pizza'
+ensure_env_variable 'OCI_QUEUE_ID' ''
+ensure_env_variable 'OCI_REGION' 'sa-saopaulo-1'
+ensure_env_variable 'OCI_AUTH_MODE' ''
+ensure_env_variable 'OCI_CONFIG_FILE' ''
+ensure_env_variable 'OCI_CONFIG_PROFILE' 'DEFAULT'
+ensure_env_variable 'JWT_KEY_PROVIDER' 'local'
+ensure_env_variable 'JWT_ISSUER' 'user-service'
+ensure_env_variable 'JWT_AUDIENCE' 'ocipizza'
+ensure_env_variable 'JWT_ACCESS_TOKEN_EXPIRATION_MINUTES' '15'
+ensure_env_variable 'JWT_PRIVATE_KEY_PATH' 'secrets/jwt_private_key.pem'
+ensure_env_variable 'JWT_PUBLIC_KEY_PATH' 'secrets/jwt_public_key.pem'
+ensure_env_variable 'JWT_PRIVATE_KEY_SECRET_ID' ''
+ensure_env_variable 'REFRESH_TOKEN_EXPIRATION_DAYS' '30'
+ensure_env_variable 'LOG_LEVEL' 'INFO'
+ensure_env_variable 'OCI_LOG_ID' ''
 
 # Carregamento das variáveis do .env
 
 echo "Carregando configurações do ambiente..."
 
 set -a
-source .env
+source "$ENV_FILE"
 set +a
+
+for variable in "${!ENVIRONMENT_OVERRIDES[@]}"; do
+    export "$variable=${ENVIRONMENT_OVERRIDES[$variable]}"
+done
+
+# Aplica os mesmos valores padrão utilizados pelo startdev.sh. As variáveis
+# externas e os valores existentes no .env têm precedência.
+export APP_NAME="${APP_NAME:-user-service}"
+export APP_ENV="${APP_ENV:-development}"
+export DEBUG="${DEBUG:-true}"
+export LOG_LEVEL="${LOG_LEVEL:-INFO}"
+export OCI_LOG_ID="${OCI_LOG_ID:-}"
+export PERSISTENCE_PROVIDER="${PERSISTENCE_PROVIDER:-sqlalchemy}"
+export DATABASE_URL="${DATABASE_URL:-mysql+pymysql://${DATABASE_USER}:${DATABASE_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${DATABASE_NAME}}"
+export MESSAGING_PROVIDER="${MESSAGING_PROVIDER:-rabbitmq}"
+export QUEUE_NAME="${QUEUE_NAME:-notifications-queue}"
+export RABBITMQ_HOST="${RABBITMQ_HOST:-127.0.0.1}"
+export RABBITMQ_PORT="${RABBITMQ_PORT:-5672}"
+export RABBITMQ_USERNAME="${RABBITMQ_USERNAME:-oci_pizza}"
+export RABBITMQ_PASSWORD="${RABBITMQ_PASSWORD:-oci_pizza}"
+export OCI_QUEUE_ID="${OCI_QUEUE_ID:-}"
+export OCI_REGION="${OCI_REGION:-sa-saopaulo-1}"
+export OCI_AUTH_MODE="${OCI_AUTH_MODE:-}"
+export OCI_CONFIG_FILE="${OCI_CONFIG_FILE:-${HOME}/.oci/config}"
+export OCI_CONFIG_PROFILE="${OCI_CONFIG_PROFILE:-DEFAULT}"
+export JWT_KEY_PROVIDER="${JWT_KEY_PROVIDER:-local}"
+export JWT_ISSUER="${JWT_ISSUER:-user-service}"
+export JWT_AUDIENCE="${JWT_AUDIENCE:-ocipizza}"
+export JWT_ACCESS_TOKEN_EXPIRATION_MINUTES="${JWT_ACCESS_TOKEN_EXPIRATION_MINUTES:-15}"
+export JWT_PRIVATE_KEY_PATH="${JWT_PRIVATE_KEY_PATH:-secrets/jwt_private_key.pem}"
+export JWT_PUBLIC_KEY_PATH="${JWT_PUBLIC_KEY_PATH:-secrets/jwt_public_key.pem}"
+export JWT_PRIVATE_KEY_SECRET_ID="${JWT_PRIVATE_KEY_SECRET_ID:-}"
+export REFRESH_TOKEN_EXPIRATION_DAYS="${REFRESH_TOKEN_EXPIRATION_DAYS:-30}"
 
 # Verifica se os clientes do MySQL estão disponíveis.
 

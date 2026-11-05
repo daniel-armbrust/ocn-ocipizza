@@ -104,6 +104,9 @@ NOSQL_TABLE_NAME=orders
 NOSQL_ENDPOINT=http://localhost:18080
 NOSQL_COMPARTMENT_ID=
 
+# SQLAlchemy
+DATABASE_URL=
+
 # Autenticação OCI
 OCI_REGION=sa-saopaulo-1
 OCI_AUTH_MODE=
@@ -122,11 +125,15 @@ RABBITMQ_PASSWORD=oci_pizza
 
 # OCI Queue
 OCI_QUEUE_ID=
+QUEUE_COMPARTMENT_ID=
 
 # JWT
 JWT_ISSUER=user-service
 JWT_AUDIENCE=ocipizza
 JWT_JWKS_URL=http://localhost:8002/.well-known/jwks.json
+
+# Timeout das chamadas HTTP, em segundos
+HTTP_CLIENT_TIMEOUT=10.0
 
 # Logging
 LOG_LEVEL=INFO
@@ -163,6 +170,9 @@ ensure_env_variable 'OCI_AUTH_MODE' ''
 ensure_env_variable 'OCI_CONFIG_FILE' ''
 ensure_env_variable 'OCI_CONFIG_PROFILE' 'DEFAULT'
 ensure_env_variable 'OCI_QUEUE_ID' ''
+ensure_env_variable 'QUEUE_COMPARTMENT_ID' ''
+ensure_env_variable 'DATABASE_URL' ''
+ensure_env_variable 'HTTP_CLIENT_TIMEOUT' '10.0'
 
 # Exporta as configurações para que o módulo Settings e o cliente Oracle
 # NoSQL compartilhem exatamente os mesmos valores durante o bootstrap.
@@ -173,12 +183,13 @@ echo 'Carregando configurações do ambiente...'
 declare -A ENVIRONMENT_OVERRIDES
 
 for variable in \
-    APP_NAME APP_ENV DEBUG LOG_LEVEL \
+    APP_NAME APP_ENV DEBUG LOG_LEVEL OCI_LOG_ID \
     PERSISTENCE_PROVIDER NOSQL_PROVIDER NOSQL_TABLE_NAME NOSQL_ENDPOINT \
-    NOSQL_COMPARTMENT_ID OCI_REGION OCI_AUTH_MODE OCI_CONFIG_FILE \
+    NOSQL_COMPARTMENT_ID DATABASE_URL HTTP_CLIENT_TIMEOUT \
+    OCI_REGION OCI_AUTH_MODE OCI_CONFIG_FILE \
     OCI_CONFIG_PROFILE MESSAGING_PROVIDER QUEUE_NAME OCI_QUEUE_ID \
-    RABBITMQ_HOST RABBITMQ_PORT RABBITMQ_USERNAME RABBITMQ_PASSWORD \
-    JWT_ISSUER JWT_AUDIENCE JWT_JWKS_URL OCI_LOG_ID; do
+    QUEUE_COMPARTMENT_ID RABBITMQ_HOST RABBITMQ_PORT RABBITMQ_USERNAME \
+    RABBITMQ_PASSWORD JWT_ISSUER JWT_AUDIENCE JWT_JWKS_URL; do
     if [[ -v "$variable" ]]; then
         ENVIRONMENT_OVERRIDES["$variable"]="${!variable}"
     fi
@@ -192,12 +203,43 @@ for variable in "${!ENVIRONMENT_OVERRIDES[@]}"; do
     export "$variable=${ENVIRONMENT_OVERRIDES[$variable]}"
 done
 
+# Aplica os mesmos valores padrão utilizados pelo startdev.sh. As variáveis
+# exportadas externamente e os valores existentes no .env têm precedência.
+export APP_NAME="${APP_NAME:-order-service}"
+export APP_ENV="${APP_ENV:-development}"
+export DEBUG="${DEBUG:-true}"
+export LOG_LEVEL="${LOG_LEVEL:-INFO}"
+export OCI_LOG_ID="${OCI_LOG_ID:-}"
+
+export PERSISTENCE_PROVIDER="${PERSISTENCE_PROVIDER:-nosql}"
 export NOSQL_PROVIDER="${NOSQL_PROVIDER:-local}"
-export MESSAGING_PROVIDER="${MESSAGING_PROVIDER:-rabbitmq}"
+export NOSQL_TABLE_NAME="${NOSQL_TABLE_NAME:-orders}"
+export NOSQL_ENDPOINT="${NOSQL_ENDPOINT:-http://localhost:18080}"
+export NOSQL_COMPARTMENT_ID="${NOSQL_COMPARTMENT_ID:-}"
+
+export DATABASE_URL="${DATABASE_URL:-}"
+export HTTP_CLIENT_TIMEOUT="${HTTP_CLIENT_TIMEOUT:-10.0}"
+
+export OCI_REGION="${OCI_REGION:-sa-saopaulo-1}"
+export OCI_AUTH_MODE="${OCI_AUTH_MODE:-}"
 
 # Quando o modo config_file é utilizado sem um caminho explícito, usa o
 # arquivo padrão criado pelo OCI CLI no diretório pessoal do usuário.
 export OCI_CONFIG_FILE="${OCI_CONFIG_FILE:-${HOME}/.oci/config}"
+export OCI_CONFIG_PROFILE="${OCI_CONFIG_PROFILE:-DEFAULT}"
+
+export JWT_ISSUER="${JWT_ISSUER:-user-service}"
+export JWT_AUDIENCE="${JWT_AUDIENCE:-ocipizza}"
+export JWT_JWKS_URL="${JWT_JWKS_URL:-http://localhost:8002/.well-known/jwks.json}"
+
+export MESSAGING_PROVIDER="${MESSAGING_PROVIDER:-rabbitmq}"
+export QUEUE_NAME="${QUEUE_NAME:-notifications-queue}"
+export RABBITMQ_HOST="${RABBITMQ_HOST:-localhost}"
+export RABBITMQ_PORT="${RABBITMQ_PORT:-5672}"
+export RABBITMQ_USERNAME="${RABBITMQ_USERNAME:-oci_pizza}"
+export RABBITMQ_PASSWORD="${RABBITMQ_PASSWORD:-oci_pizza}"
+export OCI_QUEUE_ID="${OCI_QUEUE_ID:-}"
+export QUEUE_COMPARTMENT_ID="${QUEUE_COMPARTMENT_ID:-}"
 
 if [ "${NOSQL_PROVIDER}" != 'local' ] && \
    [ "${NOSQL_PROVIDER}" != 'oci' ]; then
@@ -258,40 +300,7 @@ if [ "${OCI_AUTH_MODE}" = 'config_file' ] && \
     exit 1
 fi
 
-if [ "${MESSAGING_PROVIDER}" = 'rabbitmq' ]; then
-    display_step 'Verificando a fila RabbitMQ'
-
-    python <<'PYTHON'
-import os
-
-import pika
-
-
-credentials = pika.PlainCredentials(
-    os.environ['RABBITMQ_USERNAME'],
-    os.environ['RABBITMQ_PASSWORD']
-)
-parameters = pika.ConnectionParameters(
-    host=os.environ['RABBITMQ_HOST'],
-    port=int(os.environ['RABBITMQ_PORT']),
-    credentials=credentials
-)
-
-connection = pika.BlockingConnection(parameters)
-try:
-    channel = connection.channel()
-
-    # O modo passivo somente consulta a fila; ele não a declara nem cria.
-    channel.queue_declare(
-        queue=os.environ['QUEUE_NAME'],
-        passive=True
-    )
-finally:
-    connection.close()
-
-print(f"Fila RabbitMQ existente: {os.environ['QUEUE_NAME']}")
-PYTHON
-else
+if [ "${MESSAGING_PROVIDER}" = 'oci_queue' ]; then
     display_step 'Verificando a fila OCI Queue'
 
     if [ -z "${OCI_QUEUE_ID:-}" ]; then

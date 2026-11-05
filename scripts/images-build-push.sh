@@ -9,6 +9,7 @@
 # Uso:
 #   ./scripts/images-build-push.sh --user <usuario>
 #   ./scripts/images-build-push.sh --user <usuario> --no-cache
+#   ./scripts/images-build-push.sh --user <usuario> --no-cache pizza-service
 #   ./scripts/images-build-push.sh --tag <versão> --remove
 #
 
@@ -37,12 +38,13 @@ repository_prefix="${DEFAULT_REPOSITORY_PREFIX}"
 image_tag="${DEFAULT_IMAGE_TAG}"
 no_cache=false
 remove_local_images=false
+service_name_filter=""
 
 # Mantém a documentação de uso junto ao parser das opções suportadas.
 usage() {
     cat <<'EOF'
 Uso:
-  images-build-push.sh --user <usuario> [opções]
+  images-build-push.sh --user <usuario> [opções] [serviço]
 
 Opções:
   --user <usuario>              Usuário OCI usado no login do OCIR. Obrigatório
@@ -54,11 +56,14 @@ Opções:
   --no-cache                    Executa o docker build sem utilizar cache.
   --remove                      Exclui imagens, repositórios OCIR e imagens
                                 locais, sem executar build, tag ou push.
+  [serviço]                     Processa somente o serviço informado. Quando
+                                omitido, processa todos os serviços.
   -h, --help                    Exibe esta ajuda.
 
 Exemplos:
   images-build-push.sh --user usuario@example.com
   images-build-push.sh --user Default/usuario@example.com --tag 1.1.0 --no-cache
+  images-build-push.sh --user usuario@example.com --no-cache pizza-service
   images-build-push.sh --tag 1.0.0 --remove
 
 O namespace da tenancy é consultado automaticamente com `oci os ns get`.
@@ -163,7 +168,15 @@ while (($# > 0)); do
             ;;
 
         *)
-            fail "opção desconhecida: $1. Use --help para consultar o uso."
+            if [[ "$1" == -* ]]; then
+                fail "opção desconhecida: $1. Use --help para consultar o uso."
+            fi
+
+            [[ -z "${service_name_filter}" ]] || \
+                fail "informe somente um serviço por execução."
+
+            service_name_filter="$1"
+            shift
             ;;
     esac
 done
@@ -206,6 +219,23 @@ mapfile -d '' dockerfiles < <(
 )
 
 ((${#dockerfiles[@]} > 0)) || fail "nenhum Dockerfile encontrado em ${SERVICES_DIR}."
+
+# Restringe a execução ao serviço solicitado. Sem filtro, todos os Dockerfiles
+# encontrados em services/ continuam sendo processados.
+if [[ -n "${service_name_filter}" ]]; then
+    filtered_dockerfiles=()
+
+    for dockerfile in "${dockerfiles[@]}"; do
+        if [[ "$(basename "$(dirname "${dockerfile}")")" == "${service_name_filter}" ]]; then
+            filtered_dockerfiles+=("${dockerfile}")
+        fi
+    done
+
+    ((${#filtered_dockerfiles[@]} > 0)) || \
+        fail "serviço não encontrado ou sem Dockerfile: ${service_name_filter}."
+
+    dockerfiles=("${filtered_dockerfiles[@]}")
+fi
 
 # Remove do OCIR os recursos da versão selecionada e seus repositórios, além
 # das referências locais. A função nunca executa build, tag ou push.
@@ -314,6 +344,11 @@ echo "Namespace: ${tenancy_namespace}"
 echo "Prefixo: ${repository_prefix}"
 echo "Versão: ${image_tag}"
 echo "Plataforma: ${TARGET_PLATFORM}"
+if [[ -n "${service_name_filter}" ]]; then
+    echo "Serviço selecionado: ${service_name_filter}"
+else
+    echo "Serviço selecionado: todos"
+fi
 echo "Serviços encontrados: ${#dockerfiles[@]}"
 echo
 

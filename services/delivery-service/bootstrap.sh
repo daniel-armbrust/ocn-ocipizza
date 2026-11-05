@@ -103,6 +103,12 @@ NOSQL_TABLE_NAME=delivery_areas
 NOSQL_ENDPOINT=http://localhost:18080
 NOSQL_COMPARTMENT_ID=
 
+# SQLAlchemy
+DATABASE_URL=
+
+# Timeout das chamadas HTTP, em segundos
+HTTP_CLIENT_TIMEOUT=10.0
+
 # Autenticação OCI (utilizada quando NOSQL_PROVIDER=oci)
 OCI_REGION=sa-saopaulo-1
 OCI_AUTH_MODE=
@@ -130,10 +136,10 @@ echo 'Carregando configurações do ambiente...'
 declare -A ENVIRONMENT_OVERRIDES
 
 for variable in \
-    APP_NAME APP_ENV DEBUG LOG_LEVEL PERSISTENCE_PROVIDER NOSQL_PROVIDER \
-    NOSQL_TABLE_NAME NOSQL_ENDPOINT NOSQL_COMPARTMENT_ID OCI_REGION \
-    OCI_AUTH_MODE OCI_CONFIG_FILE OCI_CONFIG_PROFILE JWT_ISSUER \
-    JWT_AUDIENCE JWT_JWKS_URL OCI_LOG_ID; do
+    APP_NAME APP_ENV DEBUG LOG_LEVEL OCI_LOG_ID PERSISTENCE_PROVIDER \
+    NOSQL_PROVIDER NOSQL_TABLE_NAME NOSQL_ENDPOINT NOSQL_COMPARTMENT_ID \
+    DATABASE_URL HTTP_CLIENT_TIMEOUT OCI_REGION OCI_AUTH_MODE OCI_CONFIG_FILE \
+    OCI_CONFIG_PROFILE JWT_ISSUER JWT_AUDIENCE JWT_JWKS_URL; do
     if [[ -v "$variable" ]]; then
         ENVIRONMENT_OVERRIDES["$variable"]="${!variable}"
     fi
@@ -147,15 +153,31 @@ for variable in "${!ENVIRONMENT_OVERRIDES[@]}"; do
     export "$variable=${ENVIRONMENT_OVERRIDES[$variable]}"
 done
 
-# O provider determina se o handle será conectado ao Oracle NoSQL local ou
-# ao Oracle NoSQL Cloud Service. O compartment é obrigatório para o provider
-# OCI porque identifica onde a tabela será criada.
-export NOSQL_PROVIDER="${NOSQL_PROVIDER:-local}"
+# Aplica os mesmos valores padrão utilizados pelo startdev.sh. As variáveis
+# exportadas externamente e os valores existentes no .env têm precedência.
+export APP_NAME="${APP_NAME:-delivery-service}"
+export APP_ENV="${APP_ENV:-development}"
+export DEBUG="${DEBUG:-true}"
+export LOG_LEVEL="${LOG_LEVEL:-INFO}"
+export OCI_LOG_ID="${OCI_LOG_ID:-}"
+
 export PERSISTENCE_PROVIDER="${PERSISTENCE_PROVIDER:-nosql}"
+export NOSQL_PROVIDER="${NOSQL_PROVIDER:-local}"
+export NOSQL_TABLE_NAME="${NOSQL_TABLE_NAME:-delivery_areas}"
+export NOSQL_ENDPOINT="${NOSQL_ENDPOINT:-http://localhost:18080}"
+export NOSQL_COMPARTMENT_ID="${NOSQL_COMPARTMENT_ID:-}"
+
+export DATABASE_URL="${DATABASE_URL:-}"
+export HTTP_CLIENT_TIMEOUT="${HTTP_CLIENT_TIMEOUT:-10.0}"
+
 export OCI_REGION="${OCI_REGION:-sa-saopaulo-1}"
 export OCI_AUTH_MODE="${OCI_AUTH_MODE:-}"
 export OCI_CONFIG_FILE="${OCI_CONFIG_FILE:-${HOME}/.oci/config}"
 export OCI_CONFIG_PROFILE="${OCI_CONFIG_PROFILE:-DEFAULT}"
+
+export JWT_ISSUER="${JWT_ISSUER:-user-service}"
+export JWT_AUDIENCE="${JWT_AUDIENCE:-ocipizza}"
+export JWT_JWKS_URL="${JWT_JWKS_URL:-http://localhost:8002/.well-known/jwks.json}"
 
 if [ "${NOSQL_PROVIDER}" != 'local' ] && \
    [ "${NOSQL_PROVIDER}" != 'oci' ]; then

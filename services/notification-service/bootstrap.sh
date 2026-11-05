@@ -184,7 +184,7 @@ echo 'Carregando configurações do ambiente...'
 declare -A ENVIRONMENT_OVERRIDES
 
 for variable in \
-    APP_NAME APP_ENV DEBUG SITE_URL \
+    APP_NAME APP_ENV DEBUG LOG_LEVEL OCI_LOG_ID SITE_URL \
     MESSAGING_PROVIDER QUEUE_NAME \
     RABBITMQ_HOST RABBITMQ_PORT RABBITMQ_USERNAME RABBITMQ_PASSWORD \
     OCI_QUEUE_ID QUEUE_COMPARTMENT_ID \
@@ -207,8 +207,43 @@ for variable in "${!ENVIRONMENT_OVERRIDES[@]}"; do
     export "$variable=${ENVIRONMENT_OVERRIDES[$variable]}"
 done
 
+# Aplica os mesmos valores padrão utilizados pelo startdev.sh. As variáveis
+# exportadas externamente e os valores existentes no .env têm precedência.
+export APP_NAME="${APP_NAME:-notification-service}"
+export APP_ENV="${APP_ENV:-development}"
+export DEBUG="${DEBUG:-true}"
+export LOG_LEVEL="${LOG_LEVEL:-INFO}"
+export OCI_LOG_ID="${OCI_LOG_ID:-}"
+
+export SITE_URL="${SITE_URL:-http://localhost:8010}"
+export EMAIL_TEMPLATES_PATH="${EMAIL_TEMPLATES_PATH:-app/templates/emails}"
+
 export MESSAGING_PROVIDER="${MESSAGING_PROVIDER:-rabbitmq}"
+export QUEUE_NAME="${QUEUE_NAME:-notifications-queue}"
+export RABBITMQ_HOST="${RABBITMQ_HOST:-localhost}"
+export RABBITMQ_PORT="${RABBITMQ_PORT:-5672}"
+export RABBITMQ_USERNAME="${RABBITMQ_USERNAME:-oci_pizza}"
+export RABBITMQ_PASSWORD="${RABBITMQ_PASSWORD:-oci_pizza}"
+export OCI_QUEUE_ID="${OCI_QUEUE_ID:-}"
+export QUEUE_COMPARTMENT_ID="${QUEUE_COMPARTMENT_ID:-}"
+
 export EMAIL_PROVIDER="${EMAIL_PROVIDER:-smtp}"
+export SMTP_HOST="${SMTP_HOST:-localhost}"
+export SMTP_PORT="${SMTP_PORT:-1025}"
+export SMTP_USERNAME="${SMTP_USERNAME:-}"
+export SMTP_PASSWORD="${SMTP_PASSWORD:-}"
+export SMTP_USE_TLS="${SMTP_USE_TLS:-false}"
+export SMTP_EMAIL_SENDER="${SMTP_EMAIL_SENDER:-no-reply@ocipizza.local}"
+export OCI_EMAIL_DELIVERY_COMPARTMENT_ID="${OCI_EMAIL_DELIVERY_COMPARTMENT_ID:-}"
+export OCI_EMAIL_SENDER_NAME="${OCI_EMAIL_SENDER_NAME:-OCI Pizza}"
+
+export OCI_REGION="${OCI_REGION:-sa-saopaulo-1}"
+export OCI_AUTH_MODE="${OCI_AUTH_MODE:-}"
+export OCI_CONFIG_FILE="${OCI_CONFIG_FILE:-${HOME}/.oci/config}"
+export OCI_CONFIG_PROFILE="${OCI_CONFIG_PROFILE:-DEFAULT}"
+
+export NOTIFICATION_POLL_INTERVAL="${NOTIFICATION_POLL_INTERVAL:-5.0}"
+export NOTIFICATION_RETRY_INTERVAL="${NOTIFICATION_RETRY_INTERVAL:-10.0}"
 
 if [ "${MESSAGING_PROVIDER}" != 'rabbitmq' ] && \
    [ "${MESSAGING_PROVIDER}" != 'oci_queue' ]; then
@@ -285,6 +320,41 @@ if [ "${OCI_AUTH_MODE}" = 'config_file' ] && \
     echo 'Erro: OCI_CONFIG_FILE é obrigatório quando um provider OCI '
     echo 'utiliza OCI_AUTH_MODE=config_file.'
     exit 1
+fi
+
+# O notification-service é responsável por declarar a fila RabbitMQ que
+# consome. A declaração é idempotente e preserva a fila após reinicializações.
+if [ "${MESSAGING_PROVIDER}" = 'rabbitmq' ]; then
+    display_step 'Criando ou validando a fila RabbitMQ'
+
+    python <<'PYTHON'
+import os
+
+import pika
+
+
+credentials = pika.PlainCredentials(
+    os.environ['RABBITMQ_USERNAME'],
+    os.environ['RABBITMQ_PASSWORD']
+)
+parameters = pika.ConnectionParameters(
+    host=os.environ['RABBITMQ_HOST'],
+    port=int(os.environ['RABBITMQ_PORT']),
+    credentials=credentials
+)
+
+connection = pika.BlockingConnection(parameters)
+try:
+    channel = connection.channel()
+    channel.queue_declare(
+        queue=os.environ['QUEUE_NAME'],
+        durable=True
+    )
+finally:
+    connection.close()
+
+print(f"Fila RabbitMQ pronta: {os.environ['QUEUE_NAME']}")
+PYTHON
 fi
 
 if [ "${MESSAGING_PROVIDER}" = 'oci_queue' ]; then

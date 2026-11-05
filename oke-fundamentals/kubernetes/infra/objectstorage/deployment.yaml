@@ -1,0 +1,97 @@
+# Cria um Deployment para executar o MinIO no OKE.
+# Mantém uma réplica do Object Storage em execução e recria o Pod
+# automaticamente caso ele seja excluído ou apresente falha.
+# Utiliza um PersistentVolumeClaim para armazenar os objetos.
+# Este recurso é utilizado para estudar Deployments no Kubernetes.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: objectstorage
+  namespace: ocipizza-infra
+spec:
+  # Mantém apenas uma réplica porque o volume utiliza ReadWriteOnce.
+  replicas: 1
+
+  # Encerra o Pod atual antes de criar o substituto, evitando conflitos
+  # com volumes ReadWriteOnce e mantendo o laboratório previsível.
+  strategy:
+    type: Recreate
+
+  # Seleciona os Pods que possuem os labels abaixo.
+  selector:
+    matchLabels:
+      app: objectstorage
+      rel: stable
+      env: development
+
+  # Define como o Pod do MinIO deve ser criado.
+  template:
+    metadata:
+      labels:
+        app: objectstorage
+        rel: stable
+        env: development
+    spec:
+      containers:
+        - name: objectstorage
+
+          # Imagem do MinIO utilizada no Docker Compose.
+          image: ghcr.io/coollabsio/minio@sha256:69b55a1c1c5dc285ce04db96689f5b2102317fc77a50680a1874ca6efd1c87f9
+
+          # Inicializa o servidor MinIO e a interface administrativa.
+          args:
+            - server
+            - /data
+            - --console-address
+            - ":9001"
+
+          ports:
+            # Porta utilizada para acessar a API S3.
+            - name: api
+              containerPort: 9000
+              protocol: TCP
+
+            # Porta utilizada para acessar a interface web.
+            - name: console
+              containerPort: 9001
+              protocol: TCP
+
+          # Verifica se o processo do MinIO continua saudável.
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: api
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          # Libera o Pod quando o MinIO estiver pronto para receber requisições.
+          readinessProbe:
+            httpGet:
+              path: /minio/health/ready
+              port: api
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6
+
+          # Monta o volume no diretório de dados utilizado pelo MinIO.
+          volumeMounts:
+            - name: objectstorage-data
+              mountPath: /data
+
+          env:
+            # Credenciais utilizadas somente no laboratório de desenvolvimento.
+            - name: MINIO_ROOT_USER
+              value: "minioadmin"
+
+            - name: MINIO_ROOT_PASSWORD
+              value: "minioadmin"
+
+      # Preserva os objetos do MinIO quando o Pod for recriado.
+      volumes:
+        - name: objectstorage-data
+          persistentVolumeClaim:
+            claimName: objectstorage-pvc

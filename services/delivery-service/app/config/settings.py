@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     persistence_provider: Literal['nosql', 'sqlalchemy'] = 'nosql'
     
     # Oracle NoSQL
-    nosql_provider: Literal['local', 'oci'] = 'local'
+    nosql_provider: Literal['local', 'oci']
     nosql_table_name: str = 'delivery_areas'
     nosql_endpoint: str | None = None
     nosql_compartment_id: str | None = None

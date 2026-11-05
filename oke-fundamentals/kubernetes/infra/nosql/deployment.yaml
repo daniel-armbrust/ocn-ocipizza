@@ -1,0 +1,90 @@
+# Cria um Deployment para executar o Oracle NoSQL Database no OKE.
+# Mantém uma réplica do NoSQL em execução e recria o Pod automaticamente
+# caso ele seja excluído ou apresente falha.
+# Utiliza um PersistentVolumeClaim para armazenar os dados do KVLite.
+# Este recurso é utilizado para estudar Deployments no Kubernetes.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nosql
+  namespace: ocipizza-infra
+spec:
+  # Mantém apenas uma réplica porque o volume utiliza ReadWriteOnce.
+  replicas: 1
+
+  # Encerra o Pod atual antes de criar o substituto, evitando conflitos
+  # com volumes ReadWriteOnce e mantendo o laboratório previsível.
+  strategy:
+    type: Recreate
+
+  # Seleciona os Pods que possuem os labels abaixo.
+  selector:
+    matchLabels:
+      app: nosql
+      rel: stable
+      env: development
+
+  # Define como o Pod do Oracle NoSQL deve ser criado.
+  template:
+    metadata:
+      labels:
+        app: nosql
+        rel: stable
+        env: development
+    spec:
+      # Garante que o usuário não-root da imagem possa gravar no PVC montado
+      # em /kvroot e criar o arquivo de configuração do KVLite.
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+
+      containers:
+        - name: nosql
+
+          # Imagem Oracle NoSQL Database Community Edition.
+          image: ghcr.io/oracle/nosql:latest-ce
+
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+
+          # Verifica se o NoSQL Proxy continua aceitando conexões TCP.
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          # Libera o Pod quando o NoSQL Proxy estiver pronto para receber tráfego.
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6
+
+          # Monta o volume no diretório de dados utilizado pelo Oracle NoSQL.
+          volumeMounts:
+            - name: nosql-data
+              mountPath: /kvroot
+
+          env:
+            # Habilita o NoSQL Proxy na porta 8080.
+            - name: KV_PROXY_PORT
+              value: "8080"
+
+            # Define o tamanho máximo do armazenamento local em GB. A imagem
+            # exige um valor maior que 1.
+            - name: KV_STORAGESIZE
+              value: "2"
+
+      # Preserva os dados do Oracle NoSQL quando o Pod for recriado.
+      volumes:
+        - name: nosql-data
+          persistentVolumeClaim:
+            claimName: nosql-pvc

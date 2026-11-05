@@ -5,6 +5,7 @@ set -e
 # Variáveis utilizadas pelo admin-service em desenvolvimento.
 export APP_ENV="development"
 export LOG_LEVEL="INFO"
+export OCI_REGION="${OCI_REGION:-sa-saopaulo-1}"
 
 # Serviço REDIS
 export REDIS_ENDPOINT="redis://redis:16379/1"

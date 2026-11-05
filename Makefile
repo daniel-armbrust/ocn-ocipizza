@@ -120,3 +120,5 @@ development-down: ## Encerra o ambiente de desenvolvimento.
 # TODO: Implementar o alvo de lint para validar todos os serviços.
 # TODO: Implementar o alvo de testes automatizados para todos os serviços.
 # TODO: Implementar os alvos compartilhados com os pipelines de CI/CD.
+# TODO: Implementar o alvo `make oke-fundamentals` para automatizar o deploy e
+# bootstrap do laboratório introdutório no OKE.

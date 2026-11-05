@@ -1,0 +1,32 @@
+# Cria um Service interno para disponibilizar o RabbitMQ aos microsserviços.
+# O Service encaminha conexões AMQP na porta 5672 e disponibiliza a interface
+# de gerenciamento na porta 15672 dentro do cluster.
+# Este recurso utiliza o tipo ClusterIP e não possui exposição externa direta.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: ocipizza-infra
+spec:
+  # Expõe o RabbitMQ somente por meio da rede interna do cluster.
+  type: ClusterIP
+
+  # Seleciona o Pod gerenciado pelo controlador do RabbitMQ.
+  selector:
+    app: rabbitmq
+    rel: stable
+    env: development
+
+  ports:
+    # Porta utilizada pelos microsserviços para conexões AMQP.
+    - name: amqp
+      port: 5672
+      targetPort: amqp
+      protocol: TCP
+
+    # Porta utilizada para acessar a interface de gerenciamento.
+    - name: management
+      port: 15672
+      targetPort: management
+      protocol: TCP

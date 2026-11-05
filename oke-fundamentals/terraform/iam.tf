@@ -11,14 +11,14 @@ resource "oci_identity_dynamic_group" "oke_worker_nodes" {
   matching_rule  = "instance.compartment.id = '${var.compartment_id}'"
 }
 
-# Permite que os worker nodes façam pull das imagens privadas armazenadas no
-# OCIR. O verbo read não concede permissão para publicar ou excluir imagens.
+# Restringe a leitura aos repositórios cujo nome começa com ocipizza. O verbo
+# read não concede permissão para publicar ou excluir imagens no OCIR.
 resource "oci_identity_policy" "oke_worker_nodes_ocir" {
   compartment_id = var.tenancy_id
   name           = "oke-fundamentals-worker-nodes-ocir"
   description    = "Permite aos worker nodes do OKE baixar imagens do OCIR."
 
   statements = [
-    "Allow dynamic-group id ${oci_identity_dynamic_group.oke_worker_nodes.id} to read repos in tenancy",
+    "Allow dynamic-group id ${oci_identity_dynamic_group.oke_worker_nodes.id} to read repos in tenancy where all { target.repo.name=/ocipizza\\/*/ }",
   ]
 }

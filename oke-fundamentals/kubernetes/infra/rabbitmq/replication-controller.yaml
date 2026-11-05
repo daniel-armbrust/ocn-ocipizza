@@ -1,0 +1,86 @@
+# Cria um ReplicationController para executar o RabbitMQ no OKE.
+# Mantém uma réplica do RabbitMQ em execução e recria o Pod automaticamente
+# caso ele seja excluído ou apresente falha.
+# Utiliza um PersistentVolumeClaim para armazenar filas e mensagens.
+# Este recurso é utilizado para estudar ReplicationControllers no Kubernetes.
+
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: rabbitmq
+  namespace: ocipizza-infra
+spec:
+  # Mantém apenas uma réplica porque o volume utiliza ReadWriteOnce.
+  replicas: 1
+
+  # Seleciona os Pods que possuem os labels abaixo.
+  selector:
+    app: rabbitmq
+    rel: stable
+    env: development
+
+  # Define como o Pod do RabbitMQ deve ser criado.
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+        rel: stable
+        env: development
+    spec:
+      containers:
+        - name: rabbitmq
+
+          # Imagem utilizada no Docker Compose.
+          image: docker.io/library/rabbitmq:4.1.4-management
+
+          ports:
+            # Porta utilizada pelos clientes AMQP.
+            - name: amqp
+              containerPort: 5672
+              protocol: TCP
+
+            # Interface web de administração do RabbitMQ.
+            - name: management
+              containerPort: 15672
+              protocol: TCP
+
+          env:
+            # Credenciais utilizadas somente no laboratório de desenvolvimento.
+            - name: RABBITMQ_DEFAULT_USER
+              value: "oci_pizza"
+
+            - name: RABBITMQ_DEFAULT_PASS
+              value: "oci_pizza"
+
+          # Verifica se o processo RabbitMQ está em execução.
+          livenessProbe:
+            exec:
+              command:
+                - rabbitmq-diagnostics
+                - check_running
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+
+          # Libera o Pod quando os listeners aceitarem conexões.
+          readinessProbe:
+            exec:
+              command:
+                - rabbitmq-diagnostics
+                - check_port_connectivity
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          # Monta o volume no diretório de dados utilizado pelo RabbitMQ.
+          volumeMounts:
+            - name: rabbitmq-data
+              mountPath: /var/lib/rabbitmq
+
+      # Preserva filas, mensagens e metadados quando o Pod for recriado.
+      volumes:
+        - name: rabbitmq-data
+          persistentVolumeClaim:
+            claimName: rabbitmq-pvc

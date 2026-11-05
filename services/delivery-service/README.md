@@ -144,11 +144,15 @@ O `.env` criado pelo bootstrap utiliza:
 
 - `APP_NAME=delivery-service`
 - `APP_ENV=development`
+- `DEBUG=true`
 - `PERSISTENCE_PROVIDER=nosql`
 - `NOSQL_PROVIDER=local`
 - Tabela `delivery_areas`
 - Oracle NoSQL em `http://localhost:18080`
 - `NOSQL_COMPARTMENT_ID` vazio para o provider local
+- `DATABASE_URL` vazia enquanto o provider SQLAlchemy não for utilizado
+- Timeout HTTP de 10 segundos
+- Região OCI `sa-saopaulo-1`
 - `OCI_AUTH_MODE` vazio (`None` no Python)
 - Emissor JWT `user-service`
 - Audiência JWT `ocipizza`

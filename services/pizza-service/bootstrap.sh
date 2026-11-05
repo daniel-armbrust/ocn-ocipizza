@@ -30,6 +30,12 @@
 
 set -e
 
+# Configurações utilizadas pelo ambiente local de desenvolvimento.
+VENV_DIR='.venv'
+ENV_FILE='.env'
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Exibe uma etapa do bootstrap em um bloco destacado no terminal.
 display_step() {
     local message="$1"
     local width=64
@@ -47,20 +53,28 @@ display_step() {
     echo
 }
 
-# Configurações utilizadas pelo ambiente local de desenvolvimento.
+# Acrescenta uma configuração ausente ao .env sem sobrescrever valores
+# definidos pelo desenvolvedor.
+ensure_env_variable() {
+    local name="$1"
+    local value="$2"
 
-VENV_DIR='.venv'
-ENV_FILE='.env'
+    if ! grep -q "^${name}=" "$ENV_FILE"; then
+        printf '%s=%s\n' "$name" "$value" >> "$ENV_FILE"
+        echo "Configuração ${name} adicionada ao arquivo .env."
+    fi
+}
 
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_DIR"
 
 # Variáveis exportadas pelo ambiente externo têm precedência sobre o .env.
 declare -A ENVIRONMENT_OVERRIDES
 
 for variable in \
-    APP_ENV LOG_LEVEL PERSISTENCE_PROVIDER NOSQL_PROVIDER \
+    APP_NAME APP_ENV DEBUG LOG_LEVEL OCI_LOG_ID \
+    PERSISTENCE_PROVIDER NOSQL_PROVIDER \
     NOSQL_TABLE_NAME NOSQL_ENDPOINT NOSQL_COMPARTMENT_ID \
+    DATABASE_URL HTTP_CLIENT_TIMEOUT \
     OBJECTSTORAGE_PROVIDER OBJECTSTORAGE_ENDPOINT OBJECTSTORAGE_BUCKET \
     OBJECTSTORAGE_ACCESS_KEY OBJECTSTORAGE_SECRET_KEY \
     OBJECTSTORAGE_COMPARTMENT_ID OCI_REGION OCI_AUTH_MODE \
@@ -116,6 +130,8 @@ APP_NAME=pizza-service
 APP_ENV=development
 DEBUG=true
 
+OCI_REGION=sa-saopaulo-1
+
 # Persistência
 PERSISTENCE_PROVIDER=nosql
 NOSQL_PROVIDER=local
@@ -125,8 +141,11 @@ NOSQL_TABLE_NAME=pizzas
 NOSQL_ENDPOINT=http://localhost:18080
 NOSQL_COMPARTMENT_ID=
 
+# SQLAlchemy
+DATABASE_URL=
+
 # Object Storage local (MinIO)
-OBJECTSTORAGE_PROVIDER=local
+OBJECTSTORAGE_PROVIDER=minio
 OBJECTSTORAGE_ENDPOINT=http://localhost:9000
 OBJECTSTORAGE_BUCKET=pizza-images
 OBJECTSTORAGE_ACCESS_KEY=minioadmin
@@ -134,7 +153,6 @@ OBJECTSTORAGE_SECRET_KEY=minioadmin
 OBJECTSTORAGE_COMPARTMENT_ID=
 
 # Autenticação OCI (utilizada quando um provider OCI for selecionado)
-OCI_REGION=sa-saopaulo-1
 OCI_AUTH_MODE=
 OCI_CONFIG_FILE=
 OCI_CONFIG_PROFILE=DEFAULT
@@ -143,11 +161,45 @@ OCI_CONFIG_PROFILE=DEFAULT
 JWT_ISSUER=user-service
 JWT_AUDIENCE=ocipizza
 JWT_JWKS_URL=http://localhost:8002/.well-known/jwks.json
+
+# Timeout das chamadas HTTP, em segundos
+HTTP_CLIENT_TIMEOUT=10.0
+
+# Logging
+LOG_LEVEL=INFO
+OCI_LOG_ID=
 EOF
 
 else
-    echo 'Arquivo .env já existe.'
+    echo 'Arquivo .env já existe. Os valores atuais serão preservados.'
 fi
+
+# Acrescenta configurações ausentes de arquivos criados por versões anteriores.
+ensure_env_variable 'APP_NAME' 'pizza-service'
+ensure_env_variable 'APP_ENV' 'development'
+ensure_env_variable 'DEBUG' 'true'
+ensure_env_variable 'PERSISTENCE_PROVIDER' 'nosql'
+ensure_env_variable 'NOSQL_PROVIDER' 'local'
+ensure_env_variable 'NOSQL_TABLE_NAME' 'pizzas'
+ensure_env_variable 'NOSQL_ENDPOINT' 'http://localhost:18080'
+ensure_env_variable 'NOSQL_COMPARTMENT_ID' ''
+ensure_env_variable 'DATABASE_URL' ''
+ensure_env_variable 'OBJECTSTORAGE_PROVIDER' 'minio'
+ensure_env_variable 'OBJECTSTORAGE_ENDPOINT' 'http://localhost:9000'
+ensure_env_variable 'OBJECTSTORAGE_BUCKET' 'pizza-images'
+ensure_env_variable 'OBJECTSTORAGE_ACCESS_KEY' 'minioadmin'
+ensure_env_variable 'OBJECTSTORAGE_SECRET_KEY' 'minioadmin'
+ensure_env_variable 'OBJECTSTORAGE_COMPARTMENT_ID' ''
+ensure_env_variable 'OCI_REGION' 'sa-saopaulo-1'
+ensure_env_variable 'OCI_AUTH_MODE' ''
+ensure_env_variable 'OCI_CONFIG_FILE' ''
+ensure_env_variable 'OCI_CONFIG_PROFILE' 'DEFAULT'
+ensure_env_variable 'JWT_ISSUER' 'user-service'
+ensure_env_variable 'JWT_AUDIENCE' 'ocipizza'
+ensure_env_variable 'JWT_JWKS_URL' 'http://localhost:8002/.well-known/jwks.json'
+ensure_env_variable 'HTTP_CLIENT_TIMEOUT' '10.0'
+ensure_env_variable 'LOG_LEVEL' 'INFO'
+ensure_env_variable 'OCI_LOG_ID' ''
 
 # Carregamento das variáveis do .env
 
@@ -165,16 +217,30 @@ done
 # A validação ocorre antes de iniciar qualquer recurso para evitar um
 # bootstrap parcialmente executado por configuração incompleta.
 export APP_ENV="${APP_ENV:-development}"
+export APP_NAME="${APP_NAME:-pizza-service}"
+export DEBUG="${DEBUG:-true}"
 export LOG_LEVEL="${LOG_LEVEL:-INFO}"
+export OCI_LOG_ID="${OCI_LOG_ID:-}"
 export PERSISTENCE_PROVIDER="${PERSISTENCE_PROVIDER:-nosql}"
 export NOSQL_PROVIDER="${NOSQL_PROVIDER:-local}"
+export NOSQL_TABLE_NAME="${NOSQL_TABLE_NAME:-pizzas}"
+export NOSQL_ENDPOINT="${NOSQL_ENDPOINT:-http://localhost:18080}"
 export NOSQL_COMPARTMENT_ID="${NOSQL_COMPARTMENT_ID:-}"
-export OBJECTSTORAGE_PROVIDER="${OBJECTSTORAGE_PROVIDER:-local}"
+export DATABASE_URL="${DATABASE_URL:-}"
+export HTTP_CLIENT_TIMEOUT="${HTTP_CLIENT_TIMEOUT:-10.0}"
+export OBJECTSTORAGE_PROVIDER="${OBJECTSTORAGE_PROVIDER:-minio}"
+export OBJECTSTORAGE_ENDPOINT="${OBJECTSTORAGE_ENDPOINT:-http://localhost:9000}"
+export OBJECTSTORAGE_BUCKET="${OBJECTSTORAGE_BUCKET:-pizza-images}"
+export OBJECTSTORAGE_ACCESS_KEY="${OBJECTSTORAGE_ACCESS_KEY:-minioadmin}"
+export OBJECTSTORAGE_SECRET_KEY="${OBJECTSTORAGE_SECRET_KEY:-minioadmin}"
 export OBJECTSTORAGE_COMPARTMENT_ID="${OBJECTSTORAGE_COMPARTMENT_ID:-}"
 export OCI_REGION="${OCI_REGION:-sa-saopaulo-1}"
 export OCI_AUTH_MODE="${OCI_AUTH_MODE:-}"
-export OCI_CONFIG_FILE="${OCI_CONFIG_FILE:-}"
+export OCI_CONFIG_FILE="${OCI_CONFIG_FILE:-${HOME}/.oci/config}"
 export OCI_CONFIG_PROFILE="${OCI_CONFIG_PROFILE:-DEFAULT}"
+export JWT_ISSUER="${JWT_ISSUER:-user-service}"
+export JWT_AUDIENCE="${JWT_AUDIENCE:-ocipizza}"
+export JWT_JWKS_URL="${JWT_JWKS_URL:-http://localhost:8002/.well-known/jwks.json}"
 
 if [ "${NOSQL_PROVIDER}" != 'local' ] && \
    [ "${NOSQL_PROVIDER}" != 'oci' ]; then
@@ -190,10 +256,10 @@ if [ "${NOSQL_PROVIDER}" != 'local' ] && \
     exit 1
 fi
 
-if [ "${OBJECTSTORAGE_PROVIDER}" != 'local' ] && \
+if [ "${OBJECTSTORAGE_PROVIDER}" != 'minio' ] && \
    [ "${OBJECTSTORAGE_PROVIDER}" != 'oci' ]; then
     echo "Provider Object Storage não suportado: ${OBJECTSTORAGE_PROVIDER}"
-    echo "Utilize OBJECTSTORAGE_PROVIDER=local ou "\
+    echo "Utilize OBJECTSTORAGE_PROVIDER=minio ou "\
         "OBJECTSTORAGE_PROVIDER=oci."
     exit 1
 fi
@@ -621,17 +687,17 @@ if not image_paths:
 provider = settings.objectstorage_provider
 bucket = settings.objectstorage_bucket
 
-if provider == 'local':
+if provider == 'minio':
     if not settings.objectstorage_access_key:
         raise ValueError(
             'OBJECTSTORAGE_ACCESS_KEY is required when '
-            'OBJECTSTORAGE_PROVIDER is local.'
+            'OBJECTSTORAGE_PROVIDER is minio.'
         )
 
     if not settings.objectstorage_secret_key:
         raise ValueError(
             'OBJECTSTORAGE_SECRET_KEY is required when '
-            'OBJECTSTORAGE_PROVIDER is local.'
+            'OBJECTSTORAGE_PROVIDER is minio.'
         )
 
     endpoint = urlparse(settings.objectstorage_endpoint)
@@ -718,7 +784,7 @@ print(
 for image_path in image_paths:
     object_name = image_path.name
 
-    if provider == 'local':
+    if provider == 'minio':
         try:
             client.stat_object(bucket, object_name)
             print(f'Imagem de demonstração já existe: {object_name}')
@@ -750,7 +816,7 @@ for image_path in image_paths:
 
     image_data = image_path.read_bytes()
 
-    if provider == 'local':
+    if provider == 'minio':
         client.put_object(
             bucket_name=bucket,
             object_name=object_name,

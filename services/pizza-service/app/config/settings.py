@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     persistence_provider: Literal['nosql', 'sqlalchemy'] = 'nosql'
 
     # Oracle NoSQL
-    nosql_provider: Literal['local', 'oci'] = 'local'
+    nosql_provider: Literal['local', 'oci']
     nosql_table_name: str = 'pizzas'
     nosql_endpoint: str | None = None
     nosql_compartment_id: str | None = None
@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     jwt_jwks_url: str
 
     # Object Storage
-    objectstorage_provider: Literal['local', 'oci'] = 'local'
+    objectstorage_provider: Literal['minio', 'oci']
     
     # Object Storage Bucket para as imagens das pizzas.
     objectstorage_bucket: str = 'pizza-images'

@@ -1,0 +1,104 @@
+# Cria um Deployment para executar o pizza-service no OKE.
+# Mantém duas réplicas do pizza-service em execução e recria os Pods
+# automaticamente caso algum seja excluído ou apresente falha.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pizza-service
+  namespace: ocipizza-services
+spec:
+  # Define a quantidade desejada de Pods em execução.
+  replicas: 3
+
+  # Atualiza os Pods gradualmente, mantendo a disponibilidade
+  # do pizza-service durante a substituição das instâncias.
+  strategy:
+    type: RollingUpdate
+
+  # Seleciona os Pods que possuem os labels abaixo.
+  selector:
+    matchLabels:
+      app: pizza-service
+      rel: beta
+      env: development
+
+  # Define como os Pods do pizza-service devem ser criados.
+  template:
+    metadata:
+      labels:
+        app: pizza-service
+        rel: beta
+        env: development
+    spec:
+      # Credenciais para baixar imagens privadas do OCIR.
+      imagePullSecrets:
+        - name: ocir-secret
+
+      containers:
+        - name: pizza-service
+
+          # Imagem Docker do pizza-service publicada no OCIR.
+          image: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/pizza-service:1.0.0
+          
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          # Verifica se o processo FastAPI continua respondendo.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+            successThreshold: 1
+
+          env:
+            - name: APP_ENV
+              value: "development"
+
+            - name: LOG_LEVEL
+              value: "INFO"
+
+            - name: OCI_REGION
+              value: "sa-saopaulo-1"
+
+            - name: PERSISTENCE_PROVIDER
+              value: "nosql"
+
+            - name: NOSQL_PROVIDER
+              value: "local"
+
+            - name: NOSQL_ENDPOINT
+              value: "http://nosql.ocipizza-infra.svc.cluster.local:8080"
+
+            - name: NOSQL_TABLE_NAME
+              value: "pizzas"
+
+            - name: OBJECTSTORAGE_PROVIDER
+              value: "minio"
+
+            - name: OBJECTSTORAGE_BUCKET
+              value: "pizza-images"
+
+            - name: OBJECTSTORAGE_ENDPOINT
+              value: "http://objectstorage.ocipizza-infra.svc.cluster.local:9000"
+
+            - name: OBJECTSTORAGE_ACCESS_KEY
+              value: "minioadmin"
+
+            - name: OBJECTSTORAGE_SECRET_KEY
+              value: "minioadmin"
+
+            - name: JWT_ISSUER
+              value: "user-service"
+
+            - name: JWT_AUDIENCE
+              value: "ocipizza"
+
+            - name: JWT_JWKS_URL
+              value: "http://user-service.ocipizza-services.svc.cluster.local:8000/.well-known/jwks.json"

@@ -9,7 +9,7 @@ cd "$PROJECT_DIR"
 declare -A ENVIRONMENT_OVERRIDES
 
 for variable in \
-    APP_ENV LOG_LEVEL SITE_URL EMAIL_TEMPLATES_PATH \
+    APP_NAME APP_ENV DEBUG LOG_LEVEL OCI_LOG_ID SITE_URL EMAIL_TEMPLATES_PATH \
     MESSAGING_PROVIDER QUEUE_NAME OCI_QUEUE_ID QUEUE_COMPARTMENT_ID \
     RABBITMQ_HOST RABBITMQ_PORT RABBITMQ_USERNAME RABBITMQ_PASSWORD \
     EMAIL_PROVIDER SMTP_HOST SMTP_PORT SMTP_USERNAME SMTP_PASSWORD \
@@ -33,8 +33,11 @@ for variable in "${!ENVIRONMENT_OVERRIDES[@]}"; do
 done
 
 # Valores padrão utilizados quando não foram definidos no ambiente ou no .env.
+export APP_NAME="${APP_NAME:-notification-service}"
 export APP_ENV="${APP_ENV:-development}"
+export DEBUG="${DEBUG:-true}"
 export LOG_LEVEL="${LOG_LEVEL:-INFO}"
+export OCI_LOG_ID="${OCI_LOG_ID:-}"
 
 export SITE_URL="${SITE_URL:-http://localhost:8010}"
 export EMAIL_TEMPLATES_PATH="${EMAIL_TEMPLATES_PATH:-app/templates/emails}"

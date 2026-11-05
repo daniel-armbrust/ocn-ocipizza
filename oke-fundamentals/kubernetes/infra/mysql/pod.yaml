@@ -1,0 +1,70 @@
+# Cria um Pod Kubernetes para executar o MySQL no OKE.
+# O MySQL fornece armazenamento relacional para os microsserviços
+# do OCI Pizza, como user-service e order-service.
+# As configurações são definidas diretamente no manifesto,
+# sem utilizar ConfigMaps, Secrets ou serviços gerenciados da OCI.
+# Este Pod é destinado exclusivamente ao laboratório de desenvolvimento.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+    rel: stable
+    env: development
+  namespace: ocipizza-infra
+spec:
+  containers:
+    - name: mysql
+
+      # Imagem oficial do MySQL Community Server disponibilizada pela Oracle.
+      # https://container-registry.oracle.com/ords/ocr/ba/mysql/community-server 
+      image: container-registry.oracle.com/mysql/community-server:8.4
+
+      ports:
+        - name: mysql
+          containerPort: 3306
+          protocol: TCP
+      
+      # Verifica se o MySQL continua respondendo.
+      livenessProbe:
+        exec:
+          command:
+            - /bin/sh
+            - -c
+            - 'mysqladmin ping -h 127.0.0.1 -u root -p"$MYSQL_ROOT_PASSWORD"'
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 10
+
+      # Verifica se o MySQL está pronto para receber conexões.
+      readinessProbe:
+        exec:
+          command:
+            - /bin/sh
+            - -c
+            - 'mysqladmin ping -h 127.0.0.1 -u root -p"$MYSQL_ROOT_PASSWORD"'
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      
+      # Monta o volume no diretório de dados do MySQL.
+      volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+
+      env:
+        # Senha do usuário administrador do MySQL.
+        # Valor utilizado exclusivamente no laboratório.
+        - name: MYSQL_ROOT_PASSWORD
+          value: "root"
+        
+        - name: MYSQL_ROOT_HOST
+          value: "%"
+  volumes:
+    - name: mysql-data
+      persistentVolumeClaim:
+        claimName: mysql-pvc

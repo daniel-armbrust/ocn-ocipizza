@@ -1,0 +1,75 @@
+# Cria um Deployment para executar o Redis no OKE.
+# Mantém uma réplica do Redis em execução e recria o Pod automaticamente
+# caso ele seja excluído ou apresente falha.
+# Os dados de sessão são temporários e não utilizam armazenamento persistente.
+# Este recurso é utilizado para estudar Deployments no Kubernetes.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: ocipizza-infra
+spec:
+  # Mantém uma única instância para o armazenamento temporário de sessões.
+  replicas: 1
+
+  # Encerra o Pod atual antes de criar o substituto para manter somente uma
+  # instância temporária do Redis durante as atualizações do laboratório.
+  strategy:
+    type: Recreate
+
+  # Seleciona os Pods que possuem os labels abaixo.
+  selector:
+    matchLabels:
+      app: redis
+      rel: stable
+      env: development
+
+  # Define como o Pod do Redis deve ser criado.
+  template:
+    metadata:
+      labels:
+        app: redis
+        rel: stable
+        env: development
+    spec:
+      containers:
+        - name: redis
+
+          # Imagem utilizada no Docker Compose.
+          # https://container-registry.oracle.com/ords/ocr/ba/verrazzano/redis 
+          image: container-registry.oracle.com/verrazzano/redis:v7.0.15-20240725123150-c98c652f
+
+          # Inicializa o Redis sem persistência em disco.
+          command:
+            - redis-server
+
+          args:
+            - --appendonly
+            - "no"
+            - --save
+            - ""
+
+          ports:
+            # Porta utilizada pelos clientes Redis.
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+
+          # Verifica se o Redis continua aceitando conexões na porta padrão.
+          livenessProbe:
+            tcpSocket:
+              port: redis
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 10
+
+          # Libera o Pod quando a porta estiver disponível para conexões.
+          readinessProbe:
+            tcpSocket:
+              port: redis
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6

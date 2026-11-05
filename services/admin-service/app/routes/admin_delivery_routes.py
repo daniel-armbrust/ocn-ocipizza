@@ -28,7 +28,10 @@ router = APIRouter()
 #
 # GET: /admin/delivery/areas
 #
-@router.get('/admin/delivery/areas', response_class=HTMLResponse)
+@router.get(
+    '/admin/delivery/areas', 
+     response_class=HTMLResponse
+)
 async def show_admin_delivery_areas(
     request: Request,
     code: str | None = None,

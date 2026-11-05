@@ -34,7 +34,7 @@ class Settings(BaseSettings):
         'oci_genai',
         'oci_language',
         'sklearn',
-    ] = 'oci_genai'
+    ]
 
     intent_min_confidence: float = 0.70
 
@@ -46,7 +46,7 @@ class Settings(BaseSettings):
         'oci_genai',
         'openai',
         'template'
-    ] = 'oci_genai'
+    ]
 
     # OCI Generative AI
     genai_model_id: str | None = None
@@ -85,7 +85,7 @@ class Settings(BaseSettings):
     oci_auth_mode: Literal[
         'config_file', 
         'instance_principal'
-    ] = 'instance_principal'
+    ] | None = None
     
     # Caminho do arquivo de configuração e profile usados para
     # autenticação nos serviços do OCI.

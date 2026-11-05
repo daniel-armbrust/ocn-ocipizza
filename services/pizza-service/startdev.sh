@@ -13,8 +13,10 @@ cd "$PROJECT_DIR"
 declare -A ENVIRONMENT_OVERRIDES
 
 for variable in \
-    APP_ENV LOG_LEVEL PERSISTENCE_PROVIDER NOSQL_PROVIDER \
+    APP_NAME APP_ENV DEBUG LOG_LEVEL OCI_LOG_ID \
+    PERSISTENCE_PROVIDER NOSQL_PROVIDER \
     NOSQL_TABLE_NAME NOSQL_ENDPOINT NOSQL_COMPARTMENT_ID \
+    DATABASE_URL HTTP_CLIENT_TIMEOUT \
     OBJECTSTORAGE_PROVIDER OBJECTSTORAGE_ENDPOINT OBJECTSTORAGE_BUCKET \
     OBJECTSTORAGE_ACCESS_KEY OBJECTSTORAGE_SECRET_KEY \
     OBJECTSTORAGE_COMPARTMENT_ID OCI_REGION OCI_AUTH_MODE \
@@ -36,8 +38,11 @@ for variable in "${!ENVIRONMENT_OVERRIDES[@]}"; do
 done
 
 # Valores padrão utilizados quando não foram definidos no ambiente ou no .env.
+export APP_NAME="${APP_NAME:-pizza-service}"
 export APP_ENV="${APP_ENV:-development}"
+export DEBUG="${DEBUG:-true}"
 export LOG_LEVEL="${LOG_LEVEL:-INFO}"
+export OCI_LOG_ID="${OCI_LOG_ID:-}"
 
 export PERSISTENCE_PROVIDER="${PERSISTENCE_PROVIDER:-nosql}"
 
@@ -46,7 +51,10 @@ export NOSQL_TABLE_NAME="${NOSQL_TABLE_NAME:-pizzas}"
 export NOSQL_ENDPOINT="${NOSQL_ENDPOINT:-http://localhost:18080}"
 export NOSQL_COMPARTMENT_ID="${NOSQL_COMPARTMENT_ID:-}"
 
-export OBJECTSTORAGE_PROVIDER="${OBJECTSTORAGE_PROVIDER:-local}"
+export DATABASE_URL="${DATABASE_URL:-}"
+export HTTP_CLIENT_TIMEOUT="${HTTP_CLIENT_TIMEOUT:-10.0}"
+
+export OBJECTSTORAGE_PROVIDER="${OBJECTSTORAGE_PROVIDER:-minio}"
 export OBJECTSTORAGE_ENDPOINT="${OBJECTSTORAGE_ENDPOINT:-http://localhost:9000}"
 export OBJECTSTORAGE_BUCKET="${OBJECTSTORAGE_BUCKET:-pizza-images}"
 export OBJECTSTORAGE_ACCESS_KEY="${OBJECTSTORAGE_ACCESS_KEY:-minioadmin}"
@@ -85,19 +93,19 @@ if [ "${PERSISTENCE_PROVIDER}" = 'nosql' ] && \
     exit 1
 fi
 
-if [ "${OBJECTSTORAGE_PROVIDER}" != 'local' ] && \
+if [ "${OBJECTSTORAGE_PROVIDER}" != 'minio' ] && \
    [ "${OBJECTSTORAGE_PROVIDER}" != 'oci' ]; then
     echo "Provider Object Storage não suportado: ${OBJECTSTORAGE_PROVIDER}"
-    echo "Utilize OBJECTSTORAGE_PROVIDER=local ou "\
+    echo "Utilize OBJECTSTORAGE_PROVIDER=minio ou "\
         "OBJECTSTORAGE_PROVIDER=oci."
     exit 1
 fi
 
-if [ "${OBJECTSTORAGE_PROVIDER}" = 'local' ]; then
+if [ "${OBJECTSTORAGE_PROVIDER}" = 'minio' ]; then
     if [ -z "${OBJECTSTORAGE_ACCESS_KEY}" ] || \
        [ -z "${OBJECTSTORAGE_SECRET_KEY}" ]; then
         echo 'Erro: OBJECTSTORAGE_ACCESS_KEY e '
-        echo 'OBJECTSTORAGE_SECRET_KEY são obrigatórios no provider local.'
+        echo 'OBJECTSTORAGE_SECRET_KEY são obrigatórios no provider minio.'
         exit 1
     fi
 fi

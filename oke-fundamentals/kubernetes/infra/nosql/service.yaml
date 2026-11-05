@@ -1,0 +1,25 @@
+# Cria um Service interno para disponibilizar o Oracle NoSQL aos microsserviços.
+# O Service seleciona o Pod do NoSQL e encaminha as conexões recebidas
+# na porta TCP 8080 para a porta HTTP do NoSQL Proxy.
+# Este recurso utiliza o tipo ClusterIP e não possui exposição externa direta.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nosql
+  namespace: ocipizza-infra
+spec:
+  # Expõe o NoSQL Proxy somente por meio da rede interna do cluster.
+  type: ClusterIP
+
+  # Seleciona o Pod gerenciado pelo controlador do Oracle NoSQL.
+  selector:
+    app: nosql
+    rel: stable
+    env: development
+
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP

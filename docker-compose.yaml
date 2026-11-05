@@ -32,7 +32,7 @@ services:
 
       # Use local para conectar ao container MinIO ou oci para utilizar
       # o OCI Object Storage.
-      OBJECTSTORAGE_PROVIDER: ${OBJECTSTORAGE_PROVIDER:-local}
+      OBJECTSTORAGE_PROVIDER: ${OBJECTSTORAGE_PROVIDER:-minio}
       
       OBJECTSTORAGE_ENDPOINT: http://objectstorage:9000
       OBJECTSTORAGE_BUCKET: pizza-images
@@ -360,7 +360,7 @@ services:
       - ocipizza-network
     environment:
       KV_PROXY_PORT: 8080
-      KV_STORAGESIZE: 1    
+      KV_STORAGESIZE: 2    
     volumes:
       - nosql-data:/oci-nosql-data
 

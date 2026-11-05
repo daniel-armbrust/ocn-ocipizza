@@ -1,0 +1,69 @@
+# Cria um Pod Kubernetes para executar o Mailpit no OKE.
+# O Mailpit simula um servidor SMTP para capturar e visualizar
+# os e-mails enviados pelos microsserviços do OCI Pizza.
+# Disponibiliza SMTP na porta 1025 e interface web na porta 8025.
+# Este Pod é destinado exclusivamente ao laboratório de desenvolvimento.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mailpit
+  labels:
+    app: mailpit
+    rel: stable
+    env: development
+  namespace: ocipizza-infra
+spec:
+  containers:
+    - name: mailpit
+
+      # Imagem oficial do Mailpit.
+      image: docker.io/axllent/mailpit:latest
+
+      ports:
+        # Porta utilizada pelos microsserviços para envio SMTP.
+        - name: smtp
+          containerPort: 1025
+          protocol: TCP
+
+        # Porta utilizada pela interface web do Mailpit.
+        - name: http
+          containerPort: 8025
+          protocol: TCP
+
+      # Verifica se a interface web do Mailpit continua aceitando conexões TCP.
+      livenessProbe:
+        tcpSocket:
+          port: http
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 6
+
+      # Libera o Pod para receber tráfego quando o Mailpit estiver pronto.
+      readinessProbe:
+        tcpSocket:
+          port: http
+        initialDelaySeconds: 10
+        periodSeconds: 5
+        timeoutSeconds: 3
+        failureThreshold: 6
+
+      # Monta o volume no diretório de dados do Mailpit.
+      volumeMounts:
+        - name: mailpit-data
+          mountPath: /data
+
+      env:
+        # Limita a quantidade de mensagens mantidas no laboratório.
+        - name: MP_MAX_MESSAGES
+          value: "5000"
+
+        # Armazena as mensagens no banco persistente do Mailpit.
+        - name: MP_DATABASE
+          value: "/data/mailpit.db"
+
+  volumes:
+    - name: mailpit-data
+      persistentVolumeClaim:
+        claimName: mailpit-pvc

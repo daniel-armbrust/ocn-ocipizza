@@ -159,6 +159,9 @@ O `.env` criado pelo bootstrap utiliza:
 - Emissor JWT `user-service`
 - Audiência JWT `ocipizza`
 - JWKS em `http://localhost:8002/.well-known/jwks.json`
+- Timeout HTTP de `10.0` segundos
+- Região OCI `sa-saopaulo-1`
+- Nível de logging `INFO`
 
 Se o `.env` já existir, seu conteúdo é preservado. Nesse caso, confira se ele
 contém `OBJECTSTORAGE_ENDPOINT`, `OBJECTSTORAGE_BUCKET`,
@@ -597,7 +600,7 @@ expõem detalhes internos e retornam `INTERNAL_SERVER_ERROR`.
 | `NOSQL_ENDPOINT` | — | Endpoint utilizado quando `NOSQL_PROVIDER=local`. |
 | `NOSQL_COMPARTMENT_ID` | — | OCID do compartment relacionado ao NoSQL. |
 | `DATABASE_URL` | — | URL de conexão utilizada pelo SQLAlchemy. |
-| `DATABASE_PROVIDER` | `local` | Provider de banco relacional reservado para o SQLAlchemy. |
+| `HTTP_CLIENT_TIMEOUT` | `10.0` | Timeout, em segundos, das chamadas HTTP ao JWKS. |
 | `OCI_REGION` | `sa-saopaulo-1` | Região utilizada pelos providers OCI. |
 | `OCI_AUTH_MODE` | — (`None` no Python) | Autenticação OCI: vazia, `config_file` ou `instance_principal`. |
 | `OCI_CONFIG_FILE` | — | Caminho do arquivo de configuração OCI quando aplicável. |

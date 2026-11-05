@@ -79,8 +79,10 @@ O Terraform cria diretamente no Root Compartment um Dynamic Group para as
 Compute instances existentes no compartment do laboratório. Essa regra inclui
 os worker nodes atuais e os substitutos criados posteriormente pelo node pool.
 Uma policy concede ao grupo somente a permissão `read repos in tenancy`,
-necessária para baixar imagens privadas do OCIR sem permitir publicação ou
-exclusão.
+restrita pela condição `target.repo.name=/ocipizza\/*/`. Assim, o acesso alcança
+apenas os repositórios cujo nome começa com `ocipizza/`, sem permitir publicação ou
+exclusão. Para o pull de imagens privadas pelos Pods, ainda é necessário
+configurar um Secret `docker-registry` no namespace Kubernetes.
 
 Como a regra utiliza o OCID do compartment, outras Compute instances criadas
 nesse mesmo compartment também pertencerão ao Dynamic Group. A variável
@@ -188,6 +190,145 @@ kubectl cluster-info
 kubectl get nodes
 ```
 
+## Acesso às imagens privadas do OCIR
+
+O acesso às imagens privadas utiliza dois controles complementares: a policy
+IAM autoriza os worker nodes e o Secret `docker-registry` fornece ao runtime do
+Kubernetes as credenciais utilizadas no pull das imagens.
+
+O Terraform deste laboratório cria no Root Compartment o Dynamic Group dos
+worker nodes e a policy com a seguinte instrução:
+
+```text
+Allow dynamic-group id <OCID_DO_DYNAMIC_GROUP> to read repos in tenancy where all { target.repo.name=/ocipizza\/*/ }
+```
+
+A condição `target.repo.name=/ocipizza\/*/` permite a leitura somente das
+imagens existentes em repositórios cujos nomes estejam abaixo de `ocipizza/`,
+como `ocipizza/pizza-service` e `ocipizza/user-service`. Ela não permite ler
+repositórios como `outro/pizza-service` ou `ocipizza-teste/pizza-service` e o
+verbo `read` não concede permissão para publicar ou excluir imagens.
+
+Os Secrets do Kubernetes são limitados ao namespace. Portanto, o script
+`kubernetes/secrets/ocir-service-account-setup.sh` cria o mesmo Secret em cada
+namespace que executará Pods com imagens privadas, associa-o ao
+`ServiceAccount` padrão e solicita o Auth Token sem exibi-lo:
+
+```bash
+./kubernetes/secrets/ocir-service-account-setup.sh \
+  --registry gru.ocir.io \
+  --oci-namespace "$(oci os ns get --query data --raw-output)" \
+  --user '<USUARIO_OCI>'
+```
+
+O namespace da tenancy também é obtido automaticamente pelo comando
+`oci os ns get` quando `--oci-namespace` e `OCI_NAMESPACE` não são informados.
+As opções podem ser substituídas pelas variáveis de ambiente `REGISTRY`,
+`OCI_NAMESPACE` e `OCI_USERNAME`. Para execução não interativa, o Auth Token
+pode ser fornecido por `OCI_AUTH_TOKEN` somente no ambiente do processo.
+
+Exemplo utilizando as variáveis de ambiente:
+
+```bash
+export REGISTRY='gru.ocir.io'
+export OCI_NAMESPACE="$(oci os ns get --query data --raw-output)"
+export OCI_USERNAME='<USUARIO_OCI>'
+export OCI_AUTH_TOKEN='<AUTH_TOKEN_OCI>'
+
+./kubernetes/secrets/ocir-service-account-setup.sh
+```
+
+### Comandos equivalentes com kubectl
+
+Para executar manualmente a criação ou atualização do `ocir-secret`, utilize
+as mesmas variáveis de ambiente e aplique o Secret nos dois namespaces:
+
+```bash
+for kubernetes_namespace in ocipizza-infra ocipizza-services; do
+  kubectl create secret docker-registry ocir-secret \
+    --namespace "${kubernetes_namespace}" \
+    --docker-server "${REGISTRY}" \
+    --docker-username "${OCI_NAMESPACE}/${OCI_USERNAME}" \
+    --docker-password "${OCI_AUTH_TOKEN}" \
+    --dry-run=client \
+    --output yaml \
+    | kubectl apply -f -
+done
+```
+
+Para disponibilizar esse Secret automaticamente a todos os Pods que utilizam
+o `ServiceAccount default`, associe-o em cada namespace:
+
+```bash
+for kubernetes_namespace in ocipizza-infra ocipizza-services; do
+  kubectl patch serviceaccount default \
+    --namespace "${kubernetes_namespace}" \
+    --type strategic \
+    --patch '{"imagePullSecrets":[{"name":"ocir-secret"}]}'
+done
+```
+
+Sem a associação ao `ServiceAccount`, mantenha somente o primeiro comando e
+adicione `imagePullSecrets` diretamente ao manifesto do Pod ou ao seu template,
+conforme o exemplo YAML apresentado a seguir.
+
+Para conferir o Secret e a configuração do `ServiceAccount`:
+
+```bash
+kubectl get secret ocir-secret --namespace ocipizza-services
+kubectl get serviceaccount default \
+  --namespace ocipizza-services \
+  --output yaml
+```
+
+Para excluir manualmente o Secret dos dois namespaces:
+
+```bash
+for kubernetes_namespace in ocipizza-infra ocipizza-services; do
+  kubectl delete secret ocir-secret \
+    --namespace "${kubernetes_namespace}" \
+    --ignore-not-found
+done
+```
+
+Esse último comando não remove a referência existente no `ServiceAccount`.
+Para remover de forma segura tanto a referência quanto o Secret, preservando
+outros `imagePullSecrets`, utilize o script de remoção documentado a seguir.
+
+Ao associar o Secret ao `ServiceAccount` padrão, os Pods desses namespaces
+herdam `imagePullSecrets` sem que essa configuração precise ser repetida em
+cada manifesto. O Auth Token é um dado sensível e não deve ser armazenado no
+repositório.
+
+Como alternativa, o script `kubernetes/secrets/ocir-image-pull-secret-setup.sh`
+somente cria ou atualiza o `ocir-secret`, sem modificar o `ServiceAccount`:
+
+```bash
+./kubernetes/secrets/ocir-image-pull-secret-setup.sh
+```
+
+Nesse modo, cada Pod ou template de Pod que utiliza uma imagem privada deve
+referenciar explicitamente o Secret no mesmo namespace:
+
+```yaml
+spec:
+  imagePullSecrets:
+    - name: ocir-secret
+  containers:
+    # Configuração dos containers do Pod.
+```
+
+Para remover o `ocir-secret` criado por qualquer uma das abordagens, execute:
+
+```bash
+./kubernetes/secrets/ocir-image-pull-secret-remove.sh
+```
+
+O script remove a referência a `ocir-secret` do `ServiceAccount default`, sem
+afetar outros `imagePullSecrets`, e exclui o Secret dos namespaces
+`ocipizza-infra` e `ocipizza-services`. O `ServiceAccount default` não é
+excluído porque ele é gerenciado automaticamente pelo Kubernetes.
+
 ## Deploy dos Pods
 
 O script `scripts/pods-deploy.sh` cria primeiro os namespaces definidos em
@@ -259,10 +400,10 @@ exclui qualquer recurso Kubernetes remanescente dentro deles.
 
 ### Bootstrap do pizza-service no OKE
 
-O script `bootstrap/bootstrap-pizza-service.sh` reutiliza o bootstrap do
-`pizza-service` para criar a tabela, cadastrar as pizzas de demonstração, criar
-o bucket e enviar as imagens aos Pods de infraestrutura do cluster. Para isso,
-ele abre temporariamente os seguintes forwards:
+O script `kubernetes/ocipizza/pizza-service/bootstrap.sh` reutiliza o bootstrap
+do `pizza-service` para criar a tabela, cadastrar as pizzas de demonstração,
+criar o bucket e enviar as imagens aos Pods de infraestrutura do cluster. Para
+isso, ele abre temporariamente os seguintes forwards:
 
 - `localhost:18080` para `pod/nosql:8080`;
 - `localhost:9000` para `pod/objectstorage:9000`.
@@ -270,12 +411,40 @@ ele abre temporariamente os seguintes forwards:
 Execute o script depois que os Pods de infraestrutura estiverem disponíveis:
 
 ```bash
-./bootstrap/bootstrap-pizza-service.sh
+./kubernetes/ocipizza/pizza-service/bootstrap.sh
 ```
 
 O script aguarda os Pods `nosql` e `objectstorage`, executa
 `services/pizza-service/bootstrap.sh` com os endpoints locais e encerra os
 processos de `kubectl port-forward` ao terminar ou receber uma interrupção.
+
+### Bootstrap do user-service no OKE
+
+O script `kubernetes/ocipizza/user-service/bootstrap.sh` reutiliza o bootstrap
+original do `user-service` para aplicar as migrations e cadastrar os usuários
+de demonstração no MySQL do cluster. Durante a execução, ele encaminha
+temporariamente `localhost:13306` para a porta 3306 do Pod identificado pelo
+label `app=mysql`. Dessa forma, o bootstrap funciona com um Pod criado
+diretamente, por ReplicationController ou por ReplicaSet.
+
+Depois do bootstrap, o script cria ou atualiza o Secret `user-service-jwt` no
+namespace `ocipizza-services`, contendo as seguintes chaves:
+
+- `jwt_private_key.pem`;
+- `jwt_public_key.pem`.
+
+Execute o script depois que o Pod do MySQL estiver disponível:
+
+```bash
+./kubernetes/ocipizza/user-service/bootstrap.sh
+```
+
+As chaves são obtidas de `services/user-service/secrets/`. Caso ainda não
+existam, o bootstrap original gera um novo par RSA antes da criação do Secret.
+O bootstrap original define `OCI_REGION` como `sa-saopaulo-1` por padrão; o
+valor pode ser sobrescrito por uma variável de ambiente de mesmo nome.
+O processo de `kubectl port-forward` é encerrado automaticamente ao término ou
+quando o script recebe uma interrupção.
 As portas locais podem ser alteradas por `NOSQL_LOCAL_PORT` e
 `OBJECTSTORAGE_LOCAL_PORT`.
 
@@ -409,6 +578,18 @@ Para reconstruir todas as camadas sem utilizar o cache do Docker:
   --user '<USUARIO>' \
   --tag 1.0.0 \
   --no-cache
+```
+
+Para processar somente um serviço, informe o nome do diretório do serviço ao
+final do comando. Sem esse argumento, todos os serviços com `Dockerfile` são
+processados:
+
+```bash
+./scripts/images-build-push.sh \
+  --user '<USUARIO>' \
+  --tag 1.0.0 \
+  --no-cache \
+  pizza-service
 ```
 
 O namespace é obtido automaticamente com `oci os ns get`. O prefixo padrão

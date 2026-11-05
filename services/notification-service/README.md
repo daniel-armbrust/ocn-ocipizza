@@ -211,30 +211,30 @@ permitindo executar o bootstrap com configurações de homologação no OCI.
 | --- | --- | --- |
 | `APP_NAME` | `notification-service` | Nome da aplicação. |
 | `APP_ENV` | `development` | Ambiente de execução. |
-| `DEBUG` | `false` | Ativa o modo de depuração. |
-| `SITE_URL` | `https://www.ocipizza.com.br` | URL pública usada nos links dos e-mails. |
-| `MESSAGING_PROVIDER` | Obrigatório | `rabbitmq` ou `oci_queue`. |
+| `DEBUG` | `true` | Ativa o modo de depuração no ambiente local. |
+| `SITE_URL` | `http://localhost:8010` | URL pública usada nos links dos e-mails. |
+| `MESSAGING_PROVIDER` | `rabbitmq` | `rabbitmq` ou `oci_queue`. |
 | `QUEUE_NAME` | `notifications-queue` | Nome lógico da fila. |
 | `QUEUE_COMPARTMENT_ID` | — | Compartment usado para criar ou localizar a fila OCI. |
 | `NOTIFICATION_POLL_INTERVAL` | `5.0` | Espera quando nenhuma mensagem está disponível. |
 | `NOTIFICATION_RETRY_INTERVAL` | `10.0` | Espera depois de uma falha no ciclo de consumo. |
-| `RABBITMQ_HOST` | — | Host obrigatório para RabbitMQ. |
-| `RABBITMQ_PORT` | — | Porta obrigatória para RabbitMQ. |
-| `RABBITMQ_USERNAME` | — | Usuário obrigatório para RabbitMQ. |
-| `RABBITMQ_PASSWORD` | — | Senha obrigatória para RabbitMQ. |
-| `OCI_QUEUE_ID` | — | OCID obrigatório para OCI Queue. |
+| `RABBITMQ_HOST` | `localhost` | Host obrigatório para RabbitMQ. |
+| `RABBITMQ_PORT` | `5672` | Porta obrigatória para RabbitMQ. |
+| `RABBITMQ_USERNAME` | `oci_pizza` | Usuário obrigatório para RabbitMQ. |
+| `RABBITMQ_PASSWORD` | `oci_pizza` | Senha local do RabbitMQ. |
+| `OCI_QUEUE_ID` | — | OCID da fila OCI; pode ser localizado ou criado pelos scripts. |
 | `OCI_REGION` | `sa-saopaulo-1` | Região dos serviços OCI. |
 | `OCI_AUTH_MODE` | — (`None` no Python) | Autenticação OCI: vazia, `config_file` ou `instance_principal`. |
-| `OCI_CONFIG_FILE` | — | Arquivo de configuração OCI quando aplicável. |
+| `OCI_CONFIG_FILE` | `${HOME}/.oci/config` | Arquivo de configuração OCI quando aplicável. |
 | `OCI_CONFIG_PROFILE` | `DEFAULT` | Profile usado no arquivo OCI. |
 | `EMAIL_PROVIDER` | `smtp` | `smtp` ou `oci`. |
 | `EMAIL_TEMPLATES_PATH` | `app/templates/emails` | Diretório dos templates HTML. |
-| `SMTP_HOST` | — | Host utilizado pelo provider SMTP. |
-| `SMTP_PORT` | — | Porta utilizada pelo provider SMTP. |
+| `SMTP_HOST` | `localhost` | Host utilizado pelo provider SMTP. |
+| `SMTP_PORT` | `1025` | Porta utilizada pelo provider SMTP. |
 | `SMTP_USERNAME` | — | Usuário SMTP opcional. |
 | `SMTP_PASSWORD` | — | Senha SMTP opcional. |
-| `SMTP_USE_TLS` | `true` | Habilita STARTTLS no provider SMTP. |
-| `SMTP_EMAIL_SENDER` | `no-reply@ocipizza.com.br` | Endereço remetente. |
+| `SMTP_USE_TLS` | `false` | Habilita STARTTLS no provider SMTP. |
+| `SMTP_EMAIL_SENDER` | `no-reply@ocipizza.local` | Endereço remetente. |
 | `OCI_EMAIL_DELIVERY_COMPARTMENT_ID` | — | Compartment do OCI Email Delivery. |
 | `OCI_EMAIL_SENDER_NAME` | `OCI Pizza` | Nome apresentado como remetente. |
 | `LOG_LEVEL` | `INFO` | Nível global de logging. |

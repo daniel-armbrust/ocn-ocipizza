@@ -5,6 +5,7 @@ set -e
 # Variáveis utilizadas pelo frontend-service em desenvolvimento.
 export APP_ENV="development"
 export LOG_LEVEL="INFO"
+export OCI_REGION="${OCI_REGION:-sa-saopaulo-1}"
 export HTTP_CLIENT_TIMEOUT="10"
 
 # Chaves utilizadas pelas sessões internas e pela proteção CSRF
