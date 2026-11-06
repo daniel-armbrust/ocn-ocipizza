@@ -5,7 +5,7 @@
 #
 # Inicializa um worker node gerenciado pelo OKE preservando o script padrão
 # de inicialização do serviço Kubernetes Engine e reservando recursos para
-# os daemons do Kubernetes e do sistema operacional.
+# os daemons do Kubernetes.
 #
 # Este arquivo deve ser fornecido como user_data no node pool. O script padrão
 # do OKE é obrigatório para que o worker node consiga ingressar no cluster.
@@ -22,10 +22,9 @@ set -euo pipefail
 KUBE_RESERVED_CPU="${KUBE_RESERVED_CPU:-}"
 KUBE_RESERVED_MEMORY="${KUBE_RESERVED_MEMORY:-}"
 
-# Recursos reservados para os daemons do sistema operacional. Quando vazios,
-# os valores recomendados são aplicados pela função calculate_reserved_resources.
-SYSTEM_RESERVED_CPU="${SYSTEM_RESERVED_CPU:-}"
-SYSTEM_RESERVED_MEMORY="${SYSTEM_RESERVED_MEMORY:-}"
+# Reservas recomendadas pela Oracle para os daemons do sistema operacional.
+SYSTEM_RESERVED_CPU="${SYSTEM_RESERVED_CPU:-100m}"
+SYSTEM_RESERVED_MEMORY="${SYSTEM_RESERVED_MEMORY:-100Mi}"
 
 # Funções
 
@@ -79,10 +78,27 @@ calculate_reserved_resources() {
       KUBE_RESERVED_MEMORY="$((9 * 1024 + extra_memory_mib))Mi"
     fi
   fi
+}
 
-  # A Oracle recomenda 100m e 100Mi para os daemons do sistema operacional.
-  SYSTEM_RESERVED_CPU="${SYSTEM_RESERVED_CPU:-100m}"
-  SYSTEM_RESERVED_MEMORY="${SYSTEM_RESERVED_MEMORY:-100Mi}"
+# Desabilita o plugin Cloud Guard Workload Protection.
+disable_cloud_guard_workload_protection() {
+  local agent_config_file="/etc/oracle-cloud-agent/agent.yml"
+  local agent_service="oracle-cloud-agent.service"
+
+  if [[ ! -f "$agent_config_file" ]]; then
+    echo "Arquivo ${agent_config_file} não encontrado; plugin oci-wlp não alterado."
+    return 0
+  fi
+
+  sed -i \
+    '/^  oci-wlp:/,/^  oci-blockautoconfig:/{/^  oci-blockautoconfig:/! s/^\(    disabled:\)[[:space:]]*false/\1 true/;}' \
+    "$agent_config_file"
+
+  if systemctl restart "$agent_service"; then
+    echo "Plugin oci-wlp desabilitado e Oracle Cloud Agent reiniciado."
+  else
+    echo "Aviso: não foi possível reiniciar o ${agent_service}." >&2
+  fi
 }
 
 # Fluxo principal
@@ -96,12 +112,15 @@ curl --fail \
   http://169.254.169.254/opc/v2/instance/metadata/oke_init_script \
   | base64 --decode > /var/run/oke-init.sh
 
-# Reserva recursos para os daemons do Kubernetes e do sistema operacional.
-# Os valores padrão seguem a recomendação da Oracle para workers com 3 OCPUs e
-# entre 4 GiB e 8 GiB de memória. Eles podem ser sobrescritos pelas variáveis
-# globais acima antes da execução do script.
+# Reserva recursos para os daemons do Kubernetes e do sistema operacional
+# conforme a recomendação da Oracle. Os valores podem ser sobrescritos pelas
+# variáveis globais acima.
 bash /var/run/oke-init.sh \
   --kubelet-extra-args \
-  "--kube-reserved=cpu=${KUBE_RESERVED_CPU},memory=${KUBE_RESERVED_MEMORY} --system-reserved=cpu=${SYSTEM_RESERVED_CPU},memory=${SYSTEM_RESERVED_MEMORY}"
+  "--kube-reserved=cpu=${KUBE_RESERVED_CPU},memory=${KUBE_RESERVED_MEMORY} \
+--system-reserved=cpu=${SYSTEM_RESERVED_CPU},memory=${SYSTEM_RESERVED_MEMORY}"
+
+# Aplica a configuração do plugin depois que o bootstrap padrão do OKE termina.
+disable_cloud_guard_workload_protection
 
 exit 0
