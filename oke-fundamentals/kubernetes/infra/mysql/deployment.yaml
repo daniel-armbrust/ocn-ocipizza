@@ -33,6 +33,9 @@ spec:
         rel: stable
         env: development
     spec:
+      # Mantém o Pod em execução, conforme exigido pelo Deployment.
+      restartPolicy: Always
+
       containers:
         - name: mysql
 
@@ -68,6 +71,16 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
+
+          # Define os recursos mínimos solicitados e os limites máximos
+          # de CPU e memória do container.
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
 
           # Monta o volume no diretório de dados do MySQL.
           volumeMounts:

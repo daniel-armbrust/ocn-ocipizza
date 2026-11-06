@@ -78,10 +78,8 @@ acidentalmente.
 O Terraform cria diretamente no Root Compartment um Dynamic Group para as
 Compute instances existentes no compartment do laboratório. Essa regra inclui
 os worker nodes atuais e os substitutos criados posteriormente pelo node pool.
-Uma policy concede ao grupo somente a permissão `read repos in tenancy`,
-restrita pela condição `target.repo.name=/ocipizza\/*/`. Assim, o acesso alcança
-apenas os repositórios cujo nome começa com `ocipizza/`, sem permitir publicação ou
-exclusão. Para o pull de imagens privadas pelos Pods, ainda é necessário
+Uma policy concede ao grupo a leitura de imagens nos repositórios
+`ocipizza/*`. Para o pull de imagens privadas pelos Pods, ainda é necessário
 configurar um Secret `docker-registry` no namespace Kubernetes.
 
 Como a regra utiliza o OCID do compartment, outras Compute instances criadas
@@ -328,6 +326,67 @@ O script remove a referência a `ocir-secret` do `ServiceAccount default`, sem
 afetar outros `imagePullSecrets`, e exclui o Secret dos namespaces
 `ocipizza-infra` e `ocipizza-services`. O `ServiceAccount default` não é
 excluído porque ele é gerenciado automaticamente pelo Kubernetes.
+
+## Makefile do laboratório
+
+O arquivo `oke-fundamentals/Makefile` reúne os comandos mais comuns para
+preparar, implantar, consultar e remover o laboratório. Execute os comandos a
+partir do diretório `oke-fundamentals`:
+
+```bash
+cd oke-fundamentals
+make help
+```
+
+Para executar `make image-pull-secret` ou o fluxo completo, defina as
+variáveis utilizadas pelo OCIR. `OCI_AUTH_TOKEN` pode ser omitida quando o
+script puder solicitá-la de forma interativa:
+
+```bash
+export REGISTRY='gru.ocir.io'
+export OCI_NAMESPACE="$(oci os ns get --query data --raw-output)"
+export OCI_USERNAME='<USUARIO_OCI>'
+export OCI_AUTH_TOKEN='<AUTH_TOKEN_OCI>'
+
+make ocipizza
+```
+
+O Auth Token não deve ser armazenado no repositório nem incluído em arquivos
+versionados.
+
+Os principais alvos são:
+
+- `make namespace`: cria os namespaces `ocipizza-infra` e
+  `ocipizza-services`;
+- `make image-pull-secret`: cria ou atualiza o Secret `ocir-secret`;
+- `make pvc`: cria os PVCs definidos para os serviços de infraestrutura;
+- `make infra`: executa `pvc` e, em seguida, chama o `deploy.sh` de cada
+  serviço de infraestrutura, na ordem MySQL, NoSQL, RabbitMQ, Redis,
+  ObjectStorage e Mailpit;
+- `make bootstrap`: executa os scripts de bootstrap dos microsserviços;
+- `make services`: aplica os Deployments e Services dos microsserviços;
+- `make status`: exibe Deployments, Pods, Services, PVCs e Secrets do projeto;
+- `make ocipizza`: executa o fluxo completo na ordem namespace,
+  image-pull-secret, PVCs, infraestrutura, bootstrap e microsserviços;
+- `make delete-ocipizza`: remove microsserviços, infraestrutura, PVCs, Secret
+  do OCIR e namespaces.
+
+O alvo `make infra` utiliza os scripts abaixo, mantendo a lógica de cada
+serviço junto aos seus manifestos:
+
+```text
+kubernetes/infra/mysql/deploy.sh
+kubernetes/infra/nosql/deploy.sh
+kubernetes/infra/rabbitmq/deploy.sh
+kubernetes/infra/redis/deploy.sh
+kubernetes/infra/objectstorage/deploy.sh
+kubernetes/infra/mailpit/deploy.sh
+```
+
+O alvo `make delete-infra` executa os respectivos `undeploy.sh` na mesma ordem
+e remove os PVCs depois que os Deployments e Services forem excluídos. Os
+scripts verificam os manifestos, exigem `kubectl` no `PATH` e usam
+`--ignore-not-found` durante a remoção.
 
 ## Deploy dos Pods
 

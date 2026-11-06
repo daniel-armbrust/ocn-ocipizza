@@ -31,6 +31,9 @@ spec:
         rel: beta
         env: development
     spec:
+      # Mantém o Pod em execução, conforme exigido pelo Deployment.
+      restartPolicy: Always
+
       # Credenciais para baixar imagens privadas do OCIR.
       imagePullSecrets:
         - name: ocir-secret
@@ -56,6 +59,16 @@ spec:
             timeoutSeconds: 2
             failureThreshold: 3
             successThreshold: 1
+
+          # Define os recursos mínimos solicitados e os limites máximos
+          # de CPU e memória do container.
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
 
           # Monta cada chave separadamente para não tornar /run/secrets somente
           # leitura e bloquear o volume automático do ServiceAccount.

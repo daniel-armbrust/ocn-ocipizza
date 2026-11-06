@@ -14,6 +14,9 @@ metadata:
     env: development
   namespace: ocipizza-infra
 spec:
+  # Mantém o Pod em execução continuamente.
+  restartPolicy: Always
+
   # Garante que o usuário não-root da imagem possa gravar no PVC montado em
   # /kvroot e criar o arquivo de configuração do KVLite.
   securityContext:
@@ -48,6 +51,16 @@ spec:
         periodSeconds: 5
         timeoutSeconds: 3
         failureThreshold: 6
+
+      # Define os recursos mínimos solicitados e os limites máximos
+      # de CPU e memória do container.
+      resources:
+        requests:
+          cpu: "250m"
+          memory: "512Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
 
       # Monta o volume no diretório de dados utilizado pelo Oracle NoSQL.
       volumeMounts:

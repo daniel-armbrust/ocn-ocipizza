@@ -18,6 +18,9 @@ metadata:
     env: development
   namespace: ocipizza-services
 spec:
+  # Mantém o Pod em execução continuamente.
+  restartPolicy: Always
+
   # Credenciais para baixar imagens privadas do OCIR.
   imagePullSecrets:
     - name: ocir-secret
@@ -43,7 +46,17 @@ spec:
         timeoutSeconds: 2
         failureThreshold: 3
         successThreshold: 1
-      
+
+      # Define os recursos mínimos solicitados e os limites máximos
+      # de CPU e memória do container.
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+
       env:
         - name: APP_ENV
           value: "development"

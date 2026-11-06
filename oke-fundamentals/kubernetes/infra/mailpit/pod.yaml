@@ -14,10 +14,11 @@ metadata:
     env: development
   namespace: ocipizza-infra
 spec:
+  # Mantém o Pod em execução continuamente.
+  restartPolicy: Always
+
   containers:
     - name: mailpit
-
-      # Imagem oficial do Mailpit.
       image: docker.io/axllent/mailpit:latest
 
       ports:
@@ -31,7 +32,8 @@ spec:
           containerPort: 8025
           protocol: TCP
 
-      # Verifica se a interface web do Mailpit continua aceitando conexões TCP.
+      # Verifica se a interface web do Mailpit continua aceitando 
+      # conexões TCP.
       livenessProbe:
         tcpSocket:
           port: http
@@ -40,7 +42,8 @@ spec:
         timeoutSeconds: 5
         failureThreshold: 6
 
-      # Libera o Pod para receber tráfego quando o Mailpit estiver pronto.
+      # Libera o Pod para receber tráfego quando o Mailpit estiver 
+      # pronto.
       readinessProbe:
         tcpSocket:
           port: http
@@ -48,6 +51,16 @@ spec:
         periodSeconds: 5
         timeoutSeconds: 3
         failureThreshold: 6
+
+      # Define os recursos mínimos solicitados e os limites máximos 
+      # de CPU e memória do container.
+      resources:
+        requests:
+          cpu: "25m"
+          memory: "64Mi"
+        limits:
+          cpu: "100m"
+          memory: "256Mi"
 
       # Monta o volume no diretório de dados do Mailpit.
       volumeMounts:

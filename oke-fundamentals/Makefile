@@ -173,39 +173,25 @@ delete-pvc: ## Exclui os PersistentVolumeClaims dos serviços de infraestrutura.
 infra: pvc ## Cria os PVCs e aplica os Deployments e Services da infraestrutura.
 	@set -e; \
 	for service in $(INFRA_SERVICES); do \
-		deployment="$(INFRA_DIR)/$$service/deployment.yaml"; \
-		service_manifest="$(INFRA_DIR)/$$service/service.yaml"; \
-		if [ ! -s "$$deployment" ]; then \
-			echo "Erro: Deployment não encontrado para $$service: $$deployment" >&2; \
+		script="$(INFRA_DIR)/$$service/deploy.sh"; \
+		if [ ! -x "$$script" ]; then \
+			echo "Erro: script deploy.sh não encontrado ou sem permissão de execução para $$service: $$script" >&2; \
 			exit 1; \
 		fi; \
-		if [ ! -s "$$service_manifest" ]; then \
-			echo "Erro: Service não encontrado para $$service: $$service_manifest" >&2; \
-			exit 1; \
-		fi; \
-		echo "Aplicando o Deployment de $$service..."; \
-		kubectl apply --filename "$$deployment"; \
-		echo "Aplicando o Service de $$service..."; \
-		kubectl apply --filename "$$service_manifest"; \
+		echo "Executando o deploy de $$service..."; \
+		"$$script"; \
 	done
 
 delete-infra-resources:
 	@set -e; \
 	for service in $(INFRA_SERVICES); do \
-		deployment="$(INFRA_DIR)/$$service/deployment.yaml"; \
-		service_manifest="$(INFRA_DIR)/$$service/service.yaml"; \
-		if [ ! -s "$$deployment" ]; then \
-			echo "Erro: Deployment não encontrado para $$service: $$deployment" >&2; \
+		script="$(INFRA_DIR)/$$service/undeploy.sh"; \
+		if [ ! -x "$$script" ]; then \
+			echo "Erro: script undeploy.sh não encontrado ou sem permissão de execução para $$service: $$script" >&2; \
 			exit 1; \
 		fi; \
-		if [ ! -s "$$service_manifest" ]; then \
-			echo "Erro: Service não encontrado para $$service: $$service_manifest" >&2; \
-			exit 1; \
-		fi; \
-		echo "Excluindo o Service de $$service..."; \
-		kubectl delete --filename "$$service_manifest" --ignore-not-found; \
-		echo "Excluindo o Deployment de $$service..."; \
-		kubectl delete --filename "$$deployment" --ignore-not-found; \
+		echo "Executando o undeploy de $$service..."; \
+		"$$script"; \
 	done
 
 delete-infra: delete-infra-resources delete-pvc ## Exclui a infraestrutura e seus PVCs.

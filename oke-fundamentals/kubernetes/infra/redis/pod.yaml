@@ -15,12 +15,12 @@ metadata:
     env: development
   namespace: ocipizza-infra
 spec:
+  # Mantém o Pod em execução continuamente.
+  restartPolicy: Always
+
   containers:
     - name: redis
-
-      # Imagem utilizada no Docker Compose.
-      # https://container-registry.oracle.com/ords/ocr/ba/verrazzano/redis 
-      image: container-registry.oracle.com/verrazzano/redis:v7.0.15-20240725123150-c98c652f
+      image: docker.io/library/redis:7.0
 
       # Inicializa o Redis sem persistência em disco.
       command:
@@ -55,3 +55,13 @@ spec:
         periodSeconds: 5
         timeoutSeconds: 3
         failureThreshold: 6
+
+      # Define os recursos mínimos solicitados e os limites máximos
+      # de CPU e memória do container.
+      resources:
+        requests:
+          cpu: "50m"
+          memory: "64Mi"
+        limits:
+          cpu: "250m"
+          memory: "256Mi"

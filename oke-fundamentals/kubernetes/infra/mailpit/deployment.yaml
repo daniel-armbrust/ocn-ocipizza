@@ -33,10 +33,11 @@ spec:
         rel: stable
         env: development
     spec:
+      # Mantém o Pod em execução, conforme exigido pelo Deployment.
+      restartPolicy: Always
+
       containers:
         - name: mailpit
-
-          # Imagem oficial do Mailpit.
           image: docker.io/axllent/mailpit:latest
 
           ports:
@@ -67,6 +68,16 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 6
+
+          # Define os recursos mínimos solicitados e os limites máximos 
+          # de CPU e memória do container.
+          resources:
+            requests:
+              cpu: "25m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "256Mi"
 
           # Monta o volume no diretório de dados do Mailpit.
           volumeMounts:

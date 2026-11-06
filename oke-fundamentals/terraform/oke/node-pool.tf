@@ -39,6 +39,12 @@ resource "oci_containerengine_node_pool" "this" {
   # O conteúdo de keys/worker-nodes.pub é instalado nos três worker nodes.
   ssh_public_key = local.worker_ssh_public_key
 
+  # Executa o cloud-init personalizado em cada worker node. O OKE espera o
+  # conteúdo de user_data codificado em Base64 no metadata da instância.
+  node_metadata = {
+    user_data = filebase64("${path.module}/scripts/oke-cloudinit.sh")
+  }
+
   dynamic "node_source_details" {
     for_each = local.selected_worker_image_id == null ? [] : [local.selected_worker_image_id]
 

@@ -33,10 +33,11 @@ spec:
         rel: stable
         env: development
     spec:
+      # Mantém o Pod em execução, conforme exigido pelo Deployment.
+      restartPolicy: Always
+
       containers:
         - name: objectstorage
-
-          # Imagem do MinIO utilizada no Docker Compose.
           image: ghcr.io/coollabsio/minio@sha256:69b55a1c1c5dc285ce04db96689f5b2102317fc77a50680a1874ca6efd1c87f9
 
           # Inicializa o servidor MinIO e a interface administrativa.
@@ -76,6 +77,16 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 6
+
+          # Define os recursos mínimos solicitados e os limites máximos
+          # de CPU e memória do container.
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
 
           # Monta o volume no diretório de dados utilizado pelo MinIO.
           volumeMounts:

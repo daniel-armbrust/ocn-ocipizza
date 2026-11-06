@@ -15,10 +15,11 @@ metadata:
     env: development
   namespace: ocipizza-infra
 spec:
+  # Mantém o Pod em execução continuamente.
+  restartPolicy: Always
+
   containers:
     - name: rabbitmq
-
-      # Imagem utilizada no Docker Compose.
       image: docker.io/library/rabbitmq:4.1.4-management
 
       ports:
@@ -60,6 +61,16 @@ spec:
         periodSeconds: 5
         timeoutSeconds: 5
         failureThreshold: 6
+
+      # Define os recursos mínimos solicitados e os limites máximos
+      # de CPU e memória do container.
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "512Mi"
+        limits:
+          cpu: "500m"
+          memory: "768Mi"
 
       # Monta o volume no diretório de dados utilizado pelo RabbitMQ.
       volumeMounts:
