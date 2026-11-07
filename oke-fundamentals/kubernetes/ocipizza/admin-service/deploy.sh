@@ -10,8 +10,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOYMENT_MANIFEST="${SCRIPT_DIR}/deployment.yaml"
-SERVICE_MANIFEST="${SCRIPT_DIR}/service.yaml"
-BOOTSTRAP_SCRIPT="${SCRIPT_DIR}/bootstrap.sh"
 
 # Funções
 
@@ -38,21 +36,10 @@ require_environment_variables() {
   fi
 }
 
-# Executa o bootstrap do admin-service quando o script estiver disponível.
-run_bootstrap() {
-  if [[ ! -f "$BOOTSTRAP_SCRIPT" ]]; then
-    echo "Bootstrap não encontrado; ignorando: ${BOOTSTRAP_SCRIPT}"
-    return 0
-  fi
-
-  echo "Executando o bootstrap do admin-service..."
-  bash "$BOOTSTRAP_SCRIPT"
-}
-
-# Renderiza e aplica o Deployment e aplica o Service do admin-service.
+# Renderiza e aplica somente o Deployment do admin-service. O service.yaml
+# permanece no diretório apenas como material de demonstração.
 apply_resources() {
   require_manifest "$DEPLOYMENT_MANIFEST"
-  require_manifest "$SERVICE_MANIFEST"
   require_environment_variables
 
   command -v envsubst >/dev/null 2>&1 || {
@@ -63,9 +50,6 @@ apply_resources() {
   echo "Aplicando o Deployment do admin-service..."
   envsubst '${REGISTRY} ${OCI_NAMESPACE}' < "$DEPLOYMENT_MANIFEST" \
     | kubectl apply --filename -
-
-  echo "Aplicando o Service do admin-service..."
-  kubectl apply --filename "$SERVICE_MANIFEST"
 }
 
 # Fluxo principal
@@ -75,5 +59,6 @@ command -v kubectl >/dev/null 2>&1 || {
   exit 1
 }
 
-run_bootstrap
 apply_resources
+
+exit 0

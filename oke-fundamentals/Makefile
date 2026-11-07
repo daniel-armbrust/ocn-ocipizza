@@ -38,6 +38,8 @@ NAMESPACE_DIR := $(MAKEFILE_DIR)kubernetes/namespaces
 INFRA_DIR := $(MAKEFILE_DIR)kubernetes/infra
 OCIPIZZA_DIR := $(MAKEFILE_DIR)kubernetes/ocipizza
 SECRETS_DIR := $(MAKEFILE_DIR)kubernetes/secrets
+INGRESS_NGINX_DIR := $(MAKEFILE_DIR)kubernetes/ingress-nginx
+F5_INGRESS_NGINX_DIR := $(MAKEFILE_DIR)kubernetes/f5-ingress-nginx
 IMAGE_PULL_SECRET_SCRIPT := $(SECRETS_DIR)/ocir-image-pull-secret-setup.sh
 DELETE_IMAGE_PULL_SECRET_SCRIPT := $(SECRETS_DIR)/ocir-image-pull-secret-remove.sh
 
@@ -56,6 +58,10 @@ MAKE_TARGETS := \
 	delete-services \
 	ocipizza \
 	delete-ocipizza \
+	ingress-nginx \
+	delete-ingress-nginx \
+	f5-ingress-nginx \
+	delete-f5-ingress-nginx \
 	status
 
 .DEFAULT_GOAL := help
@@ -76,6 +82,10 @@ MAKE_TARGETS := \
 	delete-services \
 	ocipizza \
 	delete-ocipizza \
+	ingress-nginx \
+	delete-ingress-nginx \
+	f5-ingress-nginx \
+	delete-f5-ingress-nginx \
 	status \
 	delete-infra-resources
 
@@ -92,7 +102,7 @@ oci-pizza-banner:
 	@printf '%s\n' '╚██████╔╝╚██████╗██║    ██║     ██║███████╗███████╗██║  ██║'
 	@printf '%s\n' ' ╚═════╝  ╚═════╝╚═╝    ╚═╝     ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝'
 	@printf '%s\n' ''
-	@printf '%s\n' '   OCI Pizza - by Daniel Armbrust (darmbrust@gmail.com)    '
+	@printf '%s\n' ' OCI Pizza 1.0.0 - by Daniel Armbrust (darmbrust@gmail.com)'
 	@printf '%s\n' '                                                           '
 	@printf '%s\n' ''
 
@@ -100,7 +110,26 @@ oci-pizza-banner:
 $(MAKE_TARGETS): oci-pizza-banner
 
 help: ## Exibe os alvos disponíveis.
-	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@printf '%s\n' '' 'Gerenciamento dos namespaces:'
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "namespace" || $$1 == "delete-namespace") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@printf '%s\n' '' 'Gerenciamento do imagePullSecret do OCIR:'
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "image-pull-secret" || $$1 == "delete-image-pull-secret") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@printf '%s\n' '' 'Gerenciamento dos PVCs:'
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "pvc" || $$1 == "delete-pvc") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@printf '%s\n' '' 'Gerenciamento dos serviços de infraestrutura:'
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "infra" || $$1 == "delete-infra") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@printf '%s\n' '' 'Gerenciamento dos bootstraps:'
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && $$1 == "bootstrap" {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@printf '%s\n' '' 'Gerenciamento dos serviços da aplicação OCI Pizza:'
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "services" || $$1 == "delete-services") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@printf '%s\n' '' 'Ingress controllers:'
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "ingress-nginx" || $$1 == "delete-ingress-nginx") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@printf '%s\n' ''
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "f5-ingress-nginx" || $$1 == "delete-f5-ingress-nginx") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@printf '%s\n' '' 'Implantação completa do OCI Pizza:'
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "ocipizza" || $$1 == "delete-ocipizza") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@printf '%s\n' '' 'Outros comandos:'
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "help" || $$1 == "status") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@printf '%s\n' ''
 	@printf '%s\n' 'Variáveis de ambiente utilizadas:'
 	@printf '%s\n' '  REGISTRY        Registry do OCIR (padrão: gru.ocir.io).'
@@ -170,7 +199,7 @@ delete-pvc: ## Exclui os PersistentVolumeClaims dos serviços de infraestrutura.
 		fi; \
 	done
 
-infra: pvc ## Cria os PVCs e aplica os Deployments e Services da infraestrutura.
+infra: ## Aplica os Deployments e Services da infraestrutura.
 	@set -e; \
 	for service in $(INFRA_SERVICES); do \
 		script="$(INFRA_DIR)/$$service/deploy.sh"; \
@@ -194,7 +223,7 @@ delete-infra-resources:
 		"$$script"; \
 	done
 
-delete-infra: delete-infra-resources delete-pvc ## Exclui a infraestrutura e seus PVCs.
+delete-infra: delete-infra-resources ## Exclui os Deployments e Services da infraestrutura.
 
 services: ## Aplica os Deployments e Services dos microsserviços OCI Pizza.
 	@command -v envsubst >/dev/null 2>&1 || { \
@@ -248,7 +277,19 @@ delete-services: ## Exclui os Services e Deployments dos microsserviços OCI Piz
 
 ocipizza: namespace image-pull-secret pvc infra bootstrap services ## Implanta todo o laboratório OCI Pizza.
 
-delete-ocipizza: delete-services delete-infra delete-image-pull-secret delete-namespace ## Exclui todo o laboratório OCI Pizza.
+delete-ocipizza: delete-services delete-infra delete-pvc delete-image-pull-secret delete-namespace ## Exclui todo o laboratório OCI Pizza.
+
+ingress-nginx: ## Instala o ingress-nginx comunitário via manifesto YAML.
+	@"$(INGRESS_NGINX_DIR)/deploy.sh"
+
+delete-ingress-nginx: ## Exclui o ingress-nginx comunitário.
+	@"$(INGRESS_NGINX_DIR)/undeploy.sh"
+
+f5-ingress-nginx: ## Instala o F5 NGINX Ingress Controller via manifestos YAML.
+	@"$(F5_INGRESS_NGINX_DIR)/deploy.sh"
+
+delete-f5-ingress-nginx: ## Exclui o F5 NGINX Ingress Controller.
+	@"$(F5_INGRESS_NGINX_DIR)/undeploy.sh"
 
 bootstrap: ## Executa os bootstraps dos serviços OCI Pizza.
 	@set -e; \

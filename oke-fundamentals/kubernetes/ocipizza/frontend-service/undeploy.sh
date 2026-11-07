@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 
 # Exclui os recursos Kubernetes do frontend-service.
-# O script remove o Service e o Deployment, preservando os recursos de
-# infraestrutura utilizados pelo serviço.
+# O service.yaml é mantido somente para demonstração e não faz parte deste
+# fluxo operacional.
 
 set -euo pipefail
 
 # Variáveis globais
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-SERVICE_MANIFEST="${SCRIPT_DIR}/service.yaml"
 DEPLOYMENT_MANIFEST="${SCRIPT_DIR}/deployment.yaml"
 
 # Funções
@@ -24,16 +23,10 @@ require_manifest() {
   fi
 }
 
-# Exclui o Service e o Deployment do frontend-service sem falhar caso já
-# tenham sido removidos anteriormente.
+# Exclui o Deployment do frontend-service sem falhar caso já tenha sido
+# removido anteriormente.
 delete_resources() {
-  require_manifest "$SERVICE_MANIFEST"
   require_manifest "$DEPLOYMENT_MANIFEST"
-
-  echo "Excluindo o Service do frontend-service..."
-  kubectl delete \
-    --filename "$SERVICE_MANIFEST" \
-    --ignore-not-found
 
   echo "Excluindo o Deployment do frontend-service..."
   kubectl delete \

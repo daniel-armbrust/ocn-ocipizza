@@ -10,8 +10,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOYMENT_MANIFEST="${SCRIPT_DIR}/deployment.yaml"
-SERVICE_MANIFEST="${SCRIPT_DIR}/service.yaml"
-BOOTSTRAP_SCRIPT="${SCRIPT_DIR}/bootstrap.sh"
 
 # Funções
 
@@ -38,10 +36,10 @@ require_environment_variables() {
   fi
 }
 
-# Renderiza e aplica o Deployment e aplica o Service do frontend-service.
+# Renderiza e aplica somente o Deployment do frontend-service. O service.yaml
+# permanece no diretório apenas como material de demonstração.
 apply_resources() {
   require_manifest "$DEPLOYMENT_MANIFEST"
-  require_manifest "$SERVICE_MANIFEST"
   require_environment_variables
 
   command -v envsubst >/dev/null 2>&1 || {
@@ -52,9 +50,6 @@ apply_resources() {
   echo "Aplicando o Deployment do frontend-service..."
   envsubst '${REGISTRY} ${OCI_NAMESPACE}' < "$DEPLOYMENT_MANIFEST" \
     | kubectl apply --filename -
-
-  echo "Aplicando o Service do frontend-service..."
-  kubectl apply --filename "$SERVICE_MANIFEST"
 }
 
 # Fluxo principal
