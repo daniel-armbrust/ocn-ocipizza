@@ -1,5 +1,4 @@
-# Cria um Service público para expor o admin-service por meio de um
-# Load Balancer do OCI.
+# Cria um Service interno para expor o admin-service dentro do cluster.
 # O Service seleciona os Pods do admin-service e encaminha as conexões
 # recebidas na porta 80 para a porta HTTP da aplicação.
 
@@ -8,35 +7,9 @@ kind: Service
 metadata:
   name: admin-service
   namespace: ocipizza-services
-  annotations:
-    # Tipo e visibilidade do Load Balancer.
-    oci.oraclecloud.com/load-balancer-type: "lb"
-    service.beta.kubernetes.io/oci-load-balancer-internal: "false"
-
-    # Configura a largura de banda mínima e máxima em Mbps.
-    service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
-    service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
-    service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "12"
-
-    # Define o tempo máximo de inatividade da conexão.
-    service.beta.kubernetes.io/oci-load-balancer-connection-idle-timeout: "60"
-
-    # Configura o protocolo HTTP.
-    service.beta.kubernetes.io/oci-load-balancer-backend-protocol: "HTTP"
-
-    # Configura as verificações de saúde dos backends.
-    service.beta.kubernetes.io/oci-load-balancer-health-check-retries: "3"
-    service.beta.kubernetes.io/oci-load-balancer-health-check-timeout: "3000"
-    service.beta.kubernetes.io/oci-load-balancer-health-check-interval: "10000"
-
-    # Mantém as regras de segurança sob gerenciamento manual.
-    service.beta.kubernetes.io/oci-load-balancer-security-list-management-mode: "None"
-
-    # Distribui novas conexões para o backend menos ocupado.
-    oci.oraclecloud.com/loadbalancer-policy: "LEAST_CONNECTIONS"
 spec:
-  # Publica o admin-service por meio de um Load Balancer do OCI.
-  type: LoadBalancer
+  # O acesso externo ocorre pelo ingress-nginx.
+  type: ClusterIP
 
   # Seleciona os Pods gerenciados pelo admin-service.
   selector:
@@ -46,6 +19,6 @@ spec:
 
   ports:
     - name: http
-      port: 80
+      port: 8000
       targetPort: http
       protocol: TCP

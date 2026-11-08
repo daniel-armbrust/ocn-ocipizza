@@ -241,17 +241,17 @@ services: ## Aplica os Deployments e Services dos microsserviços OCI Pizza.
 	@set -e; \
 	for service in $(APPLICATION_SERVICES); do \
 		deployment="$(OCIPIZZA_DIR)/$$service/deployment.yaml"; \
-		service_manifest="$(OCIPIZZA_DIR)/$$service/service.yaml"; \
 		if [ ! -s "$$deployment" ]; then \
 			echo "Erro: Deployment não encontrado para $$service: $$deployment" >&2; \
 			exit 1; \
 		fi; \
+		echo "Aplicando o Deployment de $$service..."; \
+		envsubst '$${REGISTRY} $${OCI_NAMESPACE}' < "$$deployment" | kubectl apply --filename -; \
+		service_manifest="$(OCIPIZZA_DIR)/$$service/service.yaml"; \
 		if [ ! -s "$$service_manifest" ]; then \
 			echo "Erro: Service não encontrado para $$service: $$service_manifest" >&2; \
 			exit 1; \
 		fi; \
-		echo "Aplicando o Deployment de $$service..."; \
-		envsubst '$${REGISTRY} $${OCI_NAMESPACE}' < "$$deployment" | kubectl apply --filename -; \
 		echo "Aplicando o Service de $$service..."; \
 		kubectl apply --filename "$$service_manifest"; \
 	done
@@ -260,11 +260,11 @@ delete-services: ## Exclui os Services e Deployments dos microsserviços OCI Piz
 	@set -e; \
 	for service in $(APPLICATION_SERVICES); do \
 		deployment="$(OCIPIZZA_DIR)/$$service/deployment.yaml"; \
-		service_manifest="$(OCIPIZZA_DIR)/$$service/service.yaml"; \
 		if [ ! -s "$$deployment" ]; then \
 			echo "Erro: Deployment não encontrado para $$service: $$deployment" >&2; \
 			exit 1; \
 		fi; \
+		service_manifest="$(OCIPIZZA_DIR)/$$service/service.yaml"; \
 		if [ ! -s "$$service_manifest" ]; then \
 			echo "Erro: Service não encontrado para $$service: $$service_manifest" >&2; \
 			exit 1; \

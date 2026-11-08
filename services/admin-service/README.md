@@ -53,6 +53,7 @@ quando o serviço remoto não está disponível.
 
 | Método | Rota | Acesso | Comportamento |
 | --- | --- | --- | --- |
+| `GET` | `/admin` | Conforme a sessão | Redireciona administradores ao painel, usuários da cozinha ao painel operacional e visitantes não autenticados para `/admin/login`. |
 | `GET` | `/admin/login` | Público | Exibe o formulário de login. |
 | `POST` | `/admin/login` | Público | Valida o formulário, autentica e cria a sessão. |
 | `POST` | `/admin/logout` | Autenticado | Encerra uma sessão administrativa. |

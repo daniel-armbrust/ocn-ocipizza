@@ -3,15 +3,6 @@
 #
 # images-build-push.sh - OCI Pizza
 #
-# Constrói as imagens dos serviços da aplicação, aplica as tags esperadas pelo
-# OCI Container Registry e publica as imagens no OCIR de São Paulo.
-#
-# Uso:
-#   ./scripts/images-build-push.sh --user <usuario>
-#   ./scripts/images-build-push.sh --user <usuario> --no-cache
-#   ./scripts/images-build-push.sh --user <usuario> --no-cache pizza-service
-#   ./scripts/images-build-push.sh --tag <versão> --remove
-#
 
 set -euo pipefail
 
@@ -29,6 +20,7 @@ readonly OCI_CONFIG_PROFILE="${OCI_CLI_PROFILE:-DEFAULT}"
 readonly OCIR_REGISTRY="gru.ocir.io"
 readonly DEFAULT_REPOSITORY_PREFIX="ocipizza"
 readonly DEFAULT_IMAGE_TAG="1.0.0"
+readonly DEFAULT_REGION="sa-saopaulo-1"
 readonly TARGET_PLATFORM="linux/amd64"
 
 # Valores informados pelo operador. O usuário é obrigatório somente no fluxo
@@ -36,6 +28,7 @@ readonly TARGET_PLATFORM="linux/amd64"
 oci_user=""
 repository_prefix="${DEFAULT_REPOSITORY_PREFIX}"
 image_tag="${DEFAULT_IMAGE_TAG}"
+oci_region="${DEFAULT_REGION}"
 no_cache=false
 remove_local_images=false
 service_name_filter=""
@@ -52,6 +45,7 @@ Opções:
                                 Para outro Identity Domain, informe
                                 <identity-domain>/<usuario>.
   --tag <versão>                Tag das imagens. Padrão: 1.0.0.
+  --region <região>             Região OCI. Padrão: sa-saopaulo-1.
   --repository-prefix <prefixo> Prefixo dos repositórios. Padrão: ocipizza.
   --no-cache                    Executa o docker build sem utilizar cache.
   --remove                      Exclui imagens, repositórios OCIR e imagens
@@ -62,6 +56,7 @@ Opções:
 
 Exemplos:
   images-build-push.sh --user usuario@example.com
+  images-build-push.sh --user usuario@example.com --region sa-saopaulo-1
   images-build-push.sh --user Default/usuario@example.com --tag 1.1.0 --no-cache
   images-build-push.sh --user usuario@example.com --no-cache pizza-service
   images-build-push.sh --tag 1.0.0 --remove
@@ -112,6 +107,29 @@ get_root_compartment_id() {
     ' "${OCI_CONFIG_FILE}"
 }
 
+# Exibe a identidade visual do projeto antes de iniciar a operação de imagens.
+oci_pizza_banner() {
+    printf '%s\n' ''
+    printf '%s\n' ' ██████╗  ██████╗██╗    ██████╗ ██╗███████╗███████╗ █████╗ '
+    printf '%s\n' '██╔═══██╗██╔════╝██║    ██╔══██╗██║╚══███╔╝╚══███╔╝██╔══██╗'
+    printf '%s\n' '██║   ██║██║     ██║    ██████╔╝██║  ███╔╝   ███╔╝ ███████║'
+    printf '%s\n' '██║   ██║██║     ██║    ██╔═══╝ ██║ ███╔╝   ███╔╝  ██╔══██║'
+    printf '%s\n' '╚██████╔╝╚██████╗██║    ██║     ██║███████╗███████╗██║  ██║'
+    printf '%s\n' ' ╚═════╝  ╚═════╝╚═╝    ╚═╝     ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝'
+    printf '%s\n' ''
+    printf '%s\n' '   OCI Pizza - by Daniel Armbrust (darmbrust@gmail.com)    '
+    printf '%s\n' '                                                           '
+    printf '%s\n' ''
+}
+
+oci_pizza_banner
+
+# Sem argumentos, exibe a ajuda em vez de iniciar o fluxo de build ou remoção.
+if (($# == 0)); then
+    usage
+    exit 0
+fi
+
 # Aceita opções nos formatos `--opção valor` e `--opção=valor`, facilitando o
 # uso manual e a chamada por outras automações.
 while (($# > 0)); do
@@ -137,6 +155,18 @@ while (($# > 0)); do
         --tag=*)
             image_tag="${1#*=}"
             [[ -n "${image_tag}" ]] || fail "a opção --tag exige um valor."
+            shift
+            ;;
+
+        --region)
+            require_option_value "$1" "${2:-}"
+            oci_region="$2"
+            shift 2
+            ;;
+
+        --region=*)
+            oci_region="${1#*=}"
+            [[ -n "${oci_region}" ]] || fail "a opção --region exige um valor."
             shift
             ;;
 
@@ -201,7 +231,7 @@ done
 # O namespace do Object Storage identifica a tenancy nos caminhos do OCIR e
 # no nome usado durante o login. Ele não deve ser confundido com o nome da
 # tenancy exibido na Console.
-tenancy_namespace="$(oci os ns get --query data --raw-output)"
+tenancy_namespace="$(oci os ns get --region "${oci_region}" --query data --raw-output)"
 
 [[ -n "${tenancy_namespace}" && "${tenancy_namespace}" != "null" ]] || \
     fail "não foi possível obter o namespace da tenancy com o OCI CLI."
@@ -281,6 +311,7 @@ remove_images() {
         # necessário à operação de exclusão do OCI CLI.
         if remote_image_id="$(
             oci artifacts container image lookup \
+                --region "${oci_region}" \
                 --image-uri "${remote_image_uri}" \
                 --query data.id \
                 --raw-output
@@ -288,6 +319,7 @@ remove_images() {
             echo "Excluindo ${remote_image} do OCIR..."
 
             oci artifacts container image delete \
+                --region "${oci_region}" \
                 --image-id "${remote_image_id}" \
                 --force \
                 --wait-for-state DELETED
@@ -301,6 +333,7 @@ remove_images() {
         # OCID do repositório consultado diretamente no Root Compartment.
         repository_id="$(
             oci artifacts container repository list \
+                --region "${oci_region}" \
                 --compartment-id "${root_compartment_id}" \
                 --display-name "${repository_name}" \
                 --query 'data.items[0].id' \
@@ -313,6 +346,7 @@ remove_images() {
             echo "Excluindo o repositório ${repository_name} do Root Compartment..."
             
             oci artifacts container repository delete \
+                --region "${oci_region}" \
                 --repository-id "${repository_id}" \
                 --force \
                 --wait-for-state DELETED
@@ -341,14 +375,17 @@ remove_images() {
 # o operador interrompa rapidamente uma execução configurada incorretamente.
 echo "Registry: ${OCIR_REGISTRY}"
 echo "Namespace: ${tenancy_namespace}"
+echo "Região: ${oci_region}"
 echo "Prefixo: ${repository_prefix}"
 echo "Versão: ${image_tag}"
 echo "Plataforma: ${TARGET_PLATFORM}"
+
 if [[ -n "${service_name_filter}" ]]; then
     echo "Serviço selecionado: ${service_name_filter}"
 else
     echo "Serviço selecionado: todos"
 fi
+
 echo "Serviços encontrados: ${#dockerfiles[@]}"
 echo
 

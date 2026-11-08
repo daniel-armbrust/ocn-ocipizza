@@ -1,0 +1,56 @@
+# Configura o Service do controlador para expor o ingress-nginx pelo OCI.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+  annotations:
+    # Define o Load Balancer público do OCI.
+    oci.oraclecloud.com/load-balancer-type: "lb"
+    service.beta.kubernetes.io/oci-load-balancer-internal: "false"
+
+    # Define o Load Balancer flexível e seus limites de largura de banda.
+    service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "12"
+
+    # Define o tempo máximo de inatividade da conexão.
+    service.beta.kubernetes.io/oci-load-balancer-connection-idle-timeout: "60"
+
+    # Configura o protocolo HTTP utilizado entre o Load Balancer e os Pods.
+    service.beta.kubernetes.io/oci-load-balancer-backend-protocol: "HTTP"
+
+    # Configura as verificações de saúde dos backends.
+    service.beta.kubernetes.io/oci-load-balancer-health-check-retries: "3"
+    service.beta.kubernetes.io/oci-load-balancer-health-check-timeout: "3000"
+    service.beta.kubernetes.io/oci-load-balancer-health-check-interval: "10000"
+
+    # Mantém as regras de segurança sob gerenciamento manual.
+    service.beta.kubernetes.io/oci-load-balancer-security-list-management-mode: "None"
+
+    # Distribui novas conexões para o backend menos ocupado.
+    oci.oraclecloud.com/loadbalancer-policy: "LEAST_CONNECTIONS"
+spec:
+  type: LoadBalancer
+  ipFamilyPolicy: SingleStack
+  ipFamilies:
+    - IPv4
+  selector:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: http
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: https

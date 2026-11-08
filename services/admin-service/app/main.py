@@ -6,7 +6,7 @@ import httpx
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, status
+from fastapi import Depends, FastAPI, Request, status
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
@@ -19,6 +19,7 @@ from app.config.settings import settings
 from app.clients.jwks_client import jwks_client
 
 from app.dependencies.templates import templates
+from app.dependencies.authentication import get_admin_authenticated_session
 
 from app.exceptions.auth_exceptions import AuthenticationRequiredError
 from app.exceptions.admin_auth_exceptions import AdminAccessDeniedError
@@ -68,7 +69,7 @@ app.add_middleware(
 # Disponibiliza os arquivos estáticos utilizados pelo frontend,
 # incluindo JavaScript, CSS e imagens locais.
 app.mount(
-    '/static',
+    '/admin/static',
     StaticFiles(directory='app/static'),
     name='static'
 )
@@ -315,6 +316,31 @@ def root(request: Request) -> RedirectResponse:
 
     return RedirectResponse(
         url='/admin/login',
+        status_code=status.HTTP_303_SEE_OTHER
+    )
+
+
+@app.get('/admin', include_in_schema=False)
+async def admin_root(
+    session: dict = Depends(get_admin_authenticated_session)
+) -> RedirectResponse:
+    """
+    Direciona o acesso inicial do painel conforme a sessão autenticada.
+
+    Usuários sem sessão são redirecionados pelo handler de
+    ``AuthenticationRequiredError`` para ``/admin/login``. Administradores
+    seguem para o painel administrativo; usuários da cozinha são direcionados
+    ao painel operacional pela validação de acesso existente.
+
+    Args:
+        session: Sessão autenticada com permissão administrativa.
+
+    Returns:
+        Redirecionamento para o painel administrativo.
+    """
+
+    return RedirectResponse(
+        url='/admin/dashboard',
         status_code=status.HTTP_303_SEE_OTHER
     )
 

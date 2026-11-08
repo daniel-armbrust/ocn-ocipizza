@@ -339,6 +339,7 @@ repository = NosqlDeliveryAreaRepository(
     table_name=os.getenv('NOSQL_TABLE_NAME', 'delivery_areas')
 )
 created_at = datetime.now(timezone.utc)
+expected_delivery_area_ids = []
 
 for position, row in enumerate(
     csv.DictReader(StringIO(DELIVERY_AREAS_CSV)),
@@ -353,6 +354,7 @@ for position, row in enumerate(
         NAMESPACE_URL,
         f'ocipizza:delivery-area:{zip_code_start}:{zip_code_end}'
     )
+    expected_delivery_area_ids.append(delivery_area_id)
 
     if repository.get_by_id(delivery_area_id) is not None:
         print(
@@ -380,19 +382,26 @@ for position, row in enumerate(
         f'{zip_code_start} a {zip_code_end}'
     )
 
-persisted_areas = repository.get_all(limit=50)
+# Valida cada registro por sua chave primária, evitando uma consulta completa
+# com ORDER BY, paginação e continuation key no KVLite local.
+missing_delivery_area_ids = [
+    delivery_area_id
+    for delivery_area_id in expected_delivery_area_ids
+    if repository.get_by_id(delivery_area_id) is None
+]
 
-# O repositório NoSQL mantém o handle aberto durante todas as inclusões.
+# O repositório NoSQL mantém o handle aberto durante todas as inclusões e
+# validações por chave primária.
 handle.close()
 
-expected_total = 30
-persisted_total = len(persisted_areas)
+expected_total = len(expected_delivery_area_ids)
+persisted_total = expected_total - len(missing_delivery_area_ids)
 
-if persisted_total != expected_total:
+if missing_delivery_area_ids:
     raise RuntimeError(
         'Falha ao criar as áreas de entrega de demonstração: '
-        f'eram esperados {expected_total} registros, mas foram encontrados '
-        f'{persisted_total}.'
+        f'{len(missing_delivery_area_ids)} registros não foram encontrados '
+        'após a persistência.'
     )
 
 print(f'{persisted_total} áreas de entrega persistidas com sucesso.')
