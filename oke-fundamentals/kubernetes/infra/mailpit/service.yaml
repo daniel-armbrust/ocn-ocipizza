@@ -1,7 +1,7 @@
 # Cria um Service interno para disponibilizar o Mailpit aos microsserviços.
 # O Service encaminha as conexões SMTP na porta 1025 e disponibiliza a
-# interface web na porta 8025 para acessos realizados dentro do cluster.
-# Este recurso utiliza o tipo ClusterIP e não possui exposição externa direta.
+# interface web na porta 8025. O tipo NodePort é necessário para que o OCI
+# Native Ingress Controller possa encaminhar tráfego para este Service.
 
 apiVersion: v1
 kind: Service
@@ -9,8 +9,8 @@ metadata:
   name: mailpit
   namespace: ocipizza-infra
 spec:
-  # Expõe o Mailpit somente por meio da rede interna do cluster.
-  type: ClusterIP
+  # O OCI Native Ingress Controller exige NodePort nos Services de backend.
+  type: NodePort
 
   # Seleciona o Pod gerenciado pelo controlador do Mailpit.
   selector:

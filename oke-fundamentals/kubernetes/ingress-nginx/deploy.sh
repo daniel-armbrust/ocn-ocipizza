@@ -17,6 +17,24 @@ INGRESS_NGINX_TIMEOUT="180s"
 
 # Funções
 
+# Aplica o manifesto oficial com o gerenciamento de regras de segurança
+# desabilitado antes de o Service LoadBalancer ser criado pelo OCI CCM.
+apply_official_manifest() {
+  curl --fail --silent --show-error --location "$INGRESS_NGINX_MANIFEST" \
+    | awk '
+      /^kind: Service$/ { in_controller_service = 1 }
+      in_controller_service && /^  name: ingress-nginx-controller$/ {
+        print
+        print "  annotations:"
+        print "    service.beta.kubernetes.io/oci-load-balancer-security-list-management-mode: \"None\""
+        next
+      }
+      in_controller_service && /^---$/ { in_controller_service = 0 }
+      { print }
+    ' \
+    | kubectl apply --filename -
+}
+
 # Aguarda o controlador e o certificado do admission webhook ficarem prontos.
 wait_for_ingress_nginx() {
   echo "Aguardando o controlador ingress-nginx..."
@@ -43,7 +61,7 @@ wait_for_ingress_nginx() {
 # Aplica o manifesto oficial do ingress-nginx no cluster atual.
 deploy_ingress_nginx() {
   echo "Aplicando o manifesto do ingress-nginx..."
-  kubectl apply --filename "$INGRESS_NGINX_MANIFEST"
+  apply_official_manifest
 
   # Aplica o Service do controlador com as annotations do Load Balancer OCI.
   echo "Aplicando o Service do ingress-nginx..."

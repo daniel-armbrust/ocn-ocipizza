@@ -1,0 +1,20 @@
+# Associa os recursos Ingress do OCI PIZZA ao OCI Native Ingress Controller.
+# O IngressClassParameters referenciado define o Load Balancer do OCI.
+
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: ocipizza-native-ingress
+  annotations:
+    # Mantém o ingress-nginx como classe padrão enquanto os dois controladores
+    # estiverem instalados no cluster.
+    ingressclass.kubernetes.io/is-default-class: "false"
+spec:
+  controller: oci.oraclecloud.com/native-ingress-controller
+  parameters:
+    # Os parâmetros são namespaced e estão no namespace da aplicação.
+    scope: Namespace
+    namespace: ocipizza-services
+    apiGroup: ingress.oraclecloud.com
+    kind: ingressclassparameters
+    name: ocipizza-ingress-parameters

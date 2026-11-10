@@ -28,6 +28,12 @@ resource "oci_containerengine_node_pool" "this" {
   # aos worker nodes sem alterar o funcionamento do cluster.
   ssh_public_key = var.ssh_public_key
 
+  # Desabilita os endpoints legados do Instance Metadata Service nos workers.
+  node_metadata = {
+    # Desabilita os endpoints legados do Instance Metadata Service.
+    areLegacyImdsEndpointsDisabled = "true"
+  }
+
   # O image_id é consultado no catálogo de opções do OKE para garantir ARM.
   # O precondition produz uma mensagem clara se não houver imagem compatível.
   dynamic "node_source_details" {

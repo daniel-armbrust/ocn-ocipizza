@@ -1,0 +1,21 @@
+{
+  "addonName": "NativeIngressController",
+  "configurations": [
+    {
+      "key": "compartmentId",
+      "value": "${OKE_LOAD_BALANCER_COMPARTMENT_ID}"
+    },
+    {
+      "key": "loadBalancerSubnetId",
+      "value": "${OKE_LOAD_BALANCER_SUBNET_ID}"
+    },
+    {
+      "key": "authType",
+      "value": "${OCI_NATIVE_INGRESS_AUTH_TYPE}"
+    },
+    {
+      "key": "logVerbosity",
+      "value": "${OCI_NATIVE_INGRESS_LOG_VERBOSITY}"
+    }
+  ]
+}

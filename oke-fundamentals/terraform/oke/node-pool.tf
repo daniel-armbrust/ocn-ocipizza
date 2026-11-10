@@ -42,7 +42,9 @@ resource "oci_containerengine_node_pool" "this" {
   # Executa o cloud-init personalizado em cada worker node. O OKE espera o
   # conteúdo de user_data codificado em Base64 no metadata da instância.
   node_metadata = {
-    user_data = filebase64("${path.module}/scripts/oke-cloudinit.sh")
+    # Desabilita os endpoints legados do Instance Metadata Service.
+    areLegacyImdsEndpointsDisabled = "true"
+    user_data                      = filebase64("${path.module}/scripts/oke-cloudinit.sh")
   }
 
   dynamic "node_source_details" {

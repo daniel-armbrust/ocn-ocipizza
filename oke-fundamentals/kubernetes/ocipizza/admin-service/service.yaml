@@ -1,6 +1,6 @@
-# Cria um Service interno para expor o admin-service dentro do cluster.
-# O Service seleciona os Pods do admin-service e encaminha as conexões
-# recebidas na porta 80 para a porta HTTP da aplicação.
+# Expõe o admin-service internamente e por meio 
+# de uma porta dos worker nodes (Permite utilizar diferentes
+# Ingress Controllers).
 
 apiVersion: v1
 kind: Service
@@ -8,8 +8,8 @@ metadata:
   name: admin-service
   namespace: ocipizza-services
 spec:
-  # O acesso externo ocorre pelo ingress-nginx.
-  type: ClusterIP
+  # O OCI Native Ingress Controller exige NodePort nos Services de backend.
+  type: NodePort
 
   # Seleciona os Pods gerenciados pelo admin-service.
   selector:
@@ -22,3 +22,4 @@ spec:
       port: 8000
       targetPort: http
       protocol: TCP
+      nodePort: 30080

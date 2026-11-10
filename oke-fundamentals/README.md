@@ -360,16 +360,17 @@ Os principais alvos são:
   `ocipizza-services`;
 - `make image-pull-secret`: cria ou atualiza o Secret `ocir-secret`;
 - `make pvc`: cria os PVCs definidos para os serviços de infraestrutura;
-- `make infra`: executa `pvc` e, em seguida, chama o `deploy.sh` de cada
-  serviço de infraestrutura, na ordem MySQL, NoSQL, RabbitMQ, Redis,
-  ObjectStorage e Mailpit;
+- `make infra`: chama o `deploy.sh` de cada serviço de infraestrutura, na
+  ordem MySQL, NoSQL, RabbitMQ, Redis, ObjectStorage e Mailpit. Os PVCs devem
+  ser criados previamente com `make pvc`;
 - `make bootstrap`: executa os scripts de bootstrap dos microsserviços;
 - `make services`: aplica os Deployments e Services dos microsserviços;
 - `make status`: exibe Deployments, Pods, Services, PVCs e Secrets do projeto;
 - `make ocipizza`: executa o fluxo completo na ordem namespace,
-  image-pull-secret, PVCs, infraestrutura, bootstrap e microsserviços;
-- `make delete-ocipizza`: remove microsserviços, infraestrutura, PVCs, Secret
-  do OCIR e namespaces.
+  image-pull-secret, PVCs, infraestrutura, bootstrap, microsserviços e, por
+  último, o OCI Native Ingress Controller standalone;
+- `make delete-ocipizza`: remove primeiro o OCI Native Ingress Controller,
+  depois microsserviços, infraestrutura, PVCs, Secret do OCIR e namespaces.
 
 O alvo `make infra` utiliza os scripts abaixo, mantendo a lógica de cada
 serviço junto aos seus manifestos:
@@ -387,6 +388,65 @@ O alvo `make delete-infra` executa os respectivos `undeploy.sh` na mesma ordem
 e remove os PVCs depois que os Deployments e Services forem excluídos. Os
 scripts verificam os manifestos, exigem `kubectl` no `PATH` e usam
 `--ignore-not-found` durante a remoção.
+
+## Ingress e Load Balancer
+
+O `ingress-nginx` utiliza um único Service do tipo `LoadBalancer`, definido em
+`kubernetes/ingress-nginx/service.yaml`. Consequentemente, um único Load
+Balancer OCI atende os hosts configurados em
+`kubernetes/ingress-nginx/ingress.yaml`.
+
+Os registros DNS abaixo devem apontar para o endereço do mesmo Load Balancer:
+
+```text
+www.ocipizza.com.br
+mailpit.ocipizza.com.br
+rabbitmq.ocipizza.com.br
+objectstorage.ocipizza.com.br
+```
+
+O manifesto de Ingress encaminha as requisições da seguinte forma:
+
+```text
+www.ocipizza.com.br       → admin-service ou frontend-service
+mailpit.ocipizza.com.br   → mailpit:8025
+rabbitmq.ocipizza.com.br  → rabbitmq:15672
+objectstorage.ocipizza.com.br → objectstorage:9001
+```
+
+Os hosts de infraestrutura são definidos no namespace `ocipizza-infra`, e os
+hosts da aplicação no namespace `ocipizza-services`. O controlador continua
+centralizado no namespace `ingress-nginx`.
+
+Para instalar ou excluir o controlador e suas regras:
+
+```bash
+make ingress-nginx
+make delete-ingress-nginx
+```
+
+O OCI Native Ingress Controller pode ser instalado no modo standalone com
+Helm. Esse fluxo também aplica os recursos `IngressClassParameters`,
+`IngressClass` e `Ingress` do diretório
+`kubernetes/oci-native-ingress/`:
+
+```bash
+export OKE_CLUSTER_ID='<OCID_DO_CLUSTER>'
+export OKE_LOAD_BALANCER_COMPARTMENT_ID='<OCID_DO_COMPARTMENT_DO_LB>'
+export OKE_LOAD_BALANCER_SUBNET_ID='<OCID_DA_SUBREDE_DO_LB>'
+
+make oci-native-ingress
+make delete-oci-native-ingress
+```
+
+O `IngressClassParameters.yaml` é renderizado pelo script com `envsubst`
+antes de ser aplicado. O Load Balancer criado pelo OCI Native Ingress
+Controller é independente do Service `LoadBalancer` usado pelo
+`ingress-nginx`.
+
+As interfaces administrativas de infraestrutura devem ser protegidas por
+regras de rede, autenticação e/ou restrição ao IP de administração antes de
+serem expostas fora do ambiente de laboratório.
 
 ## Deploy dos Pods
 

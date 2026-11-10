@@ -25,6 +25,15 @@ kubernetes_namespaces=(
 # Exibe as opções aceitas pelo script e as variáveis de ambiente equivalentes.
 usage() {
   cat <<'EOF'
+ ██████╗  ██████╗██╗    ██████╗ ██╗███████╗███████╗ █████╗
+██╔═══██╗██╔════╝██║    ██╔══██╗██║╚══███╔╝╚══███╔╝██╔══██╗
+██║   ██║██║     ██║    ██████╔╝██║  ███╔╝   ███╔╝ ███████║
+██║   ██║██║     ██║    ██╔═══╝ ██║ ███╔╝   ███╔╝  ██╔══██║
+╚██████╔╝╚██████╗██║    ██║     ██║███████╗███████╗██║  ██║
+ ╚═════╝  ╚═════╝╚═╝    ╚═╝     ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝
+
+   OCI Pizza - by Daniel Armbrust (darmbrust@gmail.com)
+
 Uso: ./kubernetes/secrets/ocir-service-account-setup.sh [opções]
 
 Opções:

@@ -1,7 +1,7 @@
 # Cria um Service interno para disponibilizar o MinIO aos microsserviços.
 # O Service encaminha as conexões da API S3 na porta 9000 e disponibiliza
-# o console administrativo na porta 9001 dentro do cluster.
-# Este recurso utiliza o tipo ClusterIP e não possui exposição externa direta.
+# o console administrativo na porta 9001. O tipo NodePort é necessário para
+# que o OCI Native Ingress Controller possa encaminhar tráfego para este Service.
 
 apiVersion: v1
 kind: Service
@@ -9,8 +9,8 @@ metadata:
   name: objectstorage
   namespace: ocipizza-infra
 spec:
-  # Expõe o MinIO somente por meio da rede interna do cluster.
-  type: ClusterIP
+  # O OCI Native Ingress Controller exige NodePort nos Services de backend.
+  type: NodePort
 
   # Seleciona o Pod gerenciado pelo controlador do Object Storage.
   selector:

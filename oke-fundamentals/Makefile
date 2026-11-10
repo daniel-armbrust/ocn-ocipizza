@@ -40,6 +40,7 @@ OCIPIZZA_DIR := $(MAKEFILE_DIR)kubernetes/ocipizza
 SECRETS_DIR := $(MAKEFILE_DIR)kubernetes/secrets
 INGRESS_NGINX_DIR := $(MAKEFILE_DIR)kubernetes/ingress-nginx
 F5_INGRESS_NGINX_DIR := $(MAKEFILE_DIR)kubernetes/f5-ingress-nginx
+OCI_NATIVE_INGRESS_DIR := $(MAKEFILE_DIR)kubernetes/oci-native-ingress
 IMAGE_PULL_SECRET_SCRIPT := $(SECRETS_DIR)/ocir-image-pull-secret-setup.sh
 DELETE_IMAGE_PULL_SECRET_SCRIPT := $(SECRETS_DIR)/ocir-image-pull-secret-remove.sh
 
@@ -62,6 +63,8 @@ MAKE_TARGETS := \
 	delete-ingress-nginx \
 	f5-ingress-nginx \
 	delete-f5-ingress-nginx \
+	oci-native-ingress \
+	delete-oci-native-ingress \
 	status
 
 .DEFAULT_GOAL := help
@@ -86,6 +89,8 @@ MAKE_TARGETS := \
 	delete-ingress-nginx \
 	f5-ingress-nginx \
 	delete-f5-ingress-nginx \
+	oci-native-ingress \
+	delete-oci-native-ingress \
 	status \
 	delete-infra-resources
 
@@ -126,6 +131,8 @@ help: ## Exibe os alvos disponíveis.
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "ingress-nginx" || $$1 == "delete-ingress-nginx") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@printf '%s\n' ''
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "f5-ingress-nginx" || $$1 == "delete-f5-ingress-nginx") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@printf '%s\n' ''
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "oci-native-ingress" || $$1 == "delete-oci-native-ingress") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@printf '%s\n' '' 'Implantação completa do OCI Pizza:'
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "ocipizza" || $$1 == "delete-ocipizza") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@printf '%s\n' '' 'Outros comandos:'
@@ -275,9 +282,9 @@ delete-services: ## Exclui os Services e Deployments dos microsserviços OCI Piz
 		kubectl delete --filename "$$deployment" --ignore-not-found; \
 	done
 
-ocipizza: namespace image-pull-secret pvc infra bootstrap services ## Implanta todo o laboratório OCI Pizza.
+ocipizza: namespace image-pull-secret pvc infra bootstrap services oci-native-ingress ## Implanta todo o laboratório OCI Pizza.
 
-delete-ocipizza: delete-services delete-infra delete-pvc delete-image-pull-secret delete-namespace ## Exclui todo o laboratório OCI Pizza.
+delete-ocipizza: delete-oci-native-ingress delete-services delete-infra delete-pvc delete-image-pull-secret delete-namespace ## Exclui todo o laboratório OCI Pizza.
 
 ingress-nginx: ## Instala o ingress-nginx comunitário via manifesto YAML.
 	@"$(INGRESS_NGINX_DIR)/deploy.sh"
@@ -290,6 +297,12 @@ f5-ingress-nginx: ## Instala o F5 NGINX Ingress Controller via manifestos YAML.
 
 delete-f5-ingress-nginx: ## Exclui o F5 NGINX Ingress Controller.
 	@"$(F5_INGRESS_NGINX_DIR)/undeploy.sh"
+
+oci-native-ingress: ##  Instala o OCI Native Ingress Controller standalone.
+	@"$(OCI_NATIVE_INGRESS_DIR)/deploy-standalone.sh"
+
+delete-oci-native-ingress: ## Exclui o OCI Native Ingress Controller standalone.
+	@"$(OCI_NATIVE_INGRESS_DIR)/undeploy-standalone.sh"
 
 bootstrap: ## Executa os bootstraps dos serviços OCI Pizza.
 	@set -e; \

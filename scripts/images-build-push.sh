@@ -36,6 +36,15 @@ service_name_filter=""
 # Mantém a documentação de uso junto ao parser das opções suportadas.
 usage() {
     cat <<'EOF'
+ ██████╗  ██████╗██╗    ██████╗ ██╗███████╗███████╗ █████╗
+██╔═══██╗██╔════╝██║    ██╔══██╗██║╚══███╔╝╚══███╔╝██╔══██╗
+██║   ██║██║     ██║    ██████╔╝██║  ███╔╝   ███╔╝ ███████║
+██║   ██║██║     ██║    ██╔═══╝ ██║ ███╔╝   ███╔╝  ██╔══██║
+╚██████╔╝╚██████╗██║    ██║     ██║███████╗███████╗██║  ██║
+ ╚═════╝  ╚═════╝╚═╝    ╚═╝     ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝
+
+   OCI Pizza - by Daniel Armbrust (darmbrust@gmail.com)
+
 Uso:
   images-build-push.sh --user <usuario> [opções] [serviço]
 
@@ -106,23 +115,6 @@ get_root_compartment_id() {
         }
     ' "${OCI_CONFIG_FILE}"
 }
-
-# Exibe a identidade visual do projeto antes de iniciar a operação de imagens.
-oci_pizza_banner() {
-    printf '%s\n' ''
-    printf '%s\n' ' ██████╗  ██████╗██╗    ██████╗ ██╗███████╗███████╗ █████╗ '
-    printf '%s\n' '██╔═══██╗██╔════╝██║    ██╔══██╗██║╚══███╔╝╚══███╔╝██╔══██╗'
-    printf '%s\n' '██║   ██║██║     ██║    ██████╔╝██║  ███╔╝   ███╔╝ ███████║'
-    printf '%s\n' '██║   ██║██║     ██║    ██╔═══╝ ██║ ███╔╝   ███╔╝  ██╔══██║'
-    printf '%s\n' '╚██████╔╝╚██████╗██║    ██║     ██║███████╗███████╗██║  ██║'
-    printf '%s\n' ' ╚═════╝  ╚═════╝╚═╝    ╚═╝     ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝'
-    printf '%s\n' ''
-    printf '%s\n' '   OCI Pizza - by Daniel Armbrust (darmbrust@gmail.com)    '
-    printf '%s\n' '                                                           '
-    printf '%s\n' ''
-}
-
-oci_pizza_banner
 
 # Sem argumentos, exibe a ajuda em vez de iniciar o fluxo de build ou remoção.
 if (($# == 0)); then

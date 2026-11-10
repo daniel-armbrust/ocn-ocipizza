@@ -1,7 +1,8 @@
 # Cria um Service interno para disponibilizar o RabbitMQ aos microsserviços.
 # O Service encaminha conexões AMQP na porta 5672 e disponibiliza a interface
 # de gerenciamento na porta 15672 dentro do cluster.
-# Este recurso utiliza o tipo ClusterIP e não possui exposição externa direta.
+# O tipo NodePort é necessário para que o OCI Native Ingress Controller possa
+# encaminhar tráfego para as interfaces expostas pelo Ingress.
 
 apiVersion: v1
 kind: Service
@@ -9,8 +10,8 @@ metadata:
   name: rabbitmq
   namespace: ocipizza-infra
 spec:
-  # Expõe o RabbitMQ somente por meio da rede interna do cluster.
-  type: ClusterIP
+  # O OCI Native Ingress Controller exige NodePort nos Services de backend.
+  type: NodePort
 
   # Seleciona o Pod gerenciado pelo controlador do RabbitMQ.
   selector:

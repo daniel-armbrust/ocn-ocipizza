@@ -1,0 +1,27 @@
+# Parâmetros do Load Balancer criado pelo OCI Native Ingress Controller.
+#
+# Renderize as variáveis antes de aplicar o manifesto:
+# envsubst '${OKE_LOAD_BALANCER_COMPARTMENT_ID} ${OKE_LOAD_BALANCER_SUBNET_ID}' \
+#   < IngressClassParameters.yaml | kubectl apply -f -
+
+apiVersion: ingress.oraclecloud.com/v1beta1
+kind: IngressClassParameters
+metadata:
+  name: ocipizza-ingress-parameters
+  namespace: ocipizza-services
+spec:
+  # Compartment em que o Load Balancer será criado.
+  compartmentId: "${OKE_LOAD_BALANCER_COMPARTMENT_ID}"
+
+  # Sub-rede pública utilizada pelo Load Balancer.
+  subnetId: "${OKE_LOAD_BALANCER_SUBNET_ID}"
+
+  # Nome amigável do Load Balancer no OCI.
+  loadBalancerName: "ocipizza-ingress-lb"
+
+  # Equivalente ao Service com oci-load-balancer-internal: "false".
+  isPrivate: false
+
+  # Equivalente às anotações de shape flexível do Service, em Mbps.
+  minBandwidthMbps: 10
+  maxBandwidthMbps: 12

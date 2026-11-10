@@ -57,6 +57,11 @@ output "load_balancer_public_ip" {
   value       = module.public_ip_load_balancer.public_ip_address
 }
 
+output "oke_load_balancer_subnet_id" {
+  description = "OCID da sub-rede pública utilizada pelos Load Balancers."
+  value       = module.vcn_oke.subnet_ids["loadbalancer"]
+}
+
 output "oke_worker_nodes_dynamic_group_id" {
   description = "OCID do Dynamic Group que contém os worker nodes do OKE."
   value       = oci_identity_dynamic_group.oke_worker_nodes.id

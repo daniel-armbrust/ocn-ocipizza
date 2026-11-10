@@ -17,6 +17,15 @@ kubernetes_namespaces=(
 # Exibe as opções aceitas pelo script.
 usage() {
   cat <<'EOF'
+ ██████╗  ██████╗██╗    ██████╗ ██╗███████╗███████╗ █████╗
+██╔═══██╗██╔════╝██║    ██╔══██╗██║╚══███╔╝╚══███╔╝██╔══██╗
+██║   ██║██║     ██║    ██████╔╝██║  ███╔╝   ███╔╝ ███████║
+██║   ██║██║     ██║    ██╔═══╝ ██║ ███╔╝   ███╔╝  ██╔══██║
+╚██████╔╝╚██████╗██║    ██║     ██║███████╗███████╗██║  ██║
+ ╚═════╝  ╚═════╝╚═╝    ╚═╝     ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝
+
+   OCI Pizza - by Daniel Armbrust (darmbrust@gmail.com)
+
 Uso: ./kubernetes/secrets/ocir-image-pull-secret-remove.sh [opções]
 
 Opções:
