@@ -444,6 +444,29 @@ antes de ser aplicado. O Load Balancer criado pelo OCI Native Ingress
 Controller é independente do Service `LoadBalancer` usado pelo
 `ingress-nginx`.
 
+No OCI Native Ingress, os Ingresses da aplicação e da infraestrutura utilizam
+um único listener HTTP público na porta `80`, configurado pela annotation:
+
+```yaml
+oci-native-ingress.oraclecloud.com/http-listener-port: "80"
+```
+
+O Load Balancer não cria listeners separados para as portas dos Services. O
+roteamento é realizado pelo host e pelo caminho recebido:
+
+```text
+www.ocipizza.com.br                  → frontend-service:8000
+www.ocipizza.com.br/admin            → admin-service:8000
+www.ocipizza.com.br/kitchen          → admin-service:8000
+mailpit.ocipizza.com.br              → mailpit:8025
+rabbitmq.ocipizza.com.br             → rabbitmq:15672
+objectstorage.ocipizza.com.br        → objectstorage:9001
+```
+
+Os Services usados como backend pelo OCI Native Ingress devem utilizar o tipo
+`NodePort`. Services que não possuem uma regra de Ingress podem continuar como
+`ClusterIP`.
+
 As interfaces administrativas de infraestrutura devem ser protegidas por
 regras de rede, autenticação e/ou restrição ao IP de administração antes de
 serem expostas fora do ambiente de laboratório.
