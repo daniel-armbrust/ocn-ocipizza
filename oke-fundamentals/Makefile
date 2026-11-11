@@ -35,12 +35,12 @@ KUBERNETES_NAMESPACES := \
 # mesmo quando o make for executado a partir da raiz do repositório.
 MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 NAMESPACE_DIR := $(MAKEFILE_DIR)kubernetes/namespaces
-INFRA_DIR := $(MAKEFILE_DIR)kubernetes/infra
-OCIPIZZA_DIR := $(MAKEFILE_DIR)kubernetes/ocipizza
+INFRA_DIR := $(MAKEFILE_DIR)kubernetes/ocipizza-infra
+OCIPIZZA_DIR := $(MAKEFILE_DIR)kubernetes/ocipizza-services
 SECRETS_DIR := $(MAKEFILE_DIR)kubernetes/secrets
-INGRESS_NGINX_DIR := $(MAKEFILE_DIR)kubernetes/ingress-nginx
-F5_INGRESS_NGINX_DIR := $(MAKEFILE_DIR)kubernetes/f5-ingress-nginx
-OCI_NATIVE_INGRESS_DIR := $(MAKEFILE_DIR)kubernetes/oci-native-ingress
+INGRESS_NGINX_DIR := $(MAKEFILE_DIR)kubernetes/ingress-controllers/ingress-nginx
+F5_INGRESS_NGINX_DIR := $(MAKEFILE_DIR)kubernetes/ingress-controllers/f5-ingress-nginx
+OCI_NATIVE_INGRESS_DIR := $(MAKEFILE_DIR)kubernetes/ingress-controllers/oci-native-ingress
 IMAGE_PULL_SECRET_SCRIPT := $(SECRETS_DIR)/ocir-image-pull-secret-setup.sh
 DELETE_IMAGE_PULL_SECRET_SCRIPT := $(SECRETS_DIR)/ocir-image-pull-secret-remove.sh
 
@@ -52,11 +52,11 @@ MAKE_TARGETS := \
 	delete-image-pull-secret \
 	pvc \
 	delete-pvc \
-	infra \
-	delete-infra \
-	bootstrap \
-	services \
-	delete-services \
+	ocipizza-infra \
+	delete-ocipizza-infra \
+	ocipizza-bootstrap \
+	ocipizza-service \
+	ocipizza-delete-services \
 	ocipizza \
 	delete-ocipizza \
 	ingress-nginx \
@@ -78,11 +78,11 @@ MAKE_TARGETS := \
 	delete-image-pull-secret \
 	pvc \
 	delete-pvc \
-	infra \
-	delete-infra \
-	bootstrap \
-	services \
-	delete-services \
+	ocipizza-infra \
+	delete-ocipizza-infra \
+	ocipizza-bootstrap \
+	ocipizza-service \
+	ocipizza-delete-services \
 	ocipizza \
 	delete-ocipizza \
 	ingress-nginx \
@@ -92,10 +92,10 @@ MAKE_TARGETS := \
 	oci-native-ingress \
 	delete-oci-native-ingress \
 	status \
-	delete-infra-resources
+	delete-ocipizza-infra-resources
 
 # Impede que as etapas do deploy completo sejam executadas em paralelo.
-.NOTPARALLEL: ocipizza delete-ocipizza delete-infra
+.NOTPARALLEL: ocipizza delete-ocipizza delete-ocipizza-infra
 
 # Exibe a identidade do projeto antes da execução de qualquer alvo.
 oci-pizza-banner:
@@ -122,11 +122,11 @@ help: ## Exibe os alvos disponíveis.
 	@printf '%s\n' '' 'Gerenciamento dos PVCs:'
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "pvc" || $$1 == "delete-pvc") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@printf '%s\n' '' 'Gerenciamento dos serviços de infraestrutura:'
-	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "infra" || $$1 == "delete-infra") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "ocipizza-infra" || $$1 == "delete-ocipizza-infra") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@printf '%s\n' '' 'Gerenciamento dos bootstraps:'
-	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && $$1 == "bootstrap" {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && $$1 == "ocipizza-bootstrap" {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@printf '%s\n' '' 'Gerenciamento dos serviços da aplicação OCI Pizza:'
-	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "services" || $$1 == "delete-services") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "ocipizza-service" || $$1 == "ocipizza-delete-services") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@printf '%s\n' '' 'Ingress controllers:'
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ && ($$1 == "ingress-nginx" || $$1 == "delete-ingress-nginx") {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@printf '%s\n' ''
@@ -206,7 +206,7 @@ delete-pvc: ## Exclui os PersistentVolumeClaims dos serviços de infraestrutura.
 		fi; \
 	done
 
-infra: ## Aplica os Deployments e Services da infraestrutura.
+ocipizza-infra: ## Aplica os Deployments e Services da infraestrutura OCI Pizza.
 	@set -e; \
 	for service in $(INFRA_SERVICES); do \
 		script="$(INFRA_DIR)/$$service/deploy.sh"; \
@@ -218,7 +218,7 @@ infra: ## Aplica os Deployments e Services da infraestrutura.
 		"$$script"; \
 	done
 
-delete-infra-resources:
+delete-ocipizza-infra-resources:
 	@set -e; \
 	for service in $(INFRA_SERVICES); do \
 		script="$(INFRA_DIR)/$$service/undeploy.sh"; \
@@ -230,9 +230,9 @@ delete-infra-resources:
 		"$$script"; \
 	done
 
-delete-infra: delete-infra-resources ## Exclui os Deployments e Services da infraestrutura.
+delete-ocipizza-infra: delete-ocipizza-infra-resources ## Exclui os Deployments e Services da infraestrutura OCI Pizza.
 
-services: ## Aplica os Deployments e Services dos microsserviços OCI Pizza.
+ocipizza-service: ## Aplica os Deployments e Services dos microsserviços OCI Pizza.
 	@command -v envsubst >/dev/null 2>&1 || { \
 		echo "Erro: o comando 'envsubst' não está instalado ou não está no PATH." >&2; \
 		exit 1; \
@@ -263,7 +263,7 @@ services: ## Aplica os Deployments e Services dos microsserviços OCI Pizza.
 		kubectl apply --filename "$$service_manifest"; \
 	done
 
-delete-services: ## Exclui os Services e Deployments dos microsserviços OCI Pizza.
+ocipizza-delete-services: ## Exclui os Services e Deployments dos microsserviços OCI Pizza.
 	@set -e; \
 	for service in $(APPLICATION_SERVICES); do \
 		deployment="$(OCIPIZZA_DIR)/$$service/deployment.yaml"; \
@@ -282,9 +282,9 @@ delete-services: ## Exclui os Services e Deployments dos microsserviços OCI Piz
 		kubectl delete --filename "$$deployment" --ignore-not-found; \
 	done
 
-ocipizza: namespace image-pull-secret pvc infra bootstrap services oci-native-ingress ## Implanta todo o laboratório OCI Pizza.
+ocipizza: namespace image-pull-secret pvc ocipizza-infra ocipizza-bootstrap ocipizza-service oci-native-ingress ## Implanta todo o laboratório OCI Pizza.
 
-delete-ocipizza: delete-oci-native-ingress delete-services delete-infra delete-pvc delete-image-pull-secret delete-namespace ## Exclui todo o laboratório OCI Pizza.
+delete-ocipizza: delete-oci-native-ingress ocipizza-delete-services delete-ocipizza-infra delete-pvc delete-image-pull-secret delete-namespace ## Exclui todo o laboratório OCI Pizza.
 
 ingress-nginx: ## Instala o ingress-nginx comunitário via manifesto YAML.
 	@"$(INGRESS_NGINX_DIR)/deploy.sh"
@@ -304,7 +304,7 @@ oci-native-ingress: ##  Instala o OCI Native Ingress Controller standalone.
 delete-oci-native-ingress: ## Exclui o OCI Native Ingress Controller standalone.
 	@"$(OCI_NATIVE_INGRESS_DIR)/undeploy-standalone.sh"
 
-bootstrap: ## Executa os bootstraps dos serviços OCI Pizza.
+ocipizza-bootstrap: ## Executa os bootstraps dos serviços OCI Pizza.
 	@set -e; \
 	for service in $(BOOTSTRAP_SERVICES); do \
 		script="$(OCIPIZZA_DIR)/$$service/bootstrap.sh"; \

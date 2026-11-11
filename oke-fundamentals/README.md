@@ -360,11 +360,11 @@ Os principais alvos são:
   `ocipizza-services`;
 - `make image-pull-secret`: cria ou atualiza o Secret `ocir-secret`;
 - `make pvc`: cria os PVCs definidos para os serviços de infraestrutura;
-- `make infra`: chama o `deploy.sh` de cada serviço de infraestrutura, na
+- `make ocipizza-infra`: chama o `deploy.sh` de cada serviço de infraestrutura, na
   ordem MySQL, NoSQL, RabbitMQ, Redis, ObjectStorage e Mailpit. Os PVCs devem
   ser criados previamente com `make pvc`;
-- `make bootstrap`: executa os scripts de bootstrap dos microsserviços;
-- `make services`: aplica os Deployments e Services dos microsserviços;
+- `make ocipizza-bootstrap`: executa os scripts de bootstrap dos microsserviços;
+- `make ocipizza-service`: aplica os Deployments e Services dos microsserviços;
 - `make status`: exibe Deployments, Pods, Services, PVCs e Secrets do projeto;
 - `make ocipizza`: executa o fluxo completo na ordem namespace,
   image-pull-secret, PVCs, infraestrutura, bootstrap, microsserviços e, por
@@ -372,19 +372,19 @@ Os principais alvos são:
 - `make delete-ocipizza`: remove primeiro o OCI Native Ingress Controller,
   depois microsserviços, infraestrutura, PVCs, Secret do OCIR e namespaces.
 
-O alvo `make infra` utiliza os scripts abaixo, mantendo a lógica de cada
+O alvo `make ocipizza-infra` utiliza os scripts abaixo, mantendo a lógica de cada
 serviço junto aos seus manifestos:
 
 ```text
-kubernetes/infra/mysql/deploy.sh
-kubernetes/infra/nosql/deploy.sh
-kubernetes/infra/rabbitmq/deploy.sh
-kubernetes/infra/redis/deploy.sh
-kubernetes/infra/objectstorage/deploy.sh
-kubernetes/infra/mailpit/deploy.sh
+kubernetes/ocipizza-infra/mysql/deploy.sh
+kubernetes/ocipizza-infra/nosql/deploy.sh
+kubernetes/ocipizza-infra/rabbitmq/deploy.sh
+kubernetes/ocipizza-infra/redis/deploy.sh
+kubernetes/ocipizza-infra/objectstorage/deploy.sh
+kubernetes/ocipizza-infra/mailpit/deploy.sh
 ```
 
-O alvo `make delete-infra` executa os respectivos `undeploy.sh` na mesma ordem
+O alvo `make delete-ocipizza-infra` executa os respectivos `undeploy.sh` na mesma ordem
 e remove os PVCs depois que os Deployments e Services forem excluídos. Os
 scripts verificam os manifestos, exigem `kubectl` no `PATH` e usam
 `--ignore-not-found` durante a remoção.
@@ -392,9 +392,9 @@ scripts verificam os manifestos, exigem `kubectl` no `PATH` e usam
 ## Ingress e Load Balancer
 
 O `ingress-nginx` utiliza um único Service do tipo `LoadBalancer`, definido em
-`kubernetes/ingress-nginx/service.yaml`. Consequentemente, um único Load
+`kubernetes/ingress-controllers/ingress-nginx/service.yaml`. Consequentemente, um único Load
 Balancer OCI atende os hosts configurados em
-`kubernetes/ingress-nginx/ingress.yaml`.
+`kubernetes/ingress-controllers/ingress-nginx/ingress.yaml`.
 
 Os registros DNS abaixo devem apontar para o endereço do mesmo Load Balancer:
 
@@ -428,7 +428,7 @@ make delete-ingress-nginx
 O OCI Native Ingress Controller pode ser instalado no modo standalone com
 Helm. Esse fluxo também aplica os recursos `IngressClassParameters`,
 `IngressClass` e `Ingress` do diretório
-`kubernetes/oci-native-ingress/`:
+`kubernetes/ingress-controllers/oci-native-ingress/`:
 
 ```bash
 export OKE_CLUSTER_ID='<OCID_DO_CLUSTER>'
@@ -542,7 +542,7 @@ exclui qualquer recurso Kubernetes remanescente dentro deles.
 
 ### Bootstrap do pizza-service no OKE
 
-O script `kubernetes/ocipizza/pizza-service/bootstrap.sh` reutiliza o bootstrap
+O script `kubernetes/ocipizza-services/pizza-service/bootstrap.sh` reutiliza o bootstrap
 do `pizza-service` para criar a tabela, cadastrar as pizzas de demonstração,
 criar o bucket e enviar as imagens aos Pods de infraestrutura do cluster. Para
 isso, ele abre temporariamente os seguintes forwards:
@@ -553,7 +553,7 @@ isso, ele abre temporariamente os seguintes forwards:
 Execute o script depois que os Pods de infraestrutura estiverem disponíveis:
 
 ```bash
-./kubernetes/ocipizza/pizza-service/bootstrap.sh
+./kubernetes/ocipizza-services/pizza-service/bootstrap.sh
 ```
 
 O script aguarda os Pods `nosql` e `objectstorage`, executa
@@ -562,7 +562,7 @@ processos de `kubectl port-forward` ao terminar ou receber uma interrupção.
 
 ### Bootstrap do user-service no OKE
 
-O script `kubernetes/ocipizza/user-service/bootstrap.sh` reutiliza o bootstrap
+O script `kubernetes/ocipizza-services/user-service/bootstrap.sh` reutiliza o bootstrap
 original do `user-service` para aplicar as migrations e cadastrar os usuários
 de demonstração no MySQL do cluster. Durante a execução, ele encaminha
 temporariamente `localhost:13306` para a porta 3306 do Pod identificado pelo
@@ -578,7 +578,7 @@ namespace `ocipizza-services`, contendo as seguintes chaves:
 Execute o script depois que o Pod do MySQL estiver disponível:
 
 ```bash
-./kubernetes/ocipizza/user-service/bootstrap.sh
+./kubernetes/ocipizza-services/user-service/bootstrap.sh
 ```
 
 As chaves são obtidas de `services/user-service/secrets/`. Caso ainda não

@@ -9,7 +9,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # A nova estrutura posiciona este script três níveis abaixo de
-# oke-fundamentals: kubernetes/ocipizza/pizza-service/.
+# oke-fundamentals: kubernetes/ocipizza-services/pizza-service/.
 OKE_FUNDAMENTALS_DIR="$(cd -- "${SCRIPT_DIR}/../../.." && pwd)"
 REPOSITORY_DIR="$(cd -- "${OKE_FUNDAMENTALS_DIR}/.." && pwd)"
 PIZZA_SERVICE_DIR="${REPOSITORY_DIR}/services/pizza-service"
