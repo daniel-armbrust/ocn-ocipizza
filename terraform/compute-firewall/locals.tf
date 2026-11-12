@@ -6,13 +6,25 @@ locals {
   # Imagem Oracle Linux 8 compatível com VM.Standard.A1.Flex em GRU.
   compute_firewall_gru = {
     name     = "firewall-gru"
+    
     image_id = "ocid1.image.oc1.sa-saopaulo-1.aaaaaaaatlmyccwaepgtojuuibmmq7k63pcppdabnvbf676e65vcsvmsofdq"
+    
+    private_ips = {
+      "firewall-1" = "10.70.20.10"
+      "firewall-2" = "10.70.20.20"
+    }
   }
 
   # Imagem Oracle Linux 8 compatível com VM.Standard.A1.Flex em VCP.
   compute_firewall_vcp = {
     name     = "firewall-vcp"
+    
     image_id = "ocid1.image.oc1.sa-vinhedo-1.aaaaaaaagfwe2thy25z3qu2fdeiui72mgat7qulz7pqjrzrxupxp3beksqhq"
+    
+    private_ips = {
+      "firewall-1" = "10.80.20.10"
+      "firewall-2" = "10.80.20.20"
+    }
   }
 
   # Parâmetros fixos do shape ARM escolhido para o firewall.
@@ -28,6 +40,8 @@ locals {
   resource_names = {
     instance = "${local.config.name}-${var.firewall_index}"
   }
+
+  private_ip = local.config.private_ips["firewall-${var.firewall_index}"]
 
   # A instância possui somente uma VNIC na sub-rede privada do firewall.
   vnic_names = {

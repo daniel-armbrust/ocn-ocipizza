@@ -191,10 +191,13 @@ O módulo `compute-firewall/` cria instâncias `VM.Standard.A1.Flex` com 2 OCPUs
 4 GB de memória e uma VNIC privada na sub-rede do firewall. O firewall recebe
 o tráfego encaminhado pelo NLB, habilita forwarding IPv4 e aplica MASQUERADE
 para a saída pelo NAT Gateway. O plugin `Bastion` do Oracle Cloud Agent é
-habilitado para permitir sessões administrativas pelo OCI Bastion Service.
+habilitado para permitir sessões administrativas pelo OCI Bastion Service. As
+VNICs usam endereços privados fixos: `10.70.20.10` e `10.70.20.20` em GRU e
+`10.80.20.10` e `10.80.20.20` em VCP, respectivamente para os firewalls 1 e 2.
 
 O módulo `nlb/` cria um Network Load Balancer privado, preservando origem e
-distribuindo o tráfego para os backends dos firewalls.
+distribuindo o tráfego para os backends dos firewalls. O NLB usa o endereço
+privado fixo `10.70.10.5` em GRU e `10.80.10.5` em VCP.
 
 O módulo `drg/` cria um DRG por região e anexa as VCNs de firewall, OKE, CI,
 SERVICES e banco. A tabela `to-firewall-drg-rt` encaminha a rota padrão dos spokes para o

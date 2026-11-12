@@ -10,6 +10,11 @@ variable "compartment_id" {
 variable "region_key" {
   description = "Chave da região do NLB: gru ou vcp."
   type        = string
+
+  validation {
+    condition     = contains(["gru", "vcp"], var.region_key)
+    error_message = "A chave da região do NLB deve ser gru ou vcp."
+  }
 }
 
 variable "subnet_id" {

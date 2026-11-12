@@ -18,8 +18,8 @@ variable "firewall_index" {
   default     = 1
 
   validation {
-    condition     = var.firewall_index >= 1
-    error_message = "O índice do firewall deve ser maior ou igual a 1."
+    condition     = contains([1, 2], var.firewall_index)
+    error_message = "O índice do firewall deve ser 1 ou 2."
   }
 }
 

@@ -35,6 +35,7 @@ resource "oci_core_instance" "this" {
     display_name              = local.vnic_names.firewall.display_name
     subnet_id                 = var.subnet_ids.firewall
     assign_public_ip          = false
+    private_ip                = local.private_ip
     assign_private_dns_record = true
     hostname_label            = local.vnic_names.firewall.hostname_label
 

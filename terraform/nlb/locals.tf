@@ -3,6 +3,12 @@
 #
 
 locals {
+  # Endereço privado fixo do NLB na sub-rede regional dedicada.
+  private_ips = {
+    gru = "10.70.10.5"
+    vcp = "10.80.10.5"
+  }
+
   # Cada porta possui um backend set próprio, pois o backend recebe o mesmo
   # número de porta encaminhado pelo listener.
   backend_sets = {
@@ -27,4 +33,6 @@ locals {
       ]
     ]) : item.key => item
   }
+
+  private_ip = local.private_ips[var.region_key]
 }

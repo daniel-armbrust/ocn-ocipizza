@@ -8,6 +8,7 @@ resource "oci_network_load_balancer_network_load_balancer" "this" {
   compartment_id                 = var.compartment_id
   display_name                   = "nlb-firewall-${var.region_key}"
   subnet_id                      = var.subnet_id
+  assigned_private_ipv4          = local.private_ip
   is_private                     = true
   is_preserve_source_destination = true
   is_symmetric_hash_enabled      = true
