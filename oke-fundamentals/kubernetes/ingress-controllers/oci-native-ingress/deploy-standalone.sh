@@ -22,7 +22,8 @@ CONTROLLER_READY_POLL_INTERVAL=5
 REPLICA_COUNT="2"
 INGRESS_CLASS_PARAMETERS_MANIFEST="${SCRIPT_DIR}/IngressClassParameters.yaml"
 INGRESS_CLASS_MANIFEST="${SCRIPT_DIR}/IngressClass.yaml"
-INGRESS_MANIFEST="${SCRIPT_DIR}/Ingress.yaml"
+SERVICES_INGRESS_MANIFEST="${SCRIPT_DIR}/ocipizza-services-ingress.yaml"
+INFRA_INGRESS_MANIFEST="${SCRIPT_DIR}/ocipizza-infra-ingress.yaml"
 OKE_CLUSTER_ID="${OKE_CLUSTER_ID:-}"
 OKE_LOAD_BALANCER_COMPARTMENT_ID="${OKE_LOAD_BALANCER_COMPARTMENT_ID:-}"
 OKE_LOAD_BALANCER_SUBNET_ID="${OKE_LOAD_BALANCER_SUBNET_ID:-}"
@@ -262,7 +263,8 @@ apply_ingress_resources() {
   for manifest_path in \
     "$INGRESS_CLASS_PARAMETERS_MANIFEST" \
     "$INGRESS_CLASS_MANIFEST" \
-    "$INGRESS_MANIFEST"; do
+    "$SERVICES_INGRESS_MANIFEST" \
+    "$INFRA_INGRESS_MANIFEST"; do
     if [[ ! -f "$manifest_path" ]]; then
       echo "Erro: manifesto não encontrado: ${manifest_path}" >&2
       exit 1
@@ -278,8 +280,11 @@ apply_ingress_resources() {
   echo "Aplicando IngressClass.yaml..."
   kubectl apply --filename "$INGRESS_CLASS_MANIFEST"
 
-  echo "Aplicando Ingress.yaml..."
-  kubectl apply --filename "$INGRESS_MANIFEST"
+  echo "Aplicando ocipizza-services-ingress.yaml..."
+  kubectl apply --filename "$SERVICES_INGRESS_MANIFEST"
+
+  echo "Aplicando ocipizza-infra-ingress.yaml..."
+  kubectl apply --filename "$INFRA_INGRESS_MANIFEST"
 }
 
 # Execução principal

@@ -12,7 +12,8 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 NATIVE_INGRESS_NAMESPACE="native-ingress-controller-system"
 RELEASE_NAME="oci-native-ingress-controller"
 CERT_MANAGER_MANIFEST="https://github.com/jetstack/cert-manager/releases/latest/download/cert-manager.yaml"
-INGRESS_MANIFEST="${SCRIPT_DIR}/Ingress.yaml"
+SERVICES_INGRESS_MANIFEST="${SCRIPT_DIR}/ocipizza-services-ingress.yaml"
+INFRA_INGRESS_MANIFEST="${SCRIPT_DIR}/ocipizza-infra-ingress.yaml"
 INGRESS_CLASS_MANIFEST="${SCRIPT_DIR}/IngressClass.yaml"
 INGRESS_CLASS_PARAMETERS_MANIFEST="${SCRIPT_DIR}/IngressClassParameters.yaml"
 
@@ -67,7 +68,8 @@ delete_ingress_resources() {
   local manifest_path
 
   for manifest_path in \
-    "$INGRESS_MANIFEST" \
+    "$SERVICES_INGRESS_MANIFEST" \
+    "$INFRA_INGRESS_MANIFEST" \
     "$INGRESS_CLASS_MANIFEST" \
     "$INGRESS_CLASS_PARAMETERS_MANIFEST"; do
     

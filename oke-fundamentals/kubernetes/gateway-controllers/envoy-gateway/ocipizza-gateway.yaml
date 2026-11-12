@@ -1,0 +1,15 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: ocipizza-envoy-gateway
+  namespace: default
+spec:
+  gatewayClassName: oci-envoy-gateway-class
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+    allowedRoutes:
+      namespaces:
+        # Permite rotas do namespace ocipizza-services.
+        from: All

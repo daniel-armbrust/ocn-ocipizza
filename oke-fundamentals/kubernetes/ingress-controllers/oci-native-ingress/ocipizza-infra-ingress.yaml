@@ -1,0 +1,55 @@
+# Regras de roteamento das interfaces administrativas da infraestrutura.
+# Os Services abaixo pertencem ao namespace ocipizza-infra.
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: infra-ocipizza-com-br
+  namespace: ocipizza-infra
+  annotations:
+    # Usa o mesmo listener HTTP público na porta 80 para as interfaces de infraestrutura.
+    # O host recebido define qual backend será utilizado.
+    oci-native-ingress.oraclecloud.com/http-listener-port: "80"
+
+    # Configura a política e as verificações de saúde dos backends.
+    oci-native-ingress.oraclecloud.com/policy: "LEAST_CONNECTIONS"
+    oci-native-ingress.oraclecloud.com/listener-connection-idle-timeout: "60"
+    oci-native-ingress.oraclecloud.com/healthcheck-interval-milliseconds: "10000"
+    oci-native-ingress.oraclecloud.com/healthcheck-timeout-milliseconds: "3000"
+    oci-native-ingress.oraclecloud.com/healthcheck-retries: "3"
+spec:
+  ingressClassName: ocipizza-native-ingress
+
+  rules:
+    - host: mailpit.ocipizza.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mailpit
+                port:
+                  name: http
+
+    - host: rabbitmq.ocipizza.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: rabbitmq
+                port:
+                  name: management
+
+    - host: objectstorage.ocipizza.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: objectstorage
+                port:
+                  name: console

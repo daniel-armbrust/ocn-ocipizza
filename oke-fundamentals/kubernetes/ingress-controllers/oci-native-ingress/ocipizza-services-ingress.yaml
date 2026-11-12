@@ -1,0 +1,52 @@
+# Regras de roteamento dos serviços da aplicação OCI PIZZA.
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: www-ocipizza-com-br
+  namespace: ocipizza-services
+  annotations:
+    # Consolida os backends do frontend e do admin em um listener HTTP público na porta 80.
+    oci-native-ingress.oraclecloud.com/http-listener-port: "80"
+
+    # Distribui novas conexões para o backend menos ocupado.
+    oci-native-ingress.oraclecloud.com/policy: "LEAST_CONNECTIONS"
+
+    # Define o tempo máximo de inatividade da conexão.
+    oci-native-ingress.oraclecloud.com/listener-connection-idle-timeout: "60"
+
+    # Configura as verificações de saúde dos backends.
+    oci-native-ingress.oraclecloud.com/healthcheck-interval-milliseconds: "10000"
+    oci-native-ingress.oraclecloud.com/healthcheck-timeout-milliseconds: "3000"
+    oci-native-ingress.oraclecloud.com/healthcheck-retries: "3"
+spec:
+  ingressClassName: ocipizza-native-ingress
+
+  # O frontend atende as requisições que não correspondem a /admin ou /kitchen.
+  defaultBackend:
+    service:
+      name: frontend-service
+      port:
+        name: http
+
+  rules:
+    - host: www.ocipizza.com.br
+      http:
+        paths:
+          # O admin-service atende a área administrativa.
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-service
+                port:
+                  name: http
+
+          # O mesmo serviço atende a operação da cozinha.
+          - path: /kitchen
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-service
+                port:
+                  name: http

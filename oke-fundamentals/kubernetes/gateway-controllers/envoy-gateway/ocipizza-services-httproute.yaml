@@ -1,0 +1,38 @@
+# Rotas públicas do OCI Pizza atendidas pelo Envoy Gateway.
+# O frontend recebe a rota raiz, enquanto o admin-service atende as áreas
+# administrativa e operacional da cozinha.
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ocipizza-http-route
+  namespace: ocipizza-services
+spec:
+  parentRefs:
+    - name: ocipizza-envoy-gateway
+      namespace: default
+
+  hostnames:
+    - www.ocipizza.com.br
+
+  rules:
+    # As rotas mais específicas são avaliadas antes da rota raiz.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /admin
+        - path:
+            type: PathPrefix
+            value: /kitchen
+      backendRefs:
+        - name: admin-service
+          port: 8000
+
+    # A rota raiz encaminha as demais requisições para o frontend.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: frontend-service
+          port: 8000

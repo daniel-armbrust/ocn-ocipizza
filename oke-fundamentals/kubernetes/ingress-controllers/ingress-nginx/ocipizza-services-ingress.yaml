@@ -1,0 +1,41 @@
+# Encaminha as requisições do domínio do OCI PIZZA para os serviços da aplicação.
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: www-ocipizza-com-br
+  namespace: ocipizza-services
+spec:
+  # Classe criada pelo manifesto oficial do ingress-nginx.
+  ingressClassName: nginx
+
+  # Usa o frontend como fallback para qualquer requisição sem uma regra
+  # específica de host e caminho.
+  defaultBackend:
+    service:
+      name: frontend-service
+      port:
+        name: http
+
+  rules:
+    - host: www.ocipizza.com.br
+      http:
+        paths:
+          # O admin-service atende /admin e os caminhos abaixo dele.
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-service
+                port:
+                  name: http
+
+          # O kitchen também pertence ao admin-service, mas possui regras de
+          # autorização próprias para usuários da operação da cozinha.
+          - path: /kitchen
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-service
+                port:
+                  name: http

@@ -1,0 +1,74 @@
+# Rotas das interfaces administrativas dos serviços de infraestrutura.
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: mailpit-http-route
+  namespace: ocipizza-infra
+spec:
+  parentRefs:
+    - name: ocipizza-envoy-gateway
+      namespace: default
+
+  hostnames:
+    - mailpit.ocipizza.com.br
+
+  rules:
+    # Interface web do Mailpit.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: mailpit
+          port: 8025
+
+---
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rabbitmq-http-route
+  namespace: ocipizza-infra
+spec:
+  parentRefs:
+    - name: ocipizza-envoy-gateway
+      namespace: default
+
+  hostnames:
+    - rabbitmq.ocipizza.com.br
+
+  rules:
+    # Interface de gerenciamento do RabbitMQ.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: rabbitmq
+          port: 15672
+
+---
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: objectstorage-http-route
+  namespace: ocipizza-infra
+spec:
+  parentRefs:
+    - name: ocipizza-envoy-gateway
+      namespace: default
+
+  hostnames:
+    - objectstorage.ocipizza.com.br
+
+  rules:
+    # Console administrativo do Object Storage.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: objectstorage
+          port: 9001

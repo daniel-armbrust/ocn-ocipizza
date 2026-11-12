@@ -1,8 +1,5 @@
 services:
 
-  # TODO: “A aplicação que hoje funciona localmente continua funcionando
-  # quando troco os mocks/serviços locais pelos serviços reais do OCI?”
-
   # Microserviço responsável pelo gerenciamento do catálogo 
   # de pizzas.
   pizza-service:

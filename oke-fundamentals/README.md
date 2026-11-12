@@ -367,10 +367,10 @@ Os principais alvos são:
 - `make ocipizza-service`: aplica os Deployments e Services dos microsserviços;
 - `make status`: exibe Deployments, Pods, Services, PVCs e Secrets do projeto;
 - `make ocipizza`: executa o fluxo completo na ordem namespace,
-  image-pull-secret, PVCs, infraestrutura, bootstrap, microsserviços e, por
-  último, o OCI Native Ingress Controller standalone;
-- `make delete-ocipizza`: remove primeiro o OCI Native Ingress Controller,
-  depois microsserviços, infraestrutura, PVCs, Secret do OCIR e namespaces.
+  image-pull-secret, PVCs, infraestrutura, bootstrap e microsserviços. Os
+  Ingress Controllers são instalados separadamente;
+- `make delete-ocipizza`: remove microsserviços, infraestrutura, PVCs, Secret
+  do OCIR e namespaces. Os Ingress Controllers são gerenciados separadamente.
 
 O alvo `make ocipizza-infra` utiliza os scripts abaixo, mantendo a lógica de cada
 serviço junto aos seus manifestos:
@@ -394,7 +394,8 @@ scripts verificam os manifestos, exigem `kubectl` no `PATH` e usam
 O `ingress-nginx` utiliza um único Service do tipo `LoadBalancer`, definido em
 `kubernetes/ingress-controllers/ingress-nginx/service.yaml`. Consequentemente, um único Load
 Balancer OCI atende os hosts configurados em
-`kubernetes/ingress-controllers/ingress-nginx/ingress.yaml`.
+`kubernetes/ingress-controllers/ingress-nginx/ocipizza-services-ingress.yaml`
+e `kubernetes/ingress-controllers/ingress-nginx/ocipizza-infra-ingress.yaml`.
 
 Os registros DNS abaixo devem apontar para o endereço do mesmo Load Balancer:
 
@@ -439,10 +440,19 @@ make oci-native-ingress
 make delete-oci-native-ingress
 ```
 
+O Envoy Gateway Controller e as rotas baseadas em Gateway API são gerenciados
+separadamente:
+
+```bash
+make envoy-gateway
+make delete-envoy-gateway
+```
+
 O `IngressClassParameters.yaml` é renderizado pelo script com `envsubst`
-antes de ser aplicado. O Load Balancer criado pelo OCI Native Ingress
-Controller é independente do Service `LoadBalancer` usado pelo
-`ingress-nginx`.
+antes de ser aplicado. As regras de roteamento são separadas em
+`ocipizza-services-ingress.yaml` e `ocipizza-infra-ingress.yaml`. O Load
+Balancer criado pelo OCI Native Ingress Controller é independente do Service
+`LoadBalancer` usado pelo `ingress-nginx`.
 
 No OCI Native Ingress, os Ingresses da aplicação e da infraestrutura utilizam
 um único listener HTTP público na porta `80`, configurado pela annotation:

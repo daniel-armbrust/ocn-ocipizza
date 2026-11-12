@@ -1,0 +1,36 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: oci-flexible-proxy
+  namespace: envoy-gateway-system
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        annotations:
+          # Define o Load Balancer público do OCI.
+          oci.oraclecloud.com/load-balancer-type: "lb"
+          service.beta.kubernetes.io/oci-load-balancer-internal: "false"
+
+          # Define o Load Balancer flexível e seus limites de largura de banda.
+          service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
+          service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+          service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "12"
+
+          # Define o tempo máximo de inatividade da conexão.
+          service.beta.kubernetes.io/oci-load-balancer-connection-idle-timeout: "60"
+
+          # Configura o protocolo HTTP utilizado entre o Load Balancer e os Pods.
+          service.beta.kubernetes.io/oci-load-balancer-backend-protocol: "HTTP"
+
+          # Configura as verificações de saúde dos backends.
+          service.beta.kubernetes.io/oci-load-balancer-health-check-retries: "3"
+          service.beta.kubernetes.io/oci-load-balancer-health-check-timeout: "3000"
+          service.beta.kubernetes.io/oci-load-balancer-health-check-interval: "10000"
+
+          # Mantém as regras de segurança sob gerenciamento manual.
+          service.beta.kubernetes.io/oci-load-balancer-security-list-management-mode: "None"
+
+          # Distribui novas conexões para o backend menos ocupado.
+          oci.oraclecloud.com/loadbalancer-policy: "LEAST_CONNECTIONS"
