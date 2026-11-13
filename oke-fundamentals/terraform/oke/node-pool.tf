@@ -44,7 +44,7 @@ resource "oci_containerengine_node_pool" "this" {
   node_metadata = {
     # Desabilita os endpoints legados do Instance Metadata Service.
     areLegacyImdsEndpointsDisabled = "true"
-    user_data                      = filebase64("${path.module}/scripts/oke-cloudinit.sh")
+    user_data                      = filebase64(local.worker_cloud_init_path)
   }
 
   dynamic "node_source_details" {

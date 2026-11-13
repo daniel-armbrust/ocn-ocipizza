@@ -6,7 +6,7 @@ resource "oci_containerengine_cluster" "this" {
   compartment_id     = var.compartment_id
   kubernetes_version = var.kubernetes_version
   name               = local.cluster_name
-  type               = "BASIC_CLUSTER"
+  type               = local.cluster_type
   vcn_id             = var.vcn_id
 
   # O endpoint do Kubernetes API fica privado na sub-rede própria do OKE.

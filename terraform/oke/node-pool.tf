@@ -9,7 +9,7 @@ resource "oci_containerengine_node_pool" "this" {
   name               = local.node_pool_name
   node_shape         = local.node_shape
 
-  # Dois workers na sub-rede privada exclusiva dos nodes.
+  # Três workers na sub-rede privada exclusiva dos nodes.
   node_config_details {
     placement_configs {
       availability_domain = data.oci_identity_availability_domains.this.availability_domains[0].name
@@ -24,17 +24,17 @@ resource "oci_containerengine_node_pool" "this" {
     ocpus         = local.node_ocpus
   }
 
-  # A chave é opcional; quando informada, permite acesso SSH administrativo
-  # aos worker nodes sem alterar o funcionamento do cluster.
-  ssh_public_key = var.ssh_public_key
+  # Instala somente a chave pública local para acesso SSH administrativo.
+  ssh_public_key = local.worker_ssh_public_key
 
-  # Desabilita os endpoints legados do Instance Metadata Service nos workers.
+  # O cloud-init personalizado preserva o bootstrap padrão do OKE e aplica as
+  # configurações adicionais dos worker nodes.
   node_metadata = {
-    # Desabilita os endpoints legados do Instance Metadata Service.
     areLegacyImdsEndpointsDisabled = "true"
+    user_data                      = base64encode(file(local.worker_cloud_init_path))
   }
 
-  # O image_id é consultado no catálogo de opções do OKE para garantir ARM.
+  # O image_id é consultado no catálogo de opções do OKE para garantir x86_64.
   # O precondition produz uma mensagem clara se não houver imagem compatível.
   dynamic "node_source_details" {
     for_each = local.selected_worker_image_id == null ? [] : [local.selected_worker_image_id]
@@ -48,7 +48,7 @@ resource "oci_containerengine_node_pool" "this" {
   lifecycle {
     precondition {
       condition     = local.selected_worker_image_id != null
-      error_message = "Não foi encontrada imagem ARM Oracle Linux compatível para os worker nodes. Informe worker_image_id."
+      error_message = "Não foi encontrada imagem x86_64 Oracle Linux compatível para os worker nodes. Informe worker_image_id."
     }
   }
 }

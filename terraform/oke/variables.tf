@@ -37,6 +37,17 @@ variable "worker_subnet_id" {
   type        = string
 }
 
+variable "cluster_type" {
+  description = "Tipo do cluster OKE: BASIC ou ENHANCED."
+  type        = string
+  default     = "BASIC"
+
+  validation {
+    condition     = contains(["BASIC", "ENHANCED"], var.cluster_type)
+    error_message = "cluster_type deve ser BASIC ou ENHANCED."
+  }
+}
+
 variable "kubernetes_version" {
   description = <<-EOT
     Versão do Kubernetes usada pelo control plane e pelos worker nodes.
@@ -48,13 +59,7 @@ variable "kubernetes_version" {
 }
 
 variable "worker_image_id" {
-  description = "OCID opcional da imagem ARM dos worker nodes; se nulo, o OKE escolhe uma imagem compatível."
-  type        = string
-  default     = null
-}
-
-variable "ssh_public_key" {
-  description = "Chave pública opcional instalada nos worker nodes."
+  description = "OCID opcional da imagem x86_64 dos worker nodes; se nulo, o OKE escolhe uma imagem compatível."
   type        = string
   default     = null
 }

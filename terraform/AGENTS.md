@@ -99,10 +99,10 @@ Para arquivos diretamente em `terraform/`, use somente o nome do arquivo:
 - Load Balancers públicos devem usar a sub-rede `loadbalancer`.
 - Worker nodes devem usar a sub-rede privada `worker_nodes`.
 - O cluster atual usa `BASIC_CLUSTER` e `FLANNEL_OVERLAY`.
-- O node pool padrão possui dois `VM.Standard.A1.Flex`, com 3 OCPUs e 6 GB
+- O node pool padrão possui três `VM.Standard.E4.Flex`, com 2 OCPUs e 4 GB
   de memória por node.
 - Não altere a versão do Kubernetes sem verificar a compatibilidade da imagem
-  ARM, do provider OCI e das regiões GRU e VCP.
+  x86_64, do provider OCI e das regiões GRU e VCP.
 - Mudanças no OKE devem considerar rotas para o Service Gateway, DRG,
   endpoints privados e requisitos de registro dos worker nodes.
 

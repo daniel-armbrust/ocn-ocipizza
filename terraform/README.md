@@ -35,9 +35,9 @@ terraform/
 │   └── subnet.tf            # Sub-redes LB, workers e Kubernetes API
 ├── oke/
 │   ├── locals.tf             # Nome, CNI, shape e capacidade do cluster
-│   ├── datasource.tf         # Availability Domain e imagens ARM compatíveis
+│   ├── datasource.tf         # Availability Domain e imagens x86_64 compatíveis
 │   ├── cluster.tf             # Cluster OKE com API privado e LB público
-│   ├── node-pool.tf           # Dois workers A1 Flex na sub-rede privada
+│   ├── node-pool.tf           # Três workers E4 Flex na sub-rede privada
 │   ├── providers.tf           # Provider OCI exigido pelo módulo
 │   ├── variables.tf           # VCN, sub-redes e versão do Kubernetes
 │   └── outputs.tf             # IDs do cluster e do node pool
@@ -138,10 +138,13 @@ O módulo `oke/` cria um cluster em cada região a partir da VCN-OKE
 correspondente. O endpoint do Kubernetes API é privado e fica na sub-rede
 `kube_api`; os Load Balancers públicos são criados na sub-rede
 `loadbalancer`; e os worker nodes ficam na sub-rede privada `worker_nodes`.
-O cluster usa `FLANNEL_OVERLAY`, dois worker nodes `VM.Standard.A1.Flex`, com
-3 OCPUs e 6 GB de memória por node. A versão padrão é `v1.34.10`, mantida
+O cluster usa `FLANNEL_OVERLAY`, três worker nodes `VM.Standard.E4.Flex`, com
+2 OCPUs e 4 GB de memória por node. A versão padrão é `v1.34.10`, mantida
 como duas versões menores atrás da linha estável usada neste material; ela
-pode ser substituída pela variável `kubernetes_version` do módulo.
+pode ser substituída pela variável `kubernetes_version` do módulo. O módulo
+instala nos workers a chave pública local `oke/keys/worker-nodes.pub` e executa
+`oke/scripts/oke-cloudinit.sh` como cloud-init, preservando o bootstrap padrão
+do OKE e aplicando as configurações adicionais do sistema operacional.
 
 O módulo `nosql/` cria as tabelas `pizzas`, `delivery_areas` e `orders` com
 limites iniciais de 5 read units, 5 write units e 1 GB de armazenamento. As
