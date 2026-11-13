@@ -48,9 +48,9 @@ consulte a [documentação oficial da Oracle Cloud Infrastructure](https://docs.
 revise os impactos de segurança e custos e adapte as configurações às
 necessidades do seu ambiente.
 
-## Arquitetura Multi-Região da Aplicação OCI Pizza no OCI
+## Arquitetura Multi-Região da Aplicação
 
-![Arquitetura Multi-Região da Aplicação OCI Pizza no OCI](docs/img/ocipizza-topologia-1.png)
+![Arquitetura Multi-Região da Aplicação](docs/img/ocipizza-arch-1.png)
 
 ## Instruções para agentes (`AGENTS.md`)
 
