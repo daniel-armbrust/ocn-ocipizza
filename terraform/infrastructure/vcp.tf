@@ -42,6 +42,7 @@ module "oke_vcp" {
   load_balancer_subnet_id = module.vcn_oke_vcp.subnet_ids.loadbalancer
   kube_api_subnet_id      = module.vcn_oke_vcp.subnet_ids.kube_api
   worker_subnet_id        = module.vcn_oke_vcp.subnet_ids.worker_nodes
+  ssh_public_key          = var.oke_worker_ssh_public_key
 }
 
 # VCN-DB em Vinhedo.
@@ -175,7 +176,7 @@ module "compute_firewall_vcp" {
   compartment_id = var.compartment_id
   region_key     = "vcp"
   subnet_ids     = module.vcn_firewall_vcp.subnet_ids
-  ssh_public_key = local.firewall_ssh_public_key
+  ssh_public_key = var.firewall_ssh_public_key
 }
 
 # Segundo Compute Firewall em Vinhedo, usado como backend do NLB.
@@ -190,7 +191,7 @@ module "compute_firewall_vcp_2" {
   region_key     = "vcp"
   firewall_index = 2
   subnet_ids     = module.vcn_firewall_vcp.subnet_ids
-  ssh_public_key = local.firewall_ssh_public_key
+  ssh_public_key = var.firewall_ssh_public_key
 }
 
 # NLB privado que distribui o tráfego TCP para os dois firewalls de VCP.

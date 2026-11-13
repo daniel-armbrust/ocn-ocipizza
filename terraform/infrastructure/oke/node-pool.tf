@@ -24,8 +24,8 @@ resource "oci_containerengine_node_pool" "this" {
     ocpus         = local.node_ocpus
   }
 
-  # Instala somente a chave pública local para acesso SSH administrativo.
-  ssh_public_key = local.worker_ssh_public_key
+  # Instala somente a chave pública recebida pela stack para acesso SSH.
+  ssh_public_key = var.ssh_public_key
 
   # O cloud-init personalizado preserva o bootstrap padrão do OKE e aplica as
   # configurações adicionais dos worker nodes.

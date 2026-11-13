@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# terraform/oke/scripts/oke-cloudinit.sh
+# terraform/infrastructure/oke/scripts/oke-cloudinit.sh
 #
 # Inicializa um worker node gerenciado pelo OKE preservando o script padrão
 # de inicialização do serviço Kubernetes Engine e reservando recursos para

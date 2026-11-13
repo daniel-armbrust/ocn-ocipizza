@@ -27,9 +27,6 @@ locals {
   # Caminho do cloud-init aplicado aos worker nodes.
   worker_cloud_init_path = "${path.module}/scripts/oke-cloudinit.sh"
 
-  # Somente a chave pública é enviada ao metadata dos worker nodes.
-  worker_ssh_public_key = file("${path.module}/keys/worker-nodes.pub")
-
   # O filtro x86_64 + Oracle Linux evita selecionar uma imagem ARM ou de outro
   # sistema operacional quando o OCI retornar várias opções.
   compatible_worker_images = sort([

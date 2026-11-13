@@ -43,6 +43,7 @@ module "oke_gru" {
   load_balancer_subnet_id = module.vcn_oke_gru.subnet_ids.loadbalancer
   kube_api_subnet_id      = module.vcn_oke_gru.subnet_ids.kube_api
   worker_subnet_id        = module.vcn_oke_gru.subnet_ids.worker_nodes
+  ssh_public_key          = var.oke_worker_ssh_public_key
 }
 
 # VCN-DB em São Paulo.
@@ -210,7 +211,7 @@ module "compute_firewall_gru" {
   compartment_id = var.compartment_id
   region_key     = "gru"
   subnet_ids     = module.vcn_firewall_gru.subnet_ids
-  ssh_public_key = local.firewall_ssh_public_key
+  ssh_public_key = var.firewall_ssh_public_key
 }
 
 # Segundo Compute Firewall em São Paulo, usado como backend do NLB.
@@ -225,7 +226,7 @@ module "compute_firewall_gru_2" {
   region_key     = "gru"
   firewall_index = 2
   subnet_ids     = module.vcn_firewall_gru.subnet_ids
-  ssh_public_key = local.firewall_ssh_public_key
+  ssh_public_key = var.firewall_ssh_public_key
 }
 
 # NLB privado que distribui o tráfego TCP para os dois firewalls de GRU.
