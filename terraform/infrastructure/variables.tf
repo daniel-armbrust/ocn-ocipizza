@@ -8,15 +8,11 @@ variable "compartment_id" {
 }
 
 variable "firewall_ssh_public_key" {
-  description = "Chave pública SSH opcional instalada nos Compute Firewalls."
+  description = "Conteúdo da chave pública SSH instalada nos Compute Firewalls."
   type        = string
-  default     = null
-  nullable    = true
 }
 
 variable "oke_worker_ssh_public_key" {
-  description = "Chave pública SSH opcional instalada nos worker nodes do OKE."
+  description = "Conteúdo da chave pública SSH instalada nos worker nodes do OKE."
   type        = string
-  default     = null
-  nullable    = true
 }

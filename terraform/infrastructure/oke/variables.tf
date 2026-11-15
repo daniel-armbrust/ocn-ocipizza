@@ -65,8 +65,6 @@ variable "worker_image_id" {
 }
 
 variable "ssh_public_key" {
-  description = "Chave pública SSH opcional instalada nos worker nodes."
+  description = "Conteúdo da chave pública SSH instalada nos worker nodes."
   type        = string
-  default     = null
-  nullable    = true
 }

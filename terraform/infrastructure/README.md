@@ -19,8 +19,12 @@ A infraestrutura é distribuída entre as regiões `sa-saopaulo-1` (GRU) e `sa-v
 | `remote-peering.tf` | Declara o peering remoto entre os DRGs regionais. |
 | `dns.tf` | Compõe a zona DNS pública e seus registros. |
 | `outputs.tf` | Publica identificadores e atributos da infraestrutura. |
-| `iam.tf` | Arquivo reservado para recursos IAM da infraestrutura; atualmente está vazio. |
 | `README.md` | Documenta o propósito do diretório e seus arquivos. |
+
+Os recursos e as policies IAM necessários ao provisionamento e à execução dos
+workloads são responsabilidade exclusiva de `terraform/bootstrap`. Dessa forma,
+as permissões existem antes da execução dos jobs deste root module no OCI
+Resource Manager.
 
 ## Arquivos comuns aos módulos
 
@@ -109,7 +113,7 @@ Declara o Dynamic Routing Gateway e a conectividade das VCNs regionais.
 
 ### `compute-firewall/`
 
-Declara as instâncias Compute responsáveis pela inspeção do tráfego regional.
+Declara as instâncias Compute responsáveis pela inspeção do tráfego regional. O módulo recebe o conteúdo da chave pública SSH pela variável `ssh_public_key`.
 
 | Arquivo | Função |
 | --- | --- |
@@ -118,7 +122,6 @@ Declara as instâncias Compute responsáveis pela inspeção do tráfego regiona
 | `config/README.md` | Documenta os arquivos de configuração. |
 | `scripts/configure-firewall.sh` | Configura o firewall durante sua inicialização. |
 | `scripts/README.md` | Documenta os scripts do módulo. |
-| `keys/README.md` | Documenta a finalidade das chaves SSH. |
 | `datasource.tf`, `locals.tf`, `providers.tf`, `variables.tf`, `outputs.tf` | Implementam as responsabilidades comuns descritas anteriormente. |
 
 ### `nlb/`
@@ -137,14 +140,13 @@ Declara o Network Load Balancer privado que distribui tráfego entre os firewall
 
 ### `oke/`
 
-Declara os clusters OKE regionais e seus node pools privados.
+Declara os clusters OKE regionais e seus node pools privados. O módulo recebe o conteúdo da chave pública SSH pela variável `ssh_public_key`.
 
 | Arquivo | Função |
 | --- | --- |
 | `cluster.tf` | Declara o cluster OKE e seus endpoints. |
 | `node-pool.tf` | Declara o node pool e os worker nodes. |
 | `scripts/oke-cloudinit.sh` | Define a inicialização complementar dos worker nodes. |
-| `keys/README.md` | Documenta a finalidade da chave SSH dos workers. |
 | `datasource.tf`, `locals.tf`, `providers.tf`, `variables.tf`, `outputs.tf` | Implementam as responsabilidades comuns descritas anteriormente. |
 
 ## Módulos de serviços gerenciados

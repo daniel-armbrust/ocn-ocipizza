@@ -31,7 +31,6 @@ variable "subnet_ids" {
 }
 
 variable "ssh_public_key" {
-  description = "Chave pública SSH opcional para acesso administrativo."
+  description = "Conteúdo da chave pública SSH para acesso administrativo."
   type        = string
-  default     = null
 }

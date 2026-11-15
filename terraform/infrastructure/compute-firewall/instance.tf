@@ -43,13 +43,11 @@ resource "oci_core_instance" "this" {
     skip_source_dest_check = true
   }
 
-  metadata = merge(
-    var.ssh_public_key == null ? {} : {
-      ssh_authorized_keys = var.ssh_public_key
-    },
-    {
-      # O cloud-init executa o script de preparação do firewall no primeiro boot.
-      user_data = base64encode(file("${path.module}/scripts/configure-firewall.sh"))
-    }
-  )
+  metadata = {
+    # Recebe o conteúdo da chave pública informado pela variável do stack.
+    ssh_authorized_keys = var.ssh_public_key
+
+    # O cloud-init executa o script de preparação do firewall no primeiro boot.
+    user_data = base64encode(file("${path.module}/scripts/configure-firewall.sh"))
+  }
 }
