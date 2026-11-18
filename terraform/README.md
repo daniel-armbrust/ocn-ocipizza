@@ -171,7 +171,7 @@ https://github.com/daniel-armbrust/ocn-ocipizza.git
 ```
 
 A partir dessa conexão, o OCI DevOps cria o Code Repository `ocn-ocipizza` do
-tipo `MIRRORED`. Na criação, o conteúdo da branch `main` é importado do GitHub.
+tipo `MIRRORED`. Na criação, o conteúdo da branch `master` é importado do GitHub.
 Depois disso, a sincronização padrão do serviço verifica novas alterações a
 cada 30 minutos. As Build Pipelines poderão consumir esse mirror pelo OCID
 publicado no output `devops_mirrored_repository_id`.
@@ -195,10 +195,16 @@ O submódulo `devops/pizza-service/` cria a build pipeline `pizza-service` e um
 Managed Build stage baseado em Oracle Linux 8, com 2 OCPUs e 4 GB de memória.
 Esses valores são definidos na instanciação do módulo
 `pizza_service_build_pipeline`, em `devops/build-pipelines.tf`. O stage lê
-`services/pizza-service/build_spec.yaml` da branch `main` do Code Repository
-espelhado, valida o código Python, executa os testes em ambiente virtual
-isolado e constrói com Podman a imagem identificada pelo hash completo do
-commit.
+`services/pizza-service/build_spec.yaml` da branch `master` do Code Repository
+espelhado, valida o código Python, executa os testes e audita as dependências
+com `pip-audit` em ambientes virtuais isolados. Depois, constrói com Podman a
+imagem identificada pelo hash completo do commit.
+
+O Managed Build utiliza Private Access pela subnet privada `services` da
+VCN-SERVICES de São Paulo. Todo o tráfego de saída do runner segue as rotas da
+VCN, inclusive os acessos ao PyPI e aos registries usados durante a construção
+da imagem. O `podman build` utiliza a rede do host para preservar essa
+conectividade dentro do runner privado.
 
 A imagem é declarada como output temporário do build. A publicação no OCIR,
 triggers e integração com a deployment pipeline não fazem parte desta etapa e

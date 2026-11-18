@@ -33,6 +33,11 @@ variable "repository_branch" {
   }
 }
 
+variable "private_subnet_id" {
+  description = "OCID da subnet privada usada pelo Managed Build runner do pizza-service."
+  type        = string
+}
+
 variable "build_runner_image" {
   description = "Imagem do sistema operacional usada pelo Managed Build runner."
   type        = string

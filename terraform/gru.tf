@@ -218,6 +218,7 @@ module "devops_gru" {
   compartment_id        = var.compartment_id
   notification_topic_id = module.notifications_gru.topic_id
   github_pat_secret_id  = module.vault_gru.github_pat_secret_id
+  private_subnet_id     = module.vcn_services_gru.subnet_ids.services
 
   depends_on = [oci_identity_policy.ocipizza_devops]
 }

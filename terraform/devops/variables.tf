@@ -16,3 +16,8 @@ variable "github_pat_secret_id" {
   description = "OCID do Secret no OCI Vault que contém o PAT do GitHub."
   type        = string
 }
+
+variable "private_subnet_id" {
+  description = "OCID da subnet privada usada pelos Managed Build stages do OCI DevOps."
+  type        = string
+}

@@ -40,5 +40,10 @@ resource "oci_devops_build_pipeline_stage" "build_pizza_service" {
     memory_in_gbs     = var.build_runner_memory_in_gbs
   }
 
+  private_access_config {
+    network_channel_type = "PRIVATE"
+    subnet_id            = var.private_subnet_id
+  }
+
   stage_execution_timeout_in_seconds = 600
 }
