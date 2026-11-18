@@ -36,7 +36,8 @@ As dependências Python são instaladas por `requirements.txt`:
 | pydantic-settings | 2.10.1 | Leitura das configurações de ambiente. |
 | Jinja2 | 3.1.6 | Renderização dos templates HTML. |
 | pika | 1.3.2 | Consumo e confirmação de mensagens no RabbitMQ. |
-| OCI SDK | 2.160.3 | Integração com OCI Queue, Email Delivery e Logging. |
+| OCI SDK | 2.189.0 | Integração com OCI Queue, Email Delivery e Logging. |
+| cryptography | 50.0.2 | Primitivas criptográficas utilizadas pelo OCI SDK. |
 
 O ambiente de execução utiliza Python 3.11.
 

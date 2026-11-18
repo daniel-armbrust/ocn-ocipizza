@@ -52,13 +52,15 @@ As bibliotecas Python são instaladas a partir do arquivo `requirements.txt`:
 | --- | --- | --- |
 | FastAPI | 0.141.1 | Implementação da API REST e injeção de dependências. |
 | pydantic-settings | 2.10.1 | Leitura e validação das configurações de ambiente. |
+| HTTPX | 0.28.1 | Cliente HTTP utilizado nas integrações do serviço. |
 | SQLAlchemy | 2.0.43 | Mapeamento ORM do provider relacional alternativo. |
 | Alembic | 1.16.5 | Versionamento do schema relacional alternativo. |
 | PyMySQL | 1.1.2 | Driver do provider alternativo MySQL. |
-| OCI SDK | 2.160.3 | Integração com serviços da Oracle Cloud Infrastructure. |
+| PyJWT com extra `crypto` | `>=2.10,<3` | Validação de access tokens JWT assinados. |
+| cryptography | 50.0.2 | Primitivas criptográficas utilizadas na validação dos tokens JWT. |
+| OCI SDK | 2.189.0 | Integração com serviços da Oracle Cloud Infrastructure. |
 | MinIO | 7.2.20 | Integração com o Object Storage local em desenvolvimento. |
 | borneo | 5.4.3 | SDK de acesso ao Oracle NoSQL Database. |
-| PyJWT com extra `crypto` | `>=2.10,<3` | Validação de access tokens JWT assinados. |
 
 O ambiente de execução utiliza Python 3.11.
 

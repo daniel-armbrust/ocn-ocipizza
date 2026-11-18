@@ -31,6 +31,29 @@ opaco da sessão em um cookie `HttpOnly`.
 O `admin-service` não acessa diretamente os bancos de dados dos outros
 serviços.
 
+### Dependências Python
+
+As dependências são instaladas pelo arquivo `requirements.txt`:
+
+| Biblioteca | Versão | Uso principal |
+| --- | --- | --- |
+| FastAPI | 0.141.1 | Rotas do BFF, injeção de dependências e servidor ASGI. |
+| HTTPX | 0.28.1 | Comunicação com os microsserviços consumidos pelo painel. |
+| Jinja2 | 3.1.6 | Renderização dos templates HTML. |
+| pydantic-settings | 2.15.0 | Leitura das configurações de ambiente. |
+| WTForms | 3.2.2 | Renderização e validação dos formulários. |
+| starlette-wtf | 0.5.0 | Integração da proteção CSRF com Starlette/FastAPI. |
+| itsdangerous | 2.2.0 | Assinatura dos tokens utilizados pela proteção CSRF. |
+| python-multipart | 0.0.32 | Leitura dos formulários HTML. |
+| OCI SDK | 2.189.0 | Autenticação e integração com serviços da OCI. |
+| PyJWT com extra `crypto` | `>=2.10,<3` | Processamento seguro dos tokens JWT mantidos pelo BFF. |
+| cryptography | 50.0.2 | Primitivas criptográficas utilizadas pelo OCI SDK e pelo PyJWT. |
+| passlib | 1.7.4 | Suporte aos mecanismos de proteção de credenciais. |
+| bcrypt | 4.3.0 | Implementação do algoritmo de hash bcrypt. |
+| Redis | 7.0.1 | Persistência das sessões opacas do painel. |
+
+O ambiente de execução utiliza Python 3.11.
+
 ## Autenticação e autorização
 
 O login é realizado em `POST /admin/login`. O perfil retornado pelo

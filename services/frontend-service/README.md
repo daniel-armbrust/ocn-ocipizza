@@ -52,7 +52,11 @@ As dependências são instaladas pelo arquivo `requirements.txt`.
 | SQLAlchemy | 2.0.43 | Suporte ao provider relacional alternativo de sessões. |
 | Alembic | 1.16.5 | Versionamento do schema do provider relacional. |
 | PyMySQL | 1.1.2 | Driver MySQL utilizado pelo provider relacional. |
-| OCI SDK | 2.160.3 | Autenticação e integração com serviços da OCI. |
+| OCI SDK | 2.189.0 | Autenticação e integração com serviços da OCI. |
+| PyJWT com extra `crypto` | `>=2.10,<3` | Processamento seguro dos tokens JWT mantidos pelo BFF. |
+| cryptography | 50.0.2 | Primitivas criptográficas utilizadas pelo OCI SDK e pelo PyJWT. |
+| passlib | 1.7.4 | Suporte aos mecanismos de proteção de credenciais. |
+| bcrypt | 4.3.0 | Implementação do algoritmo de hash bcrypt. |
 | borneo | 5.4.3 | Acesso ao Oracle NoSQL como provider alternativo de sessões. |
 
 O ambiente de execução utiliza Python 3.11.

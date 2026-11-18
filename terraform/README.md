@@ -210,6 +210,97 @@ A imagem é declarada como output temporário do build. A publicação no OCIR,
 triggers e integração com a deployment pipeline não fazem parte desta etapa e
 serão adicionados separadamente.
 
+### Build pipeline do user-service
+
+O submódulo `devops/user-service/` cria a build pipeline `user-service` e o
+Managed Build stage `build-user-service`. O runner utiliza Oracle Linux 8, 2
+OCPUs, 4 GB de memória e Private Access pela subnet privada `services` da
+VCN-SERVICES de São Paulo.
+
+O stage lê `services/user-service/build_spec.yaml` da branch `master`, valida o
+código Python, executa os testes, audita as dependências e constrói com Podman
+a imagem `ocipizza/user-service`, identificada pelo hash completo do commit. A
+imagem permanece como output temporário do build; sua publicação no OCIR será
+configurada em uma etapa posterior.
+
+### Build pipeline do order-service
+
+O submódulo `devops/order-service/` cria a build pipeline `order-service` e o
+Managed Build stage `build-order-service`. O runner utiliza Oracle Linux 8, 2
+OCPUs, 4 GB de memória e Private Access pela subnet privada `services` da
+VCN-SERVICES de São Paulo.
+
+O stage lê `services/order-service/build_spec.yaml` da branch `master`, valida
+o código Python, executa os testes, audita as dependências e constrói com
+Podman a imagem `ocipizza/order-service`, identificada pelo hash completo do
+commit. A imagem permanece como output temporário do build; sua publicação no
+OCIR será configurada em uma etapa posterior.
+
+### Build pipeline do notification-service
+
+O submódulo `devops/notification-service/` cria a build pipeline
+`notification-service` e o Managed Build stage `build-notification-service`. O
+runner utiliza Oracle Linux 8, 2 OCPUs, 4 GB de memória e Private Access pela
+subnet privada `services` da VCN-SERVICES de São Paulo.
+
+O stage lê `services/notification-service/build_spec.yaml` da branch `master`,
+valida o código Python, executa os testes, audita as dependências e constrói
+com Podman a imagem `ocipizza/notification-service`, identificada pelo hash
+completo do commit. A imagem permanece como output temporário do build; sua
+publicação no OCIR será configurada em uma etapa posterior.
+
+### Build pipeline do frontend-service
+
+O submódulo `devops/frontend-service/` cria a build pipeline
+`frontend-service` e o Managed Build stage `build-frontend-service`. O runner
+utiliza Oracle Linux 8, 2 OCPUs, 4 GB de memória e Private Access pela subnet
+privada `services` da VCN-SERVICES de São Paulo.
+
+O stage lê `services/frontend-service/build_spec.yaml` da branch `master`,
+valida o código Python, executa os testes, audita as dependências e constrói
+com Podman a imagem `ocipizza/frontend-service`, identificada pelo hash
+completo do commit. A imagem permanece como output temporário do build; sua
+publicação no OCIR será configurada em uma etapa posterior.
+
+### Build pipeline do delivery-service
+
+O submódulo `devops/delivery-service/` cria a build pipeline
+`delivery-service` e o Managed Build stage `build-delivery-service`. O runner
+utiliza Oracle Linux 8, 2 OCPUs, 4 GB de memória e Private Access pela subnet
+privada `services` da VCN-SERVICES de São Paulo.
+
+O stage lê `services/delivery-service/build_spec.yaml` da branch `master`,
+valida o código Python, executa os testes, audita as dependências e constrói
+com Podman a imagem `ocipizza/delivery-service`, identificada pelo hash
+completo do commit. A imagem permanece como output temporário do build; sua
+publicação no OCIR será configurada em uma etapa posterior.
+
+### Build pipeline do chatbot-service
+
+O submódulo `devops/chatbot-service/` cria a build pipeline `chatbot-service`
+e o Managed Build stage `build-chatbot-service`. O runner utiliza Oracle Linux
+8, 2 OCPUs, 4 GB de memória e Private Access pela subnet privada `services` da
+VCN-SERVICES de São Paulo.
+
+O stage lê `services/chatbot-service/build_spec.yaml` da branch `master`,
+valida o código Python, executa os testes, audita as dependências e constrói
+com Podman a imagem `ocipizza/chatbot-service`, identificada pelo hash completo
+do commit. A imagem permanece como output temporário do build; sua publicação
+no OCIR será configurada em uma etapa posterior.
+
+### Build pipeline do admin-service
+
+O submódulo `devops/admin-service/` cria a build pipeline `admin-service` e o
+Managed Build stage `build-admin-service`. O runner utiliza Oracle Linux 8, 2
+OCPUs, 4 GB de memória e Private Access pela subnet privada `services` da
+VCN-SERVICES de São Paulo.
+
+O stage lê `services/admin-service/build_spec.yaml` da branch `master`, valida
+o código Python, executa os testes, audita as dependências e constrói com
+Podman a imagem `ocipizza/admin-service`, identificada pelo hash completo do
+commit. A imagem permanece como output temporário do build; sua publicação no
+OCIR será configurada em uma etapa posterior.
+
 ## Execução
 
 Execute sempre a partir deste diretório:

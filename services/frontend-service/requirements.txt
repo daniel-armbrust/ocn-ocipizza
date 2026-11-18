@@ -11,9 +11,10 @@ SQLAlchemy==2.0.43
 alembic==1.16.5
 PyMySQL==1.1.2
 
-oci==2.160.3
+oci==2.189.0
 
 PyJWT[crypto]>=2.10,<3
+cryptography==50.0.2
 passlib[bcrypt]==1.7.4
 bcrypt==4.3.0
 

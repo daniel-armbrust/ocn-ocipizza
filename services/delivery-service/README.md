@@ -48,7 +48,8 @@ As bibliotecas são instaladas a partir do arquivo `requirements.txt`:
 | Alembic | 1.16.5 | Versionamento previsto para o schema relacional. |
 | PyMySQL | 1.1.2 | Driver previsto para a conexão MySQL. |
 | PyJWT com extra `crypto` | `>=2.10,<3` | Validação de access tokens JWT assinados com RS256. |
-| OCI SDK | 2.160.3 | Envio de logs ao OCI Logging. |
+| cryptography | 50.0.2 | Primitivas criptográficas utilizadas na validação dos tokens JWT. |
+| OCI SDK | 2.189.0 | Envio de logs ao OCI Logging. |
 | borneo | 5.4.3 | Acesso ao Oracle NoSQL Database. |
 
 O ambiente de execução utiliza Python 3.11.

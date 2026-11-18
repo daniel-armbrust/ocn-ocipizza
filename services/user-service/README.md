@@ -46,8 +46,9 @@ As bibliotecas Python são instaladas a partir do arquivo `requirements.txt`:
 | Alembic | 1.16.5 | Criação e aplicação das migrations do banco de dados. |
 | PyMySQL | 1.1.2 | Driver de conexão entre SQLAlchemy e MySQL. |
 | pika | 1.3.2 | Comunicação com o RabbitMQ. |
-| OCI SDK | 2.160.3 | Integração com provedores da Oracle Cloud Infrastructure. |
+| OCI SDK | 2.189.0 | Integração com provedores da Oracle Cloud Infrastructure. |
 | PyJWT com extra `crypto` | `>=2.10,<3` | Suporte à criação, assinatura e validação de tokens JWT. |
+| cryptography | 50.0.2 | Primitivas criptográficas utilizadas na assinatura e validação dos tokens JWT. |
 | passlib | 1.7.4 | Suporte a mecanismos de proteção de senhas. |
 | bcrypt | 4.3.0 | Suporte ao algoritmo de hash bcrypt. |
 
