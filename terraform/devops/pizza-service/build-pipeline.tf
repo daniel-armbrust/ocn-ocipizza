@@ -45,5 +45,5 @@ resource "oci_devops_build_pipeline_stage" "build_pizza_service" {
     subnet_id            = var.private_subnet_id
   }
 
-  stage_execution_timeout_in_seconds = 600
+  stage_execution_timeout_in_seconds = 900
 }
