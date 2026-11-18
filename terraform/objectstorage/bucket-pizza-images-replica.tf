@@ -8,7 +8,7 @@ resource "oci_objectstorage_bucket" "pizza_images_vcp" {
   provider = oci.vcp
 
   compartment_id = var.compartment_id
-  namespace      = data.oci_objectstorage_namespace.this.namespace
+  namespace      = var.objectstorage_namespace
   name           = local.bucket_name
 
   access_type  = "NoPublicAccess"
@@ -22,7 +22,7 @@ resource "oci_objectstorage_replication_policy" "pizza_images" {
   destination_bucket_name = oci_objectstorage_bucket.pizza_images_vcp.name
   destination_region_name = local.destination_region
   name                    = local.replication_policy_name
-  namespace               = data.oci_objectstorage_namespace.this.namespace
+  namespace               = var.objectstorage_namespace
 
   depends_on = [oci_objectstorage_bucket.pizza_images_vcp]
 }

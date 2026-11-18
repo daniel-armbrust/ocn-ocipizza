@@ -38,6 +38,16 @@ variable "private_subnet_id" {
   type        = string
 }
 
+variable "container_repository_url" {
+  description = "URL completa do repositório OCIR usado para publicar as imagens do pizza-service."
+  type        = string
+
+  validation {
+    condition     = length(trimspace(var.container_repository_url)) > 0
+    error_message = "container_repository_url não pode ser vazia."
+  }
+}
+
 variable "build_runner_image" {
   description = "Imagem do sistema operacional usada pelo Managed Build runner."
   type        = string

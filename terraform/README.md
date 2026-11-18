@@ -179,10 +179,15 @@ publicado no output `devops_mirrored_repository_id`.
 ## OCI Container Registry
 
 O módulo `ocir/` cria em São Paulo o repositório privado
-`ocipizza/pizza-service`. As imagens utilizam tags baseadas no hash do commit
-para identificar a versão produzida. A configuração de imutabilidade não é
-declarada porque a API do OCI Container Registry ainda não permite definir
-`is_immutable` na criação do repositório.
+`ocipizza/pizza-service`. As imagens publicadas utilizam tags baseadas no
+identificador da execução do build para distinguir cada versão produzida. A
+configuração de imutabilidade não é declarada porque a API do OCI Container
+Registry ainda não permite definir `is_immutable` na criação do repositório.
+
+O namespace único da tenancy é consultado uma vez no root module, em
+`datasource.tf`, e repassado aos módulos `objectstorage/` e `devops/`. Esse
+valor é usado tanto pelos buckets e sua replicação quanto para compor a URL do
+repositório OCIR consumida pela build pipeline.
 
 Os outputs `ocir_pizza_service_repository_id`,
 `ocir_pizza_service_repository_namespace` e
@@ -206,9 +211,13 @@ VCN, inclusive os acessos ao PyPI e aos registries usados durante a construção
 da imagem. O `podman build` utiliza a rede do host para preservar essa
 conectividade dentro do runner privado.
 
-A imagem é declarada como output temporário do build. A publicação no OCIR,
-triggers e integração com a deployment pipeline não fazem parte desta etapa e
-serão adicionados separadamente.
+A imagem declarada como output do build é entregue pelo stage
+`deliver-pizza-service-image` ao repositório privado
+`ocipizza/pizza-service` no OCIR. A tag utiliza o identificador da execução por
+meio da variável `BUILDRUN_HASH`, exportada pelo Build Spec com o hash completo
+do commit, preservando a rastreabilidade da imagem publicada para o código que
+a produziu. Triggers e integração com a deployment pipeline serão adicionados
+separadamente.
 
 ### Build pipeline do user-service
 
@@ -219,9 +228,10 @@ VCN-SERVICES de São Paulo.
 
 O stage lê `services/user-service/build_spec.yaml` da branch `master`, valida o
 código Python, executa os testes, audita as dependências e constrói com Podman
-a imagem `ocipizza/user-service`, identificada pelo hash completo do commit. A
-imagem permanece como output temporário do build; sua publicação no OCIR será
-configurada em uma etapa posterior.
+a imagem `ocipizza/user-service`, identificada pelo hash completo do commit. O
+stage `deliver-user-service-image` entrega esse output ao repositório privado
+`ocipizza/user-service` no OCIR, usando como tag o hash completo do commit
+exportado pelo Build Spec na variável `BUILDRUN_HASH`.
 
 ### Build pipeline do order-service
 

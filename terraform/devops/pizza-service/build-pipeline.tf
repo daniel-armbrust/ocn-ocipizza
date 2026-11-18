@@ -47,3 +47,24 @@ resource "oci_devops_build_pipeline_stage" "build_pizza_service" {
 
   stage_execution_timeout_in_seconds = 900
 }
+
+# Publica no OCIR a imagem produzida pelo Managed Build.
+resource "oci_devops_build_pipeline_stage" "deliver_pizza_service_image" {
+  build_pipeline_id         = oci_devops_build_pipeline.pizza_service.id
+  build_pipeline_stage_type = "DELIVER_ARTIFACT"
+  display_name              = "deliver-pizza-service-image"
+  description               = "Publica no OCIR a imagem construída para o pizza-service."
+
+  build_pipeline_stage_predecessor_collection {
+    items {
+      id = oci_devops_build_pipeline_stage.build_pizza_service.id
+    }
+  }
+
+  deliver_artifact_collection {
+    items {
+      artifact_id   = oci_devops_deploy_artifact.pizza_service_image.id
+      artifact_name = local.output_artifact_name
+    }
+  }
+}

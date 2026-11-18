@@ -9,6 +9,10 @@ timeoutInSeconds: 900
 shell: bash
 failImmediatelyOnError: true
 
+env:
+  exportedVariables:
+    - BUILDRUN_HASH
+
 steps:
   - type: Command
     name: "Validar código Python"
@@ -97,7 +101,8 @@ steps:
       cd "${OCI_PRIMARY_SOURCE_DIR}/services/pizza-service"
 
       IMAGE_NAME="ocipizza/pizza-service"
-      IMAGE_VERSION="${OCI_PRIMARY_SOURCE_COMMIT_HASH}"
+      export BUILDRUN_HASH="${OCI_PRIMARY_SOURCE_COMMIT_HASH}"
+      IMAGE_VERSION="${BUILDRUN_HASH}"
 
       echo "Construindo imagem ${IMAGE_NAME}:${IMAGE_VERSION} com Podman..."
 

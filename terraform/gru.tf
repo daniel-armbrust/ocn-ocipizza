@@ -132,7 +132,8 @@ module "objectstorage_buckets" {
     oci.vcp = oci.vcp
   }
 
-  compartment_id = var.compartment_id
+  compartment_id          = var.compartment_id
+  objectstorage_namespace = data.oci_objectstorage_namespace.ocipizza.namespace
 }
 
 # IP público reservado para lb-gru.ocipizza.com.br.
@@ -216,12 +217,16 @@ module "devops_gru" {
     oci = oci.gru
   }
 
-  compartment_id        = var.compartment_id
-  notification_topic_id = module.notifications_gru.topic_id
-  github_pat_secret_id  = module.vault_gru.github_pat_secret_id
-  private_subnet_id     = module.vcn_services_gru.subnet_ids.services
+  compartment_id          = var.compartment_id
+  notification_topic_id   = module.notifications_gru.topic_id
+  github_pat_secret_id    = module.vault_gru.github_pat_secret_id
+  private_subnet_id       = module.vcn_services_gru.subnet_ids.services
+  objectstorage_namespace = data.oci_objectstorage_namespace.ocipizza.namespace
 
-  depends_on = [oci_identity_policy.ocipizza_devops]
+  depends_on = [
+    oci_identity_policy.ocipizza_devops,
+    module.ocir_gru,
+  ]
 }
 
 # DRG regional e attachments das VCNs de São Paulo.

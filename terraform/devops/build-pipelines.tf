@@ -6,11 +6,12 @@
 module "pizza_service_build_pipeline" {
   source = "./pizza-service"
 
-  project_id        = oci_devops_project.ocipizza.id
-  repository_id     = oci_devops_repository.ocipizza.id
-  repository_url    = oci_devops_repository.ocipizza.http_url
-  repository_branch = local.github_repository_branch
-  private_subnet_id = var.private_subnet_id
+  project_id               = oci_devops_project.ocipizza.id
+  repository_id            = oci_devops_repository.ocipizza.id
+  repository_url           = oci_devops_repository.ocipizza.http_url
+  repository_branch        = local.github_repository_branch
+  private_subnet_id        = var.private_subnet_id
+  container_repository_url = "gru.ocir.io/${var.objectstorage_namespace}/ocipizza/pizza-service"
 
   build_runner_image         = "OL8_X86_64_STANDARD_10"
   build_runner_ocpus         = 2
@@ -21,11 +22,12 @@ module "pizza_service_build_pipeline" {
 module "user_service_build_pipeline" {
   source = "./user-service"
 
-  project_id        = oci_devops_project.ocipizza.id
-  repository_id     = oci_devops_repository.ocipizza.id
-  repository_url    = oci_devops_repository.ocipizza.http_url
-  repository_branch = local.github_repository_branch
-  private_subnet_id = var.private_subnet_id
+  project_id               = oci_devops_project.ocipizza.id
+  repository_id            = oci_devops_repository.ocipizza.id
+  repository_url           = oci_devops_repository.ocipizza.http_url
+  repository_branch        = local.github_repository_branch
+  private_subnet_id        = var.private_subnet_id
+  container_repository_url = "gru.ocir.io/${var.objectstorage_namespace}/ocipizza/user-service"
 
   build_runner_image         = "OL8_X86_64_STANDARD_10"
   build_runner_ocpus         = 2

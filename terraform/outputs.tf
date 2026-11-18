@@ -72,6 +72,21 @@ output "ocir_pizza_service_repository_url" {
   value       = module.ocir_gru.pizza_service_repository_url
 }
 
+output "ocir_user_service_repository_id" {
+  description = "OCID do repositório de imagens do user-service no OCIR de São Paulo."
+  value       = module.ocir_gru.user_service_repository_id
+}
+
+output "ocir_user_service_repository_name" {
+  description = "Nome do repositório de imagens do user-service no OCIR."
+  value       = module.ocir_gru.user_service_repository_name
+}
+
+output "ocir_user_service_repository_url" {
+  description = "URL completa do repositório do user-service no OCIR, sem tag."
+  value       = module.ocir_gru.user_service_repository_url
+}
+
 output "devops_project_id" {
   description = "OCID do projeto OCI DevOps do OCI Pizza."
   value       = module.devops_gru.project_id

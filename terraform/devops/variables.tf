@@ -21,3 +21,13 @@ variable "private_subnet_id" {
   description = "OCID da subnet privada usada pelos Managed Build stages do OCI DevOps."
   type        = string
 }
+
+variable "objectstorage_namespace" {
+  description = "Namespace do Object Storage da tenancy usado para compor URLs do OCIR."
+  type        = string
+
+  validation {
+    condition     = length(trimspace(var.objectstorage_namespace)) > 0
+    error_message = "objectstorage_namespace não pode ser vazio."
+  }
+}
