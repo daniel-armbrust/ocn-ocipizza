@@ -108,6 +108,7 @@ module "logging_gru" {
 
   compartment_id    = var.compartment_id
   region_key        = "gru"
+  enable_devops_log = true
   devops_project_id = module.devops_gru.project_id
 }
 

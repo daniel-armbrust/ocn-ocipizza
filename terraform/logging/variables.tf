@@ -23,3 +23,9 @@ variable "devops_project_id" {
   default     = null
   nullable    = true
 }
+
+variable "enable_devops_log" {
+  description = "Define se o Service Log do projeto OCI DevOps será criado nesta região."
+  type        = bool
+  default     = false
+}
