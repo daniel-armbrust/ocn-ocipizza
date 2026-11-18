@@ -47,3 +47,24 @@ resource "oci_devops_build_pipeline_stage" "build_chatbot_service" {
 
   stage_execution_timeout_in_seconds = 900
 }
+
+# Publica no OCIR a imagem produzida pelo Managed Build.
+resource "oci_devops_build_pipeline_stage" "deliver_chatbot_service_image" {
+  build_pipeline_id         = oci_devops_build_pipeline.chatbot_service.id
+  build_pipeline_stage_type = "DELIVER_ARTIFACT"
+  display_name              = "deliver-chatbot-service-image"
+  description               = "Publica no OCIR a imagem construída para o chatbot-service."
+
+  build_pipeline_stage_predecessor_collection {
+    items {
+      id = oci_devops_build_pipeline_stage.build_chatbot_service.id
+    }
+  }
+
+  deliver_artifact_collection {
+    items {
+      artifact_id   = oci_devops_deploy_artifact.chatbot_service_image.id
+      artifact_name = local.output_artifact_name
+    }
+  }
+}

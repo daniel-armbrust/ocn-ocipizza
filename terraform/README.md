@@ -243,8 +243,9 @@ VCN-SERVICES de São Paulo.
 O stage lê `services/order-service/build_spec.yaml` da branch `master`, valida
 o código Python, executa os testes, audita as dependências e constrói com
 Podman a imagem `ocipizza/order-service`, identificada pelo hash completo do
-commit. A imagem permanece como output temporário do build; sua publicação no
-OCIR será configurada em uma etapa posterior.
+commit. O stage `deliver-order-service-image` entrega esse output ao repositório
+privado `ocipizza/order-service` no OCIR, usando como tag o hash completo do
+commit exportado pelo Build Spec na variável `BUILDRUN_HASH`.
 
 ### Build pipeline do notification-service
 
@@ -256,8 +257,10 @@ subnet privada `services` da VCN-SERVICES de São Paulo.
 O stage lê `services/notification-service/build_spec.yaml` da branch `master`,
 valida o código Python, executa os testes, audita as dependências e constrói
 com Podman a imagem `ocipizza/notification-service`, identificada pelo hash
-completo do commit. A imagem permanece como output temporário do build; sua
-publicação no OCIR será configurada em uma etapa posterior.
+completo do commit. O stage `deliver-notification-service-image` entrega esse
+output ao repositório privado `ocipizza/notification-service` no OCIR, usando
+como tag o hash completo do commit exportado pelo Build Spec na variável
+`BUILDRUN_HASH`.
 
 ### Build pipeline do frontend-service
 
@@ -269,8 +272,10 @@ privada `services` da VCN-SERVICES de São Paulo.
 O stage lê `services/frontend-service/build_spec.yaml` da branch `master`,
 valida o código Python, executa os testes, audita as dependências e constrói
 com Podman a imagem `ocipizza/frontend-service`, identificada pelo hash
-completo do commit. A imagem permanece como output temporário do build; sua
-publicação no OCIR será configurada em uma etapa posterior.
+completo do commit. O stage `deliver-frontend-service-image` entrega esse
+output ao repositório privado `ocipizza/frontend-service` no OCIR, usando como
+tag o hash completo do commit exportado pelo Build Spec na variável
+`BUILDRUN_HASH`.
 
 ### Build pipeline do delivery-service
 
@@ -282,8 +287,10 @@ privada `services` da VCN-SERVICES de São Paulo.
 O stage lê `services/delivery-service/build_spec.yaml` da branch `master`,
 valida o código Python, executa os testes, audita as dependências e constrói
 com Podman a imagem `ocipizza/delivery-service`, identificada pelo hash
-completo do commit. A imagem permanece como output temporário do build; sua
-publicação no OCIR será configurada em uma etapa posterior.
+completo do commit. O stage `deliver-delivery-service-image` entrega esse
+output ao repositório privado `ocipizza/delivery-service` no OCIR, usando como
+tag o hash completo do commit exportado pelo Build Spec na variável
+`BUILDRUN_HASH`.
 
 ### Build pipeline do chatbot-service
 
@@ -295,8 +302,9 @@ VCN-SERVICES de São Paulo.
 O stage lê `services/chatbot-service/build_spec.yaml` da branch `master`,
 valida o código Python, executa os testes, audita as dependências e constrói
 com Podman a imagem `ocipizza/chatbot-service`, identificada pelo hash completo
-do commit. A imagem permanece como output temporário do build; sua publicação
-no OCIR será configurada em uma etapa posterior.
+do commit. O stage `deliver-chatbot-service-image` entrega esse output ao
+repositório privado `ocipizza/chatbot-service` no OCIR, usando como tag o hash
+completo do commit exportado pelo Build Spec na variável `BUILDRUN_HASH`.
 
 ### Build pipeline do admin-service
 
@@ -308,8 +316,9 @@ VCN-SERVICES de São Paulo.
 O stage lê `services/admin-service/build_spec.yaml` da branch `master`, valida
 o código Python, executa os testes, audita as dependências e constrói com
 Podman a imagem `ocipizza/admin-service`, identificada pelo hash completo do
-commit. A imagem permanece como output temporário do build; sua publicação no
-OCIR será configurada em uma etapa posterior.
+commit. O stage `deliver-admin-service-image` entrega esse output ao repositório
+privado `ocipizza/admin-service` no OCIR, usando como tag o hash completo do
+commit exportado pelo Build Spec na variável `BUILDRUN_HASH`.
 
 ## Execução
 

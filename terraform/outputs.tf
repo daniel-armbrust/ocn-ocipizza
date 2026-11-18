@@ -87,6 +87,96 @@ output "ocir_user_service_repository_url" {
   value       = module.ocir_gru.user_service_repository_url
 }
 
+output "ocir_admin_service_repository_id" {
+  description = "OCID do repositório de imagens do admin-service no OCIR de São Paulo."
+  value       = module.ocir_gru.admin_service_repository_id
+}
+
+output "ocir_admin_service_repository_name" {
+  description = "Nome do repositório de imagens do admin-service no OCIR."
+  value       = module.ocir_gru.admin_service_repository_name
+}
+
+output "ocir_admin_service_repository_url" {
+  description = "URL completa do repositório do admin-service no OCIR, sem tag."
+  value       = module.ocir_gru.admin_service_repository_url
+}
+
+output "ocir_chatbot_service_repository_id" {
+  description = "OCID do repositório de imagens do chatbot-service no OCIR de São Paulo."
+  value       = module.ocir_gru.chatbot_service_repository_id
+}
+
+output "ocir_chatbot_service_repository_name" {
+  description = "Nome do repositório de imagens do chatbot-service no OCIR."
+  value       = module.ocir_gru.chatbot_service_repository_name
+}
+
+output "ocir_chatbot_service_repository_url" {
+  description = "URL completa do repositório do chatbot-service no OCIR, sem tag."
+  value       = module.ocir_gru.chatbot_service_repository_url
+}
+
+output "ocir_delivery_service_repository_id" {
+  description = "OCID do repositório de imagens do delivery-service no OCIR de São Paulo."
+  value       = module.ocir_gru.delivery_service_repository_id
+}
+
+output "ocir_delivery_service_repository_name" {
+  description = "Nome do repositório de imagens do delivery-service no OCIR."
+  value       = module.ocir_gru.delivery_service_repository_name
+}
+
+output "ocir_delivery_service_repository_url" {
+  description = "URL completa do repositório do delivery-service no OCIR, sem tag."
+  value       = module.ocir_gru.delivery_service_repository_url
+}
+
+output "ocir_frontend_service_repository_id" {
+  description = "OCID do repositório de imagens do frontend-service no OCIR de São Paulo."
+  value       = module.ocir_gru.frontend_service_repository_id
+}
+
+output "ocir_frontend_service_repository_name" {
+  description = "Nome do repositório de imagens do frontend-service no OCIR."
+  value       = module.ocir_gru.frontend_service_repository_name
+}
+
+output "ocir_frontend_service_repository_url" {
+  description = "URL completa do repositório do frontend-service no OCIR, sem tag."
+  value       = module.ocir_gru.frontend_service_repository_url
+}
+
+output "ocir_notification_service_repository_id" {
+  description = "OCID do repositório de imagens do notification-service no OCIR de São Paulo."
+  value       = module.ocir_gru.notification_service_repository_id
+}
+
+output "ocir_notification_service_repository_name" {
+  description = "Nome do repositório de imagens do notification-service no OCIR."
+  value       = module.ocir_gru.notification_service_repository_name
+}
+
+output "ocir_notification_service_repository_url" {
+  description = "URL completa do repositório do notification-service no OCIR, sem tag."
+  value       = module.ocir_gru.notification_service_repository_url
+}
+
+output "ocir_order_service_repository_id" {
+  description = "OCID do repositório de imagens do order-service no OCIR de São Paulo."
+  value       = module.ocir_gru.order_service_repository_id
+}
+
+output "ocir_order_service_repository_name" {
+  description = "Nome do repositório de imagens do order-service no OCIR."
+  value       = module.ocir_gru.order_service_repository_name
+}
+
+output "ocir_order_service_repository_url" {
+  description = "URL completa do repositório do order-service no OCIR, sem tag."
+  value       = module.ocir_gru.order_service_repository_url
+}
+
 output "devops_project_id" {
   description = "OCID do projeto OCI DevOps do OCI Pizza."
   value       = module.devops_gru.project_id

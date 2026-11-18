@@ -3,7 +3,8 @@
 #
 
 locals {
-  build_pipeline_name = "frontend-service"
-  build_source_name   = "ocipizza-source"
-  build_spec_file     = "services/frontend-service/build_spec.yaml"
+  build_pipeline_name  = "frontend-service"
+  build_source_name    = "ocipizza-source"
+  build_spec_file      = "services/frontend-service/build_spec.yaml"
+  output_artifact_name = "frontend-service-image"
 }
