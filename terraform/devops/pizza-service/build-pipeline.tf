@@ -41,7 +41,7 @@ resource "oci_devops_build_pipeline_stage" "build_pizza_service" {
   }
 
   private_access_config {
-    network_channel_type = "PRIVATE"
+    network_channel_type = "SERVICE_VNIC_CHANNEL"
     subnet_id            = var.private_subnet_id
   }
 
