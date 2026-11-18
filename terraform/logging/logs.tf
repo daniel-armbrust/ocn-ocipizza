@@ -12,3 +12,26 @@ resource "oci_logging_log" "service" {
   is_enabled         = true
   retention_duration = local.retention_duration
 }
+
+# Habilita os logs de build e deployment do projeto OCI DevOps em GRU. O
+# recurso não é criado nas regiões que não recebem devops_project_id.
+resource "oci_logging_log" "devops" {
+  count = var.devops_project_id == null ? 0 : 1
+
+  display_name       = "log-ocipizza-devops"
+  log_group_id       = oci_logging_log_group.this.id
+  log_type           = "SERVICE"
+  is_enabled         = true
+  retention_duration = local.retention_duration
+
+  configuration {
+    compartment_id = var.compartment_id
+
+    source {
+      category    = "all"
+      resource    = var.devops_project_id
+      service     = "devops"
+      source_type = "OCISERVICE"
+    }
+  }
+}

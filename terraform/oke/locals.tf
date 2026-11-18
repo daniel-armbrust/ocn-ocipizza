@@ -22,7 +22,7 @@ locals {
   node_shape     = "VM.Standard.E4.Flex"
   node_ocpus     = 2
   node_memory_gb = 4
-  node_pool_size = 3
+  node_pool_size = 0
 
   # Caminho do cloud-init aplicado aos worker nodes.
   worker_cloud_init_path = "${path.module}/scripts/oke-cloudinit.sh"

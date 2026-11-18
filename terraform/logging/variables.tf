@@ -16,3 +16,10 @@ variable "region_key" {
     error_message = "region_key deve ser gru ou vcp."
   }
 }
+
+variable "devops_project_id" {
+  description = "OCID do projeto OCI DevOps cujos Service Logs serão habilitados nesta região."
+  type        = string
+  default     = null
+  nullable    = true
+}

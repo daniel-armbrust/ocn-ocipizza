@@ -92,7 +92,9 @@ module "oci_cache_gru" {
   }
 
   compartment_id = var.compartment_id
+  region         = local.regions.gru
   region_key     = "gru"
+  vcn_id         = module.vcn_services_gru.vcn_id
   subnet_id      = module.vcn_services_gru.subnet_ids.services
 }
 
@@ -104,8 +106,9 @@ module "logging_gru" {
     oci = oci.gru
   }
 
-  compartment_id = var.compartment_id
-  region_key     = "gru"
+  compartment_id    = var.compartment_id
+  region_key        = "gru"
+  devops_project_id = module.devops_gru.project_id
 }
 
 # Tabelas NoSQL da aplicação em GRU com réplicas Global Active em VCP.
@@ -190,6 +193,18 @@ module "vault_gru" {
   compartment_id = var.compartment_id
   region         = local.regions.gru
   github_pat     = var.github_pat
+}
+
+# Repositórios privados de imagens no OCI Container Registry de São Paulo.
+module "ocir_gru" {
+  source = "./ocir"
+
+  providers = {
+    oci = oci.gru
+  }
+
+  compartment_id = var.compartment_id
+  region_key     = "gru"
 }
 
 # Projeto OCI DevOps e conexão externa com o GitHub em São Paulo.

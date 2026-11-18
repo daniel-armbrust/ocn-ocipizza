@@ -17,7 +17,17 @@ variable "region_key" {
   }
 }
 
+variable "region" {
+  description = "Região OCI usada pelas chamadas da OCI CLI para limpeza da Security List automática."
+  type        = string
+}
+
 variable "subnet_id" {
   description = "OCID da sub-rede privada onde o cluster será criado."
+  type        = string
+}
+
+variable "vcn_id" {
+  description = "OCID da VCN usada para localizar a Security List criada automaticamente pelo OCI Cache."
   type        = string
 }

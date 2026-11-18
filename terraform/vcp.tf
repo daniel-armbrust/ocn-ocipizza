@@ -92,7 +92,9 @@ module "oci_cache_vcp" {
   }
 
   compartment_id = var.compartment_id
+  region         = local.regions.vcp
   region_key     = "vcp"
+  vcn_id         = module.vcn_services_vcp.vcn_id
   subnet_id      = module.vcn_services_vcp.subnet_ids.services
 }
 

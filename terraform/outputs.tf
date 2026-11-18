@@ -52,6 +52,26 @@ output "github_pat_secret_id" {
   value       = module.vault_gru.github_pat_secret_id
 }
 
+output "ocir_pizza_service_repository_id" {
+  description = "OCID do repositório de imagens do pizza-service no OCIR de São Paulo."
+  value       = module.ocir_gru.pizza_service_repository_id
+}
+
+output "ocir_pizza_service_repository_name" {
+  description = "Nome do repositório de imagens do pizza-service no OCIR."
+  value       = module.ocir_gru.pizza_service_repository_name
+}
+
+output "ocir_pizza_service_repository_namespace" {
+  description = "Namespace da tenancy usado pelo repositório do pizza-service no OCIR."
+  value       = module.ocir_gru.pizza_service_repository_namespace
+}
+
+output "ocir_pizza_service_repository_url" {
+  description = "URL completa do repositório do pizza-service no OCIR, sem tag."
+  value       = module.ocir_gru.pizza_service_repository_url
+}
+
 output "devops_project_id" {
   description = "OCID do projeto OCI DevOps do OCI Pizza."
   value       = module.devops_gru.project_id

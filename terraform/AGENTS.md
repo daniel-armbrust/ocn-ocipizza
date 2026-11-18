@@ -24,6 +24,8 @@ sempre que isso evitar substituições desnecessárias.
 
 ### Organização dos arquivos Terraform
 
+- Todo bloco `terraform` com `required_providers` deve ficar no arquivo
+  `providers.tf` do respectivo módulo ou root module.
 - Todos os blocos `data` devem ficar no arquivo `datasource.tf` do respectivo
   módulo ou root module.
 - Todos os blocos `locals` devem ficar no arquivo `locals.tf` do respectivo

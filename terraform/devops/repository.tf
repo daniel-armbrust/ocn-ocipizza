@@ -20,4 +20,11 @@ resource "oci_devops_repository" "ocipizza" {
       schedule_type = "DEFAULT"
     }
   }
+
+  # O provider reenvia repository_url em qualquer atualização do repositório,
+  # mas a API da OCI não aceita esse campo depois da criação. O mirror é
+  # tratado como create-only; qualquer alteração exige sua recriação.
+  lifecycle {
+    ignore_changes = all
+  }
 }

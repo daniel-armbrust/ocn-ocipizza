@@ -1,0 +1,59 @@
+
+# Este arquivo define o Build Spec do pizza-service no OCI DevOps.
+# Seu objetivo é validar o código Python, executar os testes automatizados e
+# construir a imagem OCI do serviço.
+
+version: 0.1
+component: build
+timeoutInSeconds: 600
+shell: bash
+failImmediatelyOnError: true
+
+steps:
+  - type: Command
+    name: "Validar código Python"
+    command: |
+      set -euo pipefail
+
+      cd "${OCI_PRIMARY_SOURCE_DIR}/services/pizza-service"
+
+      echo "Validando código Python do pizza-service..."
+      python3.11 -m compileall -q app
+
+  - type: Command
+    name: "Executar testes"
+    command: |
+      set -euo pipefail
+
+      cd "${OCI_PRIMARY_SOURCE_DIR}/services/pizza-service"
+
+      echo "Preparando ambiente isolado de testes..."
+      python3.11 -m venv "${OCI_WORKSPACE_DIR}/pizza-service-test-venv"
+      "${OCI_WORKSPACE_DIR}/pizza-service-test-venv/bin/python" -m pip install --disable-pip-version-check pytest==9.0.1
+
+      echo "Executando testes do pizza-service..."
+      "${OCI_WORKSPACE_DIR}/pizza-service-test-venv/bin/python" -m pytest tests/ -v
+
+  - type: Command
+    name: "Construir imagem de container"
+    command: |
+      set -euo pipefail
+
+      cd "${OCI_PRIMARY_SOURCE_DIR}/services/pizza-service"
+
+      IMAGE_NAME="ocipizza/pizza-service"
+      IMAGE_VERSION="${OCI_PRIMARY_SOURCE_COMMIT_HASH}"
+
+      echo "Construindo imagem ${IMAGE_NAME}:${IMAGE_VERSION} com Podman..."
+
+      podman build \
+        --pull \
+        --tag "${IMAGE_NAME}:${IMAGE_VERSION}" \
+        .
+
+      echo "Imagem de container construída com sucesso."
+
+outputArtifacts:
+  - name: pizza-service-image
+    type: DOCKER_IMAGE
+    location: "ocipizza/pizza-service:${OCI_PRIMARY_SOURCE_COMMIT_HASH}"

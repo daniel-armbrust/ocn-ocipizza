@@ -17,6 +17,7 @@ Os principais componentes são:
 - clusters OKE em São Paulo e Vinhedo;
 - OCI Cache com Redis 7, NoSQL, Object Storage e Queue;
 - DNS, Logging, Network Load Balancers e IPs públicos reservados;
+- repositório privado de imagens do `pizza-service` no OCIR;
 - IAM dos workloads, do OCI DevOps e dos serviços gerenciados;
 - OCI Notifications, projeto OCI DevOps e conexão externa com o GitHub.
 
@@ -28,7 +29,15 @@ A VCN-SERVICES de cada região possui duas subnets: uma pública para Load
 Balancers e outra privada para serviços. Cada subnet utiliza sua própria
 Security List e sua própria Route Table. A Security List da subnet privada
 permite ingresso e egresso IPv4 para todos os protocolos; nenhum NSG é usado
-para o Redis.
+para o OCI Cache.
+
+O OCI Cache cria automaticamente a Security List `redis-security-list` fora
+do controle do Terraform. Para evitar inconsistências no state, o módulo
+executa `oci-cache/scripts/delete-seclist.sh` após a criação do cluster. O
+script remove essa associação da subnet do cluster e exclui somente a Security
+List com esse nome na VCN regional. Essa automação é um workaround temporário
+e deve ser reavaliada quando o serviço deixar de criar a Security List
+adicional.
 
 Nos Network Load Balancers de inspeção, o `firewall-1` é o backend primário e
 o `firewall-2` permanece como backup. O segundo firewall somente recebe tráfego
@@ -148,6 +157,11 @@ OCI descrita na seção de autenticação.
 O módulo `devops/` cria em São Paulo o projeto `ocipizza`. O projeto referencia
 o Topic `ocipizza-devops-notifications` para publicar seus eventos.
 
+O Service Log `log-ocipizza-devops` é habilitado no `loggroup-ocipizza` de São
+Paulo, com categoria `all` e retenção de 30 dias. Ele reúne os logs de build e
+deployment do projeto e permite executar e acompanhar Manual Runs das
+pipelines no OCI DevOps.
+
 O módulo também cria a conexão externa `github-ocipizza`, do tipo
 `GITHUB_ACCESS_TOKEN`. A conexão referencia o Secret `ocipizza-github-pat` no
 Vault e autentica o acesso ao repositório:
@@ -161,6 +175,34 @@ tipo `MIRRORED`. Na criação, o conteúdo da branch `main` é importado do GitH
 Depois disso, a sincronização padrão do serviço verifica novas alterações a
 cada 30 minutos. As Build Pipelines poderão consumir esse mirror pelo OCID
 publicado no output `devops_mirrored_repository_id`.
+
+## OCI Container Registry
+
+O módulo `ocir/` cria em São Paulo o repositório privado
+`ocipizza/pizza-service`. As imagens utilizam tags baseadas no hash do commit
+para identificar a versão produzida. A configuração de imutabilidade não é
+declarada porque a API do OCI Container Registry ainda não permite definir
+`is_immutable` na criação do repositório.
+
+Os outputs `ocir_pizza_service_repository_id`,
+`ocir_pizza_service_repository_namespace` e
+`ocir_pizza_service_repository_url` fornecem os valores necessários para a
+futura configuração do deployment artifact e do stage `DELIVER_ARTIFACT`.
+
+### Build pipeline do pizza-service
+
+O submódulo `devops/pizza-service/` cria a build pipeline `pizza-service` e um
+Managed Build stage baseado em Oracle Linux 8, com 2 OCPUs e 4 GB de memória.
+Esses valores são definidos na instanciação do módulo
+`pizza_service_build_pipeline`, em `devops/build-pipelines.tf`. O stage lê
+`services/pizza-service/build_spec.yaml` da branch `main` do Code Repository
+espelhado, valida o código Python, executa os testes em ambiente virtual
+isolado e constrói com Podman a imagem identificada pelo hash completo do
+commit.
+
+A imagem é declarada como output temporário do build. A publicação no OCIR,
+triggers e integração com a deployment pipeline não fazem parte desta etapa e
+serão adicionados separadamente.
 
 ## Execução
 
