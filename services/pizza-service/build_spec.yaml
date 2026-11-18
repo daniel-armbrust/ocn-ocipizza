@@ -29,7 +29,15 @@ steps:
 
       echo "Preparando ambiente isolado de testes..."
       python3.11 -m venv "${OCI_WORKSPACE_DIR}/pizza-service-test-venv"
-      "${OCI_WORKSPACE_DIR}/pizza-service-test-venv/bin/python" -m pip install --disable-pip-version-check pytest==9.0.1
+      env \
+        -u HTTP_PROXY \
+        -u HTTPS_PROXY \
+        -u ALL_PROXY \
+        -u http_proxy \
+        -u https_proxy \
+        -u all_proxy \
+        "${OCI_WORKSPACE_DIR}/pizza-service-test-venv/bin/python" \
+        -m pip install --disable-pip-version-check pytest==9.0.1
 
       echo "Executando testes do pizza-service..."
       "${OCI_WORKSPACE_DIR}/pizza-service-test-venv/bin/python" -m pytest tests/ -v
@@ -43,7 +51,15 @@ steps:
 
       echo "Preparando ambiente isolado de auditoria..."
       python3.11 -m venv "${OCI_WORKSPACE_DIR}/pizza-service-audit-venv"
-      "${OCI_WORKSPACE_DIR}/pizza-service-audit-venv/bin/python" -m pip install --disable-pip-version-check pip-audit==2.10.1
+      env \
+        -u HTTP_PROXY \
+        -u HTTPS_PROXY \
+        -u ALL_PROXY \
+        -u http_proxy \
+        -u https_proxy \
+        -u all_proxy \
+        "${OCI_WORKSPACE_DIR}/pizza-service-audit-venv/bin/python" \
+        -m pip install --disable-pip-version-check pip-audit==2.10.1
 
       echo "Auditando as dependências do pizza-service..."
       "${OCI_WORKSPACE_DIR}/pizza-service-audit-venv/bin/python" -m pip_audit -r requirements.txt
