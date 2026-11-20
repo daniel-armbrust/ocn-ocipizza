@@ -1,0 +1,131 @@
+# Cria o Deployment base responsável por executar o pizza-service.
+#
+# Este arquivo contém somente configurações comuns a todos os ambientes e
+# regiões. Namespace, imagem, quantidade de réplicas e variáveis de ambiente
+# são definidos pelos overlays do Kustomize.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pizza-service
+
+  # Labels recomendados para identificar e agrupar os recursos da aplicação.
+  labels:
+    app: pizza-service
+    app.kubernetes.io/name: pizza-service
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: ocipizza
+spec:
+  # Valor padrão da base. Cada overlay define a quantidade adequada ao
+  # respectivo ambiente.
+  replicas: 1
+
+  # Atualiza os Pods gradualmente sem interromper o serviço.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  # O selector deve sempre corresponder aos labels definidos no Pod template.
+  selector:
+    matchLabels:
+      app: pizza-service
+      app.kubernetes.io/name: pizza-service
+
+  # Define como cada Pod do pizza-service deve ser criado.
+  template:
+    metadata:
+      labels:
+        app: pizza-service
+        app.kubernetes.io/name: pizza-service
+        app.kubernetes.io/component: api
+        app.kubernetes.io/part-of: ocipizza
+
+    spec:
+      # Deployments exigem Pods de longa duração e reiniciam containers que
+      # sejam encerrados inesperadamente.
+      restartPolicy: Always
+
+      # Identidade Kubernetes utilizada pelo Pod. O token não é montado porque
+      # o serviço ainda não consome diretamente a API do Kubernetes.
+      serviceAccountName: pizza-service
+      automountServiceAccountToken: false
+
+      # Secret criado previamente no namespace para autenticação no OCIR.
+      imagePullSecrets:
+        - name: ocir-secret
+
+      # Exige a execução do Pod sem privilégios de root e utiliza o perfil
+      # padrão de seccomp disponibilizado pelo runtime do cluster.
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: pizza-service
+
+          # Nome lógico substituído pelo bloco images de cada overlay.
+          image: pizza-service-image
+
+          # As releases utilizam tags imutáveis baseadas no hash do commit.
+          imagePullPolicy: IfNotPresent
+
+          # Porta HTTP interna utilizada pela aplicação FastAPI/Uvicorn.
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          # Importa todas as configurações não sensíveis do ConfigMap gerado
+          # pelo overlay correspondente.
+          envFrom:
+            - configMapRef:
+                name: pizza-service-config
+
+          # Reduz os privilégios disponíveis dentro do container.
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+
+          # Aguarda a inicialização do serviço antes de ativar as demais
+          # verificações, evitando reinicializações prematuras.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 30
+            periodSeconds: 2
+
+          # Controla quando o Pod está apto a receber tráfego pelo Service.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          # Reinicia o container quando a aplicação deixa de responder.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          # Reserva recursos mínimos para o agendamento e limita o consumo
+          # máximo permitido ao container.
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

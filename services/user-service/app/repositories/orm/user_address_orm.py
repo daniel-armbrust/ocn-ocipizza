@@ -2,7 +2,7 @@
 # repositories/orm/user_address_orm.py
 #
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, BINARY
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, BINARY
 from sqlalchemy.orm import relationship
 
 from app.repositories.orm.base import Base

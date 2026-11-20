@@ -20,10 +20,19 @@ class Settings(BaseSettings):
     )
 
     app_name: str = 'chatbot-service'
-    app_env: str = 'development'
-    debug: bool = False
 
-    # Região do OCI onde a aplicação será executada.
+    # Define o ambiente de execução da aplicação.
+    # Por padrão, utiliza "production" para priorizar 
+    # configurações de segurança.
+    app_env: Literal[
+        'development', 
+        'production'
+    ] = 'production'
+
+    # Região utilizada para acessar os serviços do OCI.
+    # Quando OCI_AUTH_MODE for "instance_principal", a 
+    # região é identificada automaticamente de acordo com 
+    # a região onde a aplicação está sendo executada.
     oci_region: str | None
 
     # Detecção de intenção.
@@ -77,6 +86,7 @@ class Settings(BaseSettings):
     jwt_jwks_url: str
 
     # Logging
+    debug: bool = False
     log_level: str = 'INFO'
     oci_log_id: str | None = None
 

@@ -313,13 +313,23 @@ output "vcn_onpremises_gru_subnet_id" {
 }
 
 output "oci_cache_gru_id" {
-  description = "OCID do cluster OCI Cache com Redis 7 em São Paulo."
+  description = "OCID do cluster OCI Cache primary em São Paulo."
   value       = module.oci_cache_gru.cluster_id
 }
 
 output "oci_cache_vcp_id" {
-  description = "OCID do cluster OCI Cache com Redis 7 em Vinhedo."
+  description = "OCID do cluster OCI Cache secondary em Vinhedo."
   value       = module.oci_cache_vcp.cluster_id
+}
+
+output "oci_cache_gru_role" {
+  description = "Papel do cluster OCI Cache de São Paulo na replicação cross-region."
+  value       = module.oci_cache_gru.cluster_role
+}
+
+output "oci_cache_vcp_role" {
+  description = "Papel do cluster OCI Cache de Vinhedo na replicação cross-region."
+  value       = module.oci_cache_vcp.cluster_role
 }
 
 output "logging_gru_log_group_id" {

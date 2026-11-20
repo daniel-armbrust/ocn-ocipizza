@@ -22,6 +22,13 @@ variable "region" {
   type        = string
 }
 
+variable "primary_cluster_id" {
+  description = "OCID do cluster primary de GRU. Deve ser null em GRU e informado para o secondary em VCP."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
 variable "subnet_id" {
   description = "OCID da sub-rede privada onde o cluster será criado."
   type        = string

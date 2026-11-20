@@ -136,8 +136,7 @@ class ObjectStorageService:
                 f'{settings.objectstorage_provider}'
             )       
 
-    def get_object(self,
-                   object_name: str) -> tuple[bytes, str]:
+    def get_object(self, object_name: str) -> tuple[bytes, str]:
         """
         Obtém um objeto armazenado no provider configurado.
 

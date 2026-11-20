@@ -1,0 +1,31 @@
+# Cria um Service interno para expor o pizza-service dentro do cluster.
+#
+# O Service distribui as conexões recebidas na porta 8000 entre os Pods
+# selecionados e não realiza exposição pública direta.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: pizza-service
+
+  labels:
+    app: pizza-service
+    app.kubernetes.io/name: pizza-service
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: ocipizza
+
+spec:
+  # ClusterIP torna o serviço acessível somente pela rede interna do cluster.
+  type: ClusterIP
+
+  # Seleciona os Pods gerenciados pelo Deployment do pizza-service.
+  selector:
+    app: pizza-service
+    app.kubernetes.io/name: pizza-service
+
+  # Encaminha a porta 8000 do Service para a porta nomeada "http" do Pod.
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP

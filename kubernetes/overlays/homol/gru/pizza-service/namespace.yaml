@@ -1,0 +1,13 @@
+# Cria o namespace compartilhado pelos serviços de homologação no OKE de GRU.
+# O mesmo nome é utilizado no cluster de VCP, mas cada cluster mantém seu
+# próprio recurso Namespace.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ocipizza-homol
+
+  # Identifica o namespace como parte da aplicação e do ambiente de homologação.
+  labels:
+    app.kubernetes.io/part-of: ocipizza
+    ocipizza.com.br/environment: homol

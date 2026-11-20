@@ -2,15 +2,28 @@
 # oci-cache/cluster.tf
 #
 
-# Cluster privado OCI Cache com engine Redis 7.
+# Cluster privado OCI Cache com engine Redis 7. GRU é criado sem um cluster de
+# origem e atua como primary. VCP recebe o OCID de GRU e atua como secondary.
 resource "oci_redis_redis_cluster" "this" {
-  compartment_id     = var.compartment_id
-  display_name       = local.display_name
-  node_count         = local.node_count
-  node_memory_in_gbs = local.node_memory_in_gbs
-  software_version   = local.software_version
-  subnet_id          = var.subnet_id
-  cluster_mode       = local.cluster_mode
+  compartment_id          = var.compartment_id
+  display_name            = local.display_name
+  node_count              = local.node_count
+  node_memory_in_gbs      = local.node_memory_in_gbs
+  software_version        = local.software_version
+  subnet_id               = var.subnet_id
+  cluster_mode            = local.cluster_mode
+  oci_cache_config_set_id = oci_redis_oci_cache_config_set.this.id
+
+  # Null cria o primary em GRU. O OCID de GRU cria o secondary read-only em
+  # VCP e estabelece a replicação assíncrona gerenciada pela OCI.
+  primary_cluster_id = var.primary_cluster_id
+
+  lifecycle {
+    precondition {
+      condition     = (var.region_key == "gru" && var.primary_cluster_id == null) || (var.region_key == "vcp" && var.primary_cluster_id != null)
+      error_message = "GRU deve ser o cluster primary e VCP deve referenciar o OCID do primary de GRU."
+    }
+  }
 }
 
 # Remove a Security List criada pelo OCI Cache fora do controle do Terraform,

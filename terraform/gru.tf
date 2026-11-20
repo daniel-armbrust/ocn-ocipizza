@@ -83,7 +83,8 @@ module "vcn_onpremises_gru" {
   compartment_id = var.compartment_id
 }
 
-# Cluster OCI Cache com Redis 7 em São Paulo.
+# Cluster OCI Cache primary em São Paulo. Este é o único cluster que aceita
+# operações de escrita na topologia active-passive.
 module "oci_cache_gru" {
   source = "./oci-cache"
 

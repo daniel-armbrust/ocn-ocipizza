@@ -39,6 +39,24 @@ List com esse nome na VCN regional. Essa automação é um workaround temporári
 e deve ser reavaliada quando o serviço deixar de criar a Security List
 adicional.
 
+O OCI Cache utiliza uma topologia cross-region active-passive. O cluster de
+GRU é o primary e aceita leituras e escritas. O cluster de VCP é o secondary,
+recebe replicação assíncrona e aceita somente leituras. Os dois clusters são
+NONSHARDED, possuem 8 GB por nó e usam Configuration Sets regionais com os
+mesmos parâmetros exigidos pela replicação. A conectividade de replicação é
+gerenciada pela OCI e não utiliza o Remote Peering das VCNs.
+
+Cada cluster possui apenas um nó para reduzir o custo do ambiente didático.
+Essa escolha mantém a replicação entre GRU e VCP, mas não fornece redundância
+dentro de cada região. Para workloads de produção, a OCI recomenda pelo menos
+três nós por cluster.
+
+A replicação não fornece failover automático. Em um desastre regional, o
+secondary de VCP deve ser convertido operacionalmente em standalone antes de
+receber escritas. Um switchover também exige atualização posterior dos papéis
+no Terraform antes de um novo `apply`, para que o código continue refletindo a
+topologia efetiva.
+
 Nos Network Load Balancers de inspeção, o `firewall-1` é o backend primário e
 o `firewall-2` permanece como backup. O segundo firewall somente recebe tráfego
 quando o primário não está apto a atendê-lo.

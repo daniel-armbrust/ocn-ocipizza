@@ -3,6 +3,7 @@
 #
 
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -19,10 +20,19 @@ class Settings(BaseSettings):
     )
 
     app_name: str = 'frontend-service'
-    app_env: str = 'development'
-    debug: bool = False
 
-    # Região do OCI onde a aplicação será executada.
+    # Define o ambiente de execução da aplicação.
+    # Por padrão, utiliza "production" para priorizar 
+    # configurações de segurança.
+    app_env: Literal[
+        'development', 
+        'production'
+    ] = 'production'
+
+    # Região utilizada para acessar os serviços do OCI.
+    # Quando OCI_AUTH_MODE for "instance_principal", a 
+    # região é identificada automaticamente de acordo com 
+    # a região onde a aplicação está sendo executada.
     oci_region: str | None
 
     # Persistência
@@ -32,6 +42,8 @@ class Settings(BaseSettings):
     database_url: str | None = None
 
     # Redis
+    # redis_read_endpoint: str
+    # redis_write_endpoint: str
     redis_endpoint: str
     redis_user: str | None = None
     redis_password: str | None = None
@@ -65,6 +77,7 @@ class Settings(BaseSettings):
     chatbot_client_timeout: float = 60.0
 
     # Logging
+    debug: bool = False
     log_level: str = 'INFO'
     oci_log_id: str | None = None
 

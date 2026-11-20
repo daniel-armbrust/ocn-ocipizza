@@ -83,7 +83,8 @@ module "public_ip_load_balancer_vcp" {
   region_key     = "vcp"
 }
 
-# Cluster OCI Cache com Redis 7 em Vinhedo.
+# Cluster OCI Cache secondary em Vinhedo. Os dados são replicados de forma
+# assíncrona a partir do cluster primary de São Paulo e permanecem read-only.
 module "oci_cache_vcp" {
   source = "./oci-cache"
 
@@ -91,11 +92,12 @@ module "oci_cache_vcp" {
     oci = oci.vcp
   }
 
-  compartment_id = var.compartment_id
-  region         = local.regions.vcp
-  region_key     = "vcp"
-  vcn_id         = module.vcn_services_vcp.vcn_id
-  subnet_id      = module.vcn_services_vcp.subnet_ids.services
+  compartment_id     = var.compartment_id
+  region             = local.regions.vcp
+  region_key         = "vcp"
+  vcn_id             = module.vcn_services_vcp.vcn_id
+  subnet_id          = module.vcn_services_vcp.subnet_ids.services
+  primary_cluster_id = module.oci_cache_gru.cluster_id
 }
 
 # Grupo e logs dos microsserviços em Vinhedo.
