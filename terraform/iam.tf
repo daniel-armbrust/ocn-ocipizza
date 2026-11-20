@@ -72,6 +72,11 @@ resource "oci_identity_policy" "ocipizza_devops" {
     "Allow dynamic-group id ${oci_identity_dynamic_group.ocipizza_devops.id} to manage cluster in compartment id ${var.compartment_id}",
     "Allow dynamic-group id ${oci_identity_dynamic_group.ocipizza_devops.id} to manage compute-container-instances in compartment id ${var.compartment_id}",
     "Allow dynamic-group id ${oci_identity_dynamic_group.ocipizza_devops.id} to manage compute-containers in compartment id ${var.compartment_id}",
+    "Allow dynamic-group id ${oci_identity_dynamic_group.ocipizza_devops.id} to read nosql-tables in compartment id ${var.compartment_id}",
+    "Allow dynamic-group id ${oci_identity_dynamic_group.ocipizza_devops.id} to manage nosql-rows in compartment id ${var.compartment_id}",
+    "Allow dynamic-group id ${oci_identity_dynamic_group.ocipizza_devops.id} to read buckets in compartment id ${var.compartment_id}",
+    "Allow dynamic-group id ${oci_identity_dynamic_group.ocipizza_devops.id} to manage objects in compartment id ${var.compartment_id}",
+    "Allow dynamic-group id ${oci_identity_dynamic_group.ocipizza_devops.id} to use log-content in compartment id ${var.compartment_id}",
   ]
 }
 

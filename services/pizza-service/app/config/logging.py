@@ -25,7 +25,7 @@ class OciLoggingHandler(logging.Handler):
     Handler responsável por enviar logs da aplicação para o
     OCI Logging através da Logging Ingestion API.
 
-    A autenticação é realizada utilizando Instance Principal.
+    A autenticação utiliza a estratégia definida por OCI_AUTH_MODE.
     """
 
     def __init__(self, log_id: str, source: str) -> None:
@@ -39,12 +39,41 @@ class OciLoggingHandler(logging.Handler):
 
         super().__init__()
 
-        signer = (
-            oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
-        )
+        config: dict[str, str] = {}
+
+        if settings.oci_auth_mode == 'config_file':
+            if not settings.oci_config_file:
+                raise ValueError(
+                    'OCI_CONFIG_FILE is required when OCI_AUTH_MODE '
+                    'is config_file.'
+                )
+
+            config = oci.config.from_file(
+                file_location=settings.oci_config_file,
+                profile_name=settings.oci_config_profile or 'DEFAULT'
+            )
+
+            if settings.oci_region:
+                config['region'] = settings.oci_region
+
+            signer = None
+
+        elif settings.oci_auth_mode == 'instance_principal':
+            signer = oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
+            config['region'] = signer.region
+
+        elif settings.oci_auth_mode == 'resource_principal':
+            signer = oci.auth.signers.get_resource_principals_signer()
+            config['region'] = signer.region
+
+        else:
+            raise ValueError(
+                'Unsupported OCI authentication mode: '
+                f'{settings.oci_auth_mode}'
+            )
 
         self.client = LoggingClient(
-            config={},
+            config=config,
             signer=signer
         )
 
@@ -101,8 +130,8 @@ def configure_logging() -> None:
     Configura o logging global da aplicação.
 
     Os logs são sempre enviados para stdout. Fora do ambiente de
-    desenvolvimento, também são enviados para o OCI Logging utilizando
-    Instance Principal.
+    desenvolvimento, também são enviados para o OCI Logging utilizando a
+    estratégia definida por OCI_AUTH_MODE.
 
     Raises:
         ValueError: Caso o OCID do OCI Logging não esteja configurado

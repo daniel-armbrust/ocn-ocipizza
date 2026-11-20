@@ -234,8 +234,8 @@ export OBJECTSTORAGE_BUCKET="${OBJECTSTORAGE_BUCKET:-pizza-images}"
 export OBJECTSTORAGE_ACCESS_KEY="${OBJECTSTORAGE_ACCESS_KEY:-minioadmin}"
 export OBJECTSTORAGE_SECRET_KEY="${OBJECTSTORAGE_SECRET_KEY:-minioadmin}"
 export OBJECTSTORAGE_COMPARTMENT_ID="${OBJECTSTORAGE_COMPARTMENT_ID:-}"
-export OCI_REGION="${OCI_REGION:-sa-saopaulo-1}"
 export OCI_AUTH_MODE="${OCI_AUTH_MODE:-}"
+export OCI_REGION="${OCI_REGION:-}"
 export OCI_CONFIG_FILE="${OCI_CONFIG_FILE:-${HOME}/.oci/config}"
 export OCI_CONFIG_PROFILE="${OCI_CONFIG_PROFILE:-DEFAULT}"
 export JWT_ISSUER="${JWT_ISSUER:-user-service}"
@@ -264,6 +264,26 @@ if [ "${OBJECTSTORAGE_PROVIDER}" != 'minio' ] && \
     exit 1
 fi
 
+if [ "${NOSQL_PROVIDER}" = 'oci' ] || \
+   [ "${OBJECTSTORAGE_PROVIDER}" = 'oci' ]; then
+    if [ "${OCI_AUTH_MODE}" != 'config_file' ] && \
+       [ "${OCI_AUTH_MODE}" != 'instance_principal' ] && \
+       [ "${OCI_AUTH_MODE}" != 'resource_principal' ]; then
+        echo "Modo de autenticação OCI não suportado: ${OCI_AUTH_MODE}"
+        echo 'Utilize OCI_AUTH_MODE=config_file, instance_principal ou '
+        echo 'resource_principal.'
+        exit 1
+    fi
+fi
+
+if [ "${OCI_AUTH_MODE}" = 'config_file' ] && \
+   { [ "${NOSQL_PROVIDER}" = 'oci' ] || \
+     [ "${OBJECTSTORAGE_PROVIDER}" = 'oci' ]; } && \
+   [ ! -f "${OCI_CONFIG_FILE}" ]; then
+    echo "Erro: arquivo de configuração OCI não encontrado: ${OCI_CONFIG_FILE}"
+    exit 1
+fi
+
 # Persistência
 
 display_step 'Inicialização da persistência'
@@ -279,53 +299,74 @@ if [ "${PERSISTENCE_PROVIDER}" = "nosql" ]; then
     # O handle é criado pela mesma fábrica utilizada pela aplicação. Dessa
     # forma, NOSQL_PROVIDER seleciona automaticamente o backend local ou OCI.
     python <<'PYTHON'
-import time
-
 from app.config.settings import settings
 from app.repositories.nosql.connection import create_nosql_handle
-from borneo import TableLimits, TableRequest
+from borneo import (
+    GetTableRequest,
+    TableLimits,
+    TableNotFoundException,
+    TableRequest,
+)
 
 
 table_name = settings.nosql_table_name
 handle = create_nosql_handle()
 
 try:
-    statement = f'''
-        CREATE TABLE IF NOT EXISTS {table_name} (
-            id STRING,
-            name STRING,
-            description STRING,
-            category STRING,
-            price NUMBER,
-            image_name STRING,
-            available BOOLEAN,
-            created_at TIMESTAMP(3),
-            updated_at TIMESTAMP(3),
-            PRIMARY KEY(id)
+    if settings.nosql_provider == 'oci':
+        print(f'Verificando a tabela OCI NoSQL {table_name}...')
+
+        try:
+            handle.get_table(
+                GetTableRequest().set_table_name(table_name)
+            )
+        except TableNotFoundException as ex:
+            raise RuntimeError(
+                f'A tabela OCI NoSQL {table_name} não existe. '
+                'Crie a infraestrutura com Terraform antes de executar '
+                'o bootstrap.'
+            ) from ex
+
+        print(f'Tabela OCI NoSQL {table_name} encontrada.')
+    else:
+        import time
+
+        statement = f'''
+            CREATE TABLE IF NOT EXISTS {table_name} (
+                id STRING,
+                name STRING,
+                description STRING,
+                category STRING,
+                price NUMBER,
+                image_name STRING,
+                available BOOLEAN,
+                created_at TIMESTAMP(3),
+                updated_at TIMESTAMP(3),
+                PRIMARY KEY(id)
+            )
+        '''
+
+        print(f'Garantindo a tabela local {table_name}...')
+
+        # O Oracle NoSQL exige limites durante a criação da tabela local.
+        table_limits = TableLimits(
+            read_units=5,
+            write_units=5,
+            storage_gb=1
         )
-    '''
 
-    print(f'Garantindo a tabela {table_name}...')
+        request = (
+            TableRequest()
+            .set_statement(statement)
+            .set_table_limits(table_limits)
+        )
 
-    # O Oracle NoSQL exige limites de capacidade durante a criação da tabela.
-    # Estes valores iniciais são fixos para manter o bootstrap previsível.
-    table_limits = TableLimits(
-        read_units=5,
-        write_units=5,
-        storage_gb=1
-    )
+        result = handle.table_request(request)
+        result.wait_for_completion(handle, 60000, 1000)
 
-    request = (
-        TableRequest()
-        .set_statement(statement)
-        .set_table_limits(table_limits)
-    )
-    result = handle.table_request(request)
-    result.wait_for_completion(handle, 60000, 1000)
-
-    # Respeita o limite de quatro operações DDL por minuto do Oracle NoSQL.
-    time.sleep(16)
-    print(f'Tabela {table_name} pronta para utilização.')
+        # Respeita o limite de quatro operações DDL por minuto.
+        time.sleep(16)
+        print(f'Tabela local {table_name} pronta para utilização.')
 finally:
     handle.close()
 PYTHON
@@ -478,11 +519,8 @@ from uuid import UUID
 from app.config.settings import settings
 from app.models.pizza import Pizza, PizzaCategory
 from app.repositories.nosql.connection import create_nosql_handle
-from app.repositories.nosql.nosql_pizza_repository import (
-    NosqlPizzaRepository
-)
+from app.repositories.nosql.nosql_pizza_repository import NosqlPizzaRepository
 from app.utils.utils import now_utc
-
 
 now = now_utc()
 
@@ -640,6 +678,7 @@ if settings.persistence_provider != 'nosql':
     )
 
 handle = create_nosql_handle()
+
 repository = NosqlPizzaRepository(
     handle=handle,
     table_name=settings.nosql_table_name
@@ -664,7 +703,6 @@ PYTHON
 
     python <<'PYTHON'
 import mimetypes
-import os
 
 from io import BytesIO
 from pathlib import Path
@@ -701,6 +739,7 @@ if provider == 'minio':
         )
 
     endpoint = urlparse(settings.objectstorage_endpoint)
+
     if not endpoint.netloc:
         raise ValueError('OBJECTSTORAGE_ENDPOINT is invalid.')
 
@@ -729,12 +768,23 @@ elif provider == 'oci':
             file_location=settings.oci_config_file,
             profile_name=settings.oci_config_profile or 'DEFAULT'
         )
+
         config['region'] = settings.oci_region
         client = oci.object_storage.ObjectStorageClient(config=config)
         region = settings.oci_region
+
     elif settings.oci_auth_mode == 'instance_principal':
         signer = oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
         region = signer.region or settings.oci_region
+        
+        client = oci.object_storage.ObjectStorageClient(
+            config={'region': region},
+            signer=signer
+        )
+    elif settings.oci_auth_mode == 'resource_principal':
+        signer = oci.auth.signers.get_resource_principals_signer()
+        region = signer.region
+
         client = oci.object_storage.ObjectStorageClient(
             config={'region': region},
             signer=signer
@@ -746,8 +796,6 @@ elif provider == 'oci':
 
     namespace = client.get_namespace().data
 
-    # O bucket pode já existir. Só solicita o compartment quando a criação
-    # realmente for necessária.
     try:
         client.get_bucket(
             namespace_name=namespace,
@@ -757,21 +805,11 @@ elif provider == 'oci':
         if ex.status != 404:
             raise
 
-        compartment_id = os.getenv('OBJECTSTORAGE_COMPARTMENT_ID')
-        if not compartment_id:
-            raise ValueError(
-                'OBJECTSTORAGE_COMPARTMENT_ID is required to create '
-                'an OCI Object Storage bucket.'
-            )
-
-        details = oci.object_storage.models.CreateBucketDetails(
-            name=bucket,
-            compartment_id=compartment_id
-        )
-        client.create_bucket(
-            namespace_name=namespace,
-            create_bucket_details=details
-        )
+        raise RuntimeError(
+            f'O bucket OCI Object Storage {bucket} não existe. '
+            'Crie a infraestrutura com Terraform antes de executar '
+            'o bootstrap.'
+        ) from ex
 else:
     raise ValueError(
         f'Unsupported Object Storage provider: {provider}'
@@ -801,7 +839,9 @@ for image_path in image_paths:
                 bucket_name=bucket,
                 object_name=object_name
             )
+
             print(f'Imagem de demonstração já existe: {object_name}')
+
             continue
         except oci.exceptions.ServiceError as ex:
             if ex.status != 404:

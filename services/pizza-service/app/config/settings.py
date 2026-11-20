@@ -31,10 +31,10 @@ class Settings(BaseSettings):
     ] = 'production'
 
     # Região utilizada para acessar os serviços do OCI.
-    # Quando OCI_AUTH_MODE for "instance_principal", a 
-    # região é identificada automaticamente de acordo com 
-    # a região onde a aplicação está sendo executada.
-    oci_region: str | None
+    # Quando OCI_AUTH_MODE utilizar Instance Principal ou 
+    # Resource Principal, a região é identificada automaticamente 
+    # no ambiente OCI.
+    oci_region: str | None = None
 
     # Provider de persistência.
     persistence_provider: Literal['nosql', 'sqlalchemy'] = 'nosql'
@@ -82,9 +82,12 @@ class Settings(BaseSettings):
     #       de desenvolvimento.
     #   "instance_principal" utiliza a identidade da instância Compute
     #       no OCI.
+    #   "resource_principal" utiliza a identidade do recurso OCI, como 
+    #       um Build Pipeline ou Deployment Pipeline do OCI DevOps.
     oci_auth_mode: Literal[
         'config_file',
         'instance_principal',
+        'resource_principal',
     ] | None = None
 
     # Caminho do arquivo de configuração e profile usados para

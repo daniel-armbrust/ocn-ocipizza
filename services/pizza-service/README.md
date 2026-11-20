@@ -73,8 +73,9 @@ selecionado e inclui pizzas de demonstração.
 Ele é um script de preparação do ambiente, não o processo principal da API.
 Quando `NOSQL_PROVIDER=local`, utiliza o endpoint local configurado. Quando o
 provider é diferente de `local`, `NOSQL_COMPARTMENT_ID` é obrigatório para a
-configuração do Oracle NoSQL no OCI. A tabela é garantida com a estrutura
-necessária sem ser recriada a cada execução.
+configuração do Oracle NoSQL no OCI. No ambiente local, o bootstrap cria a
+tabela quando necessário. Na OCI, ele exige que a tabela já tenha sido criada
+pelo Terraform e interrompe a execução quando ela não é encontrada.
 
 Variáveis exportadas no ambiente têm precedência sobre valores equivalentes do
 arquivo `.env`, o que permite executar o bootstrap para homologação no OCI sem
@@ -140,11 +141,12 @@ docker compose ps pizza-service
 6. Valida `NOSQL_PROVIDER`, `OBJECTSTORAGE_PROVIDER` e as configurações
    obrigatórias dos providers
 7. Identifica o provider definido em `PERSISTENCE_PROVIDER`
-8. Cria a tabela `pizzas` no Oracle NoSQL quando o provider é `nosql`
+8. Cria a tabela `pizzas` no NoSQL local ou verifica a tabela previamente
+   criada pelo Terraform quando `NOSQL_PROVIDER=oci`
 9. Inicializa e executa o Alembic quando o provider é `sqlalchemy`
 10. Inclui as pizzas de demonstração que ainda não existem
-11. Garante o bucket configurado e envia as imagens de demonstração usando o
-    provider selecionado em `OBJECTSTORAGE_PROVIDER`
+11. Cria o bucket local ou verifica o bucket OCI previamente criado pelo
+    Terraform e envia as imagens de demonstração
 
 ### Configuração local criada
 
@@ -172,9 +174,10 @@ contém `OBJECTSTORAGE_ENDPOINT`, `OBJECTSTORAGE_BUCKET`,
 Para utilizar os recursos OCI no bootstrap, altere `NOSQL_PROVIDER` e/ou
 `OBJECTSTORAGE_PROVIDER` para `oci` e configure `OCI_AUTH_MODE`,
 `OCI_CONFIG_FILE` (quando aplicável), `OCI_REGION` e
-`NOSQL_COMPARTMENT_ID`. Quando o bucket OCI ainda não existir, informe também
-`OBJECTSTORAGE_COMPARTMENT_ID`. O bootstrap é interrompido quando um provider
-inválido é informado ou quando um compartment obrigatório não está definido.
+`NOSQL_COMPARTMENT_ID`. A tabela NoSQL e o bucket Object Storage devem existir
+antes da execução e são responsabilidades do Terraform. O bootstrap é
+interrompido quando um provider é inválido, uma configuração obrigatória não
+está definida ou um desses recursos OCI não é encontrado.
 
 Exemplo mínimo para autenticação OCI por arquivo de configuração:
 
@@ -182,17 +185,30 @@ Exemplo mínimo para autenticação OCI por arquivo de configuração:
 NOSQL_PROVIDER=oci
 NOSQL_COMPARTMENT_ID=ocid1.compartment.oc1..xxxxxxxx
 OBJECTSTORAGE_PROVIDER=oci
-OBJECTSTORAGE_COMPARTMENT_ID=ocid1.compartment.oc1..xxxxxxxx
 OCI_AUTH_MODE=config_file
 OCI_CONFIG_FILE=/home/seu-usuario/.oci/config
 OCI_CONFIG_PROFILE=DEFAULT
 OCI_REGION=sa-saopaulo-1
 ```
 
-`OBJECTSTORAGE_COMPARTMENT_ID` só é utilizado quando o bucket precisa ser
-criado. Se o bucket já existir, o bootstrap apenas o reutiliza.
-O bucket é mantido privado; as imagens são disponibilizadas pela rota da API,
-que aplica a autenticação e devolve o conteúdo com o tipo MIME da imagem.
+No OCI DevOps, utilize Resource Principal. A região é obtida automaticamente
+do signer disponibilizado pelo executor:
+
+```env
+NOSQL_PROVIDER=oci
+NOSQL_COMPARTMENT_ID=ocid1.compartment.oc1..xxxxxxxx
+OBJECTSTORAGE_PROVIDER=oci
+OCI_AUTH_MODE=resource_principal
+```
+
+O arquivo `bootstrap_spec.yaml` executa esse fluxo em um Managed Build do OCI
+DevOps. A pipeline deve fornecer `NOSQL_COMPARTMENT_ID` como parâmetro; os
+demais valores necessários ao bootstrap do `pizza-service` são definidos no
+Build Spec. O YAML não contém OCIDs nem credenciais.
+
+O bootstrap não cria recursos de infraestrutura na OCI. O bucket é mantido
+privado; as imagens são disponibilizadas pela rota da API, que aplica a
+autenticação e devolve o conteúdo com o tipo MIME da imagem.
 
 ## `startdev.sh` — Execução local do serviço
 
@@ -248,14 +264,16 @@ O valor `nosql` utiliza a tabela definida por `NOSQL_TABLE_NAME`. Quando
 local. Quando `NOSQL_PROVIDER=oci`, a conexão utiliza a região OCI e a
 estratégia definida por `OCI_AUTH_MODE`.
 
-A tabela criada pelo bootstrap possui os campos `id`, `name`, `description`,
-`category`, `price`, `image_name`, `available`, `created_at` e `updated_at`.
-Durante a criação, o bootstrap aplica limites fixos de capacidade para manter
-o ambiente previsível: `read_units=5`, `write_units=5` e `storage_gb=1`.
+A tabela local criada pelo bootstrap possui os campos `id`, `name`,
+`description`, `category`, `price`, `image_name`, `available`, `created_at` e
+`updated_at`. Durante a criação local, o bootstrap aplica limites fixos de
+capacidade para manter o ambiente previsível: `read_units=5`, `write_units=5`
+e `storage_gb=1`. Na OCI, a definição e a capacidade da tabela são
+administradas pelo Terraform.
 
 #### Autenticação OCI
 
-`OCI_AUTH_MODE` possui três estados possíveis:
+`OCI_AUTH_MODE` possui quatro estados possíveis:
 
 - não definida ou vazia: resulta em `None` no Python, não configura
   autenticação OCI e deve ser utilizada quando os providers forem locais;
@@ -268,14 +286,19 @@ o ambiente previsível: `read_units=5`, `write_units=5` e `storage_gb=1`.
   `OCI_CONFIG_PROFILE`. A execução precisa ocorrer em um recurso OCI com
   Instance Principal configurado e permissões para acessar o NoSQL. A região é
   obtida a partir da identidade do recurso.
+- `resource_principal`: utiliza a identidade temporária disponibilizada por um
+  recurso OCI, como um Build Pipeline ou Deployment Pipeline do OCI DevOps.
+  Não utiliza arquivo de configuração. A região é obtida automaticamente do
+  Resource Principal signer.
 
 Quando `NOSQL_PROVIDER=oci`, o bootstrap exige `NOSQL_COMPARTMENT_ID` e um modo
 de autenticação OCI diferente de `None`.
 
 O mesmo `OCI_AUTH_MODE` é utilizado pelo Object Storage quando
 `OBJECTSTORAGE_PROVIDER=oci`. No modo `config_file`, o arquivo e o profile OCI
-devem estar disponíveis no ambiente de execução. No modo `instance_principal`,
-o recurso OCI precisa possuir a identidade e as políticas necessárias.
+devem estar disponíveis no ambiente de execução. Nos modos
+`instance_principal` e `resource_principal`, o recurso OCI precisa possuir a
+identidade e as policies necessárias.
 
 ### MySQL com SQLAlchemy — alternativa
 
@@ -339,7 +362,7 @@ O logging é configurado durante a inicialização da aplicação:
 
 - Em `development`, os logs são enviados para `stdout`.
 - Nos demais ambientes, os logs são enviados ao OCI Logging pela Logging
-  Ingestion API, com autenticação via Instance Principal.
+  Ingestion API, conforme a estratégia definida por `OCI_AUTH_MODE`.
 - Fora de `development`, `OCI_LOG_ID` é obrigatório e deve conter o OCID do
   Custom Log utilizado para ingestão.
 
@@ -603,8 +626,8 @@ expõem detalhes internos e retornam `INTERNAL_SERVER_ERROR`.
 | `NOSQL_COMPARTMENT_ID` | — | OCID do compartment relacionado ao NoSQL. |
 | `DATABASE_URL` | — | URL de conexão utilizada pelo SQLAlchemy. |
 | `HTTP_CLIENT_TIMEOUT` | `10.0` | Timeout, em segundos, das chamadas HTTP ao JWKS. |
-| `OCI_REGION` | `sa-saopaulo-1` | Região utilizada pelos providers OCI. |
-| `OCI_AUTH_MODE` | — (`None` no Python) | Autenticação OCI: vazia, `config_file` ou `instance_principal`. |
+| `OCI_REGION` | — | Região utilizada com `config_file`. O `.env` local usa `sa-saopaulo-1`; Instance Principal e Resource Principal obtêm a região automaticamente do signer. |
+| `OCI_AUTH_MODE` | — (`None` no Python) | Autenticação OCI: vazia, `config_file`, `instance_principal` ou `resource_principal`. |
 | `OCI_CONFIG_FILE` | — | Caminho do arquivo de configuração OCI quando aplicável. |
 | `OCI_CONFIG_PROFILE` | `DEFAULT` | Profile do arquivo de configuração OCI. |
 | `JWT_ISSUER` | `user-service` | Emissor esperado no JWT. |
@@ -613,7 +636,7 @@ expõem detalhes internos e retornam `INTERNAL_SERVER_ERROR`.
 | `OBJECTSTORAGE_PROVIDER` | `local` | Backend de objetos: `local` ou `oci`. |
 | `OBJECTSTORAGE_ENDPOINT` | `http://object-storage:9000` | Endpoint utilizado pelo provider local. |
 | `OBJECTSTORAGE_BUCKET` | `pizza-images` | Nome do bucket de imagens. |
-| `OBJECTSTORAGE_COMPARTMENT_ID` | — | Compartment usado para criar o bucket OCI quando ele ainda não existe. |
+| `OBJECTSTORAGE_COMPARTMENT_ID` | — | Mantida para compatibilidade de configuração; o bootstrap não cria buckets na OCI. |
 | `OBJECTSTORAGE_ACCESS_KEY` | — | Chave do MinIO, obrigatória no provider local. |
 | `OBJECTSTORAGE_SECRET_KEY` | — | Chave secreta do MinIO, obrigatória no provider local. |
 | `LOG_LEVEL` | `INFO` | Nível de logging da aplicação. |

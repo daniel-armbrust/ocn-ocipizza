@@ -137,19 +137,20 @@ def _create_oci_nosql_handle() -> NoSQLHandle:
     # Utiliza a identidade da própria Compute Instance para autenticação,
     # evitando o uso de chaves e credenciais armazenadas localmente.
     elif settings.oci_auth_mode == 'instance_principal':
-        authorization_provider = (
-            SignatureProvider.create_with_instance_principal()
-        )
-
+        authorization_provider = SignatureProvider.create_with_instance_principal()
+        
         # Obtém a região automaticamente com base na localidade 
         # em que a aplicação está sendo executada no OCI.
         region = authorization_provider.get_region()
 
-        if not region:
-            raise ValueError(
-                'Unable to determine OCI region '
-                'from Instance Principal.'
-            )
+    # Utiliza a identidade do recurso OCI que executa a aplicação ou a
+    # automação, como o Build Pipeline ou Deployment Pipeline do OCI DevOps.
+    elif settings.oci_auth_mode == 'resource_principal':
+        authorization_provider = SignatureProvider.create_with_resource_principal()
+    
+        # Obtém a região automaticamente com base na localidade 
+        # em que a aplicação está sendo executada no OCI.
+        region = authorization_provider.get_region()
 
     else:
         raise ValueError(

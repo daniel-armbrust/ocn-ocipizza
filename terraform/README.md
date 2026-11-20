@@ -133,7 +133,8 @@ recursos do OCI Pizza:
   Storage, Queue, Secrets, Logging e OCIR;
 - `ocipizza-devops`: reúne os resource principals de build pipelines,
   deployment pipelines, repositórios e conexões do OCI DevOps, permitindo
-  construir, publicar e implantar os artefatos;
+  construir, publicar e implantar os artefatos, além de carregar os dados e
+  objetos de demonstração nos recursos previamente criados pelo Terraform;
 - `ocipizza-service-principals`: permite ao OKE administrar IPs privados e ao
   Object Storage realizar a replicação entre São Paulo e Vinhedo.
 
@@ -211,6 +212,19 @@ Os outputs `ocir_pizza_service_repository_id`,
 `ocir_pizza_service_repository_namespace` e
 `ocir_pizza_service_repository_url` fornecem os valores necessários para a
 futura configuração do deployment artifact e do stage `DELIVER_ARTIFACT`.
+
+### Pipeline de bootstrap
+
+O submódulo `devops/bootstrap/` cria a Build Pipeline
+`bootstrap-ocipizza`. O Managed Build `bootstrap-pizza-service` executa
+`services/pizza-service/bootstrap_spec.yaml` diretamente.
+
+Cada serviço deve possuir um submódulo próprio em `devops/bootstrap/` e um
+Managed Build próprio nessa pipeline. Por enquanto, somente o submódulo
+`devops/bootstrap/pizza-service/` está configurado. O parâmetro
+`NOSQL_COMPARTMENT_ID` recebe como padrão o compartment administrado pelo
+Terraform e é disponibilizado ao script de bootstrap. Os demais providers e
+nomes de recursos são definidos no Build Spec do serviço.
 
 ### Build pipeline do pizza-service
 

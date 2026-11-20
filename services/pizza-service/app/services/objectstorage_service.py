@@ -19,8 +19,8 @@ class ObjectStorageService:
 
     Em ambiente de desenvolvimento, utiliza MinIO.
 
-    Nos demais ambientes, utiliza OCI Object Storage com
-    autenticação via Instance Principal.
+    Nos demais ambientes, utiliza OCI Object Storage com a estratégia de
+    autenticação definida por OCI_AUTH_MODE.
     """
 
     def __init__(self) -> None:
@@ -105,7 +105,25 @@ class ObjectStorageService:
             # autenticação, evitando o uso de chaves e credenciais 
             # armazenadas localmente.
             elif settings.oci_auth_mode == 'instance_principal':
-                signer = oci.auth.signers.InstancePrincipalSecurityTokenSigner()
+                signer = oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
+
+                # Obtém a região automaticamente com base na localidade 
+                # em que a aplicação está sendo executada no OCI.
+                self.region = signer.region
+
+                self.client = (
+                    oci.object_storage.ObjectStorageClient(
+                        config={
+                            'region': self.region
+                        },
+                        signer=signer
+                    )
+                )
+
+            # Utiliza a identidade do recurso OCI, como um pipeline do OCI
+            # DevOps, sem armazenar credenciais no ambiente de execução.
+            elif settings.oci_auth_mode == 'resource_principal':
+                signer = oci.auth.signers.get_resource_principals_signer()
 
                 # Obtém a região automaticamente com base na localidade 
                 # em que a aplicação está sendo executada no OCI.

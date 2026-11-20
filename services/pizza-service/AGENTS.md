@@ -38,9 +38,9 @@ conter regras de negócio.
   execução.
 - O acesso deve ocorrer pelos repositórios e pela unidade de trabalho fornecida
   por injeção de dependências.
-- O `bootstrap.sh` garante a tabela, os dados de demonstração e o bucket nos
-  providers selecionados por `NOSQL_PROVIDER` e `OBJECTSTORAGE_PROVIDER`.
-  Execute-o somente para preparar um ambiente controlado.
+- O `bootstrap.sh` cria a tabela e o bucket somente nos providers locais. Na
+  OCI, esses recursos são criados pelo Terraform; o bootstrap apenas verifica
+  sua existência e carrega os dados e objetos de demonstração.
 - Alterações no modelo persistido devem ser refletidas nos providers
   suportados e no `README.md`.
 

@@ -1,0 +1,61 @@
+# Este arquivo define o Build Spec usado pelo OCI DevOps para inicializar os
+# dados do pizza-service nos recursos OCI previamente criados pelo Terraform.
+#
+# A pipeline deve fornecer NOSQL_COMPARTMENT_ID. Nenhum OCID ou segredo deve
+# ser armazenado neste arquivo.
+
+version: 0.1
+component: build
+timeoutInSeconds: 900
+shell: bash
+failImmediatelyOnError: true
+
+env:
+  variables:
+    # O bootstrap utiliza development somente para habilitar a carga
+    # idempotente das pizzas e imagens de demonstração. Ele não inicia a API.
+    APP_ENV: "development"
+    PERSISTENCE_PROVIDER: "nosql"
+    NOSQL_PROVIDER: "oci"
+    NOSQL_TABLE_NAME: "pizzas"
+    OBJECTSTORAGE_PROVIDER: "oci"
+    OBJECTSTORAGE_BUCKET: "pizza-images"
+    OCI_AUTH_MODE: "resource_principal"
+
+steps:
+  - type: Command
+    name: "Validar configuração do bootstrap"
+    command: |
+      set -euo pipefail
+
+      : "${OCI_PRIMARY_SOURCE_DIR:?OCI_PRIMARY_SOURCE_DIR não foi definido pelo OCI DevOps}"
+      : "${NOSQL_COMPARTMENT_ID:?Defina NOSQL_COMPARTMENT_ID como parâmetro da pipeline}"
+
+      SERVICE_DIR="${OCI_PRIMARY_SOURCE_DIR}/services/pizza-service"
+
+      test -f "${SERVICE_DIR}/bootstrap.sh"
+      test -f "${SERVICE_DIR}/requirements.txt"
+
+      echo "Configuração do bootstrap do pizza-service validada."
+
+  - type: Command
+    name: "Inicializar dados do pizza-service"
+    command: |
+      set -euo pipefail
+
+      cd "${OCI_PRIMARY_SOURCE_DIR}/services/pizza-service"
+
+      echo "Inicializando dados do pizza-service nos recursos OCI..."
+
+      env \
+        -u HTTP_PROXY \
+        -u HTTPS_PROXY \
+        -u ALL_PROXY \
+        -u http_proxy \
+        -u https_proxy \
+        -u all_proxy \
+        -u PIP_PROXY \
+        -u pip_proxy \
+        bash ./bootstrap.sh
+
+      echo "Bootstrap do pizza-service concluído com sucesso."
