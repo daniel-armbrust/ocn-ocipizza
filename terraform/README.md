@@ -46,6 +46,12 @@ NONSHARDED, possuem 8 GB por nó e usam Configuration Sets regionais com os
 mesmos parâmetros exigidos pela replicação. A conectividade de replicação é
 gerenciada pela OCI e não utiliza o Remote Peering das VCNs.
 
+Os parâmetros internos dos Configuration Sets são aplicados durante a criação
+e ignorados em atualizações posteriores pelo Terraform. A OCI não permite
+remover ou substituir uma configuração customizada enquanto ela estiver
+associada a um cluster ativo. Mudanças nesses parâmetros exigem um procedimento
+controlado de desassociação ou recriação dos clusters.
+
 Cada cluster possui apenas um nó para reduzir o custo do ambiente didático.
 Essa escolha mantém a replicação entre GRU e VCP, mas não fornece redundância
 dentro de cada região. Para workloads de produção, a OCI recomenda pelo menos

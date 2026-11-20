@@ -26,4 +26,16 @@ resource "oci_redis_oci_cache_config_set" "this" {
       config_value = "allkeys-lru"
     }
   }
+
+  # A OCI não permite remover ou substituir configurações customizadas
+  # enquanto o Configuration Set estiver associado a um cluster ativo. O
+  # provider pode detectar diferenças de normalização e tentar atualizar os
+  # itens em applies posteriores, operação que falha no serviço. Os valores
+  # continuam sendo aplicados na criação inicial; mudanças futuras exigem um
+  # procedimento controlado de desassociação ou recriação dos clusters.
+  lifecycle {
+    ignore_changes = [
+      configuration_details,
+    ]
+  }
 }
