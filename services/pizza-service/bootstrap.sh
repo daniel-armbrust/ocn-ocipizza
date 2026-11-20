@@ -65,6 +65,22 @@ ensure_env_variable() {
     fi
 }
 
+# Executa o pip sem utilizar proxies ou arquivos de configuração herdados do
+# ambiente, mantendo o mesmo comportamento no desenvolvimento e no OCI DevOps.
+run_pip() {
+    env \
+        -u HTTP_PROXY \
+        -u HTTPS_PROXY \
+        -u ALL_PROXY \
+        -u http_proxy \
+        -u https_proxy \
+        -u all_proxy \
+        -u PIP_PROXY \
+        -u pip_proxy \
+        PIP_CONFIG_FILE=/dev/null \
+        python -m pip "$@"
+}
+
 cd "$PROJECT_DIR"
 
 # Variáveis exportadas pelo ambiente externo têm precedência sobre o .env.
@@ -115,10 +131,16 @@ fi
 source "$VENV_DIR/bin/activate"
 
 display_step 'Atualizando o pip'
-python -m pip install --upgrade pip
+run_pip install \
+    --disable-pip-version-check \
+    --no-cache-dir \
+    --upgrade pip
 
 display_step 'Instalando as dependências Python'
-python -m pip install --no-cache-dir -r requirements.txt
+run_pip install \
+    --disable-pip-version-check \
+    --no-cache-dir \
+    -r requirements.txt
 
 display_step 'Configurando o arquivo .env do ambiente local'
 

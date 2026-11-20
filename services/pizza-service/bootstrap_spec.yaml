@@ -56,6 +56,7 @@ steps:
         -u all_proxy \
         -u PIP_PROXY \
         -u pip_proxy \
+        PIP_CONFIG_FILE=/dev/null \
         bash ./bootstrap.sh
 
       echo "Bootstrap do pizza-service concluído com sucesso."
