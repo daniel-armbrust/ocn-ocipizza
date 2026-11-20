@@ -3,7 +3,7 @@
 Entre no diretório usado pelo Terraform:
 
 ~~~bash
-cd $HOME/ocn-ocipizza/terraform/ssh-keys
+cd $HOME/ocn-ocipizza/terraform/keys
 ~~~
 
 Crie um par para os Compute Firewalls e outro para os worker nodes do OKE:
@@ -42,6 +42,6 @@ O Terraform não lê esses arquivos diretamente. Antes do `terraform plan` ou
 `terraform apply`, carregue somente as chaves públicas nas variáveis:
 
 ~~~bash
-export TF_VAR_firewall_ssh_public_key="$(cat $HOME/ocn-ocipizza/terraform/ssh-keys/firewall.pub)"
-export TF_VAR_oke_worker_ssh_public_key="$(cat $HOME/ocn-ocipizza/terraform/ssh-keys/worker-nodes.pub)"
+export TF_VAR_firewall_ssh_public_key="$(cat $HOME/ocn-ocipizza/terraform/keys/firewall.pub)"
+export TF_VAR_oke_worker_ssh_public_key="$(cat $HOME/ocn-ocipizza/terraform/keys/worker-nodes.pub)"
 ~~~

@@ -156,8 +156,10 @@ coverage/
 .terraform/
 
 # Chaves SSH locais usadas pelo Compute Firewall e pelos worker nodes do OKE.
-terraform/ssh-keys/*
-!terraform/ssh-keys/README.md
+# Todo o material de chaves é local; somente a documentação pode ser
+# versionada.
+terraform/keys/*
+!terraform/keys/README.md
 
 # Chaves SSH locais dos worker nodes do laboratório OKE Fundamentals.
 oke-fundamentals/terraform/oke/keys/*
