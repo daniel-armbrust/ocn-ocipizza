@@ -30,10 +30,8 @@ class Settings(BaseSettings):
         'production'
     ] = 'production'
 
-    # Região utilizada para acessar os serviços do OCI.
-    # Quando OCI_AUTH_MODE utilizar Instance Principal ou 
-    # Resource Principal, a região é identificada automaticamente 
-    # no ambiente OCI.
+    # Região opcional para desenvolvimento local. Em execução na OCI, o
+    # Instance Principal identifica automaticamente a região do ambiente.
     oci_region: str | None = None
 
     # Provider de persistência.

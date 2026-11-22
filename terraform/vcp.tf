@@ -28,9 +28,10 @@ module "vcn_oke_vcp" {
   drg_id         = module.drg_vcp.drg_id
 }
 
-# Cluster OKE em Vinhedo com a mesma separação de sub-redes de GRU.
+# Cluster OKE Basic em Vinhedo com Flannel e Managed Nodes. Somente um dos
+# módulos OKE desta região deve permanecer habilitado por vez.
 module "oke_vcp" {
-  source = "./oke"
+  source = "./oke/basic-flannel"
 
   providers = {
     oci = oci.vcp
@@ -44,6 +45,25 @@ module "oke_vcp" {
   worker_subnet_id        = module.vcn_oke_vcp.subnet_ids.worker_nodes
   ssh_public_key          = var.oke_worker_ssh_public_key
 }
+
+# Cluster OKE Enhanced em Vinhedo com OCI VCN-Native Pod Networking e Virtual
+# Nodes. O módulo será implementado posteriormente. Para usá-lo, comente o
+# módulo Basic acima e descomente este bloco.
+# module "oke_vcp" {
+#   source = "./oke/enhanced-virtual-nodes"
+#
+#   providers = {
+#     oci = oci.vcp
+#   }
+#
+#   compartment_id          = var.compartment_id
+#   region_key              = "vcp"
+#   vcn_id                  = module.vcn_oke_vcp.vcn_id
+#   load_balancer_subnet_id = module.vcn_oke_vcp.subnet_ids.loadbalancer
+#   kube_api_subnet_id      = module.vcn_oke_vcp.subnet_ids.kube_api
+#   worker_subnet_id        = module.vcn_oke_vcp.subnet_ids.worker_nodes
+#   pod_subnet_id           = module.vcn_oke_vcp.subnet_ids.pods
+# }
 
 # VCN-DB em Vinhedo.
 module "vcn_db_vcp" {

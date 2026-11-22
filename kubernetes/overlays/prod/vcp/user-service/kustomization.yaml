@@ -1,0 +1,32 @@
+# Customiza a base do user-service para produção no cluster OKE de VCP.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ocipizza-prod
+
+# O namespace é criado pelo kustomization.yaml agregador regional.
+resources:
+  - ../../../../base/user-service
+
+labels:
+  - pairs:
+      env: prod
+      rel: stable
+    includeSelectors: true
+
+# A imagem permanece armazenada no OCIR de GRU e é consumida pelo OKE de VCP.
+images:
+  - name: user-service-image
+    newName: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/user-service
+    newTag: ${RELEASE_VERSION}
+
+# Produção mantém três réplicas para disponibilidade e distribuição de carga.
+replicas:
+  - name: user-service
+    count: 3
+
+configMapGenerator:
+  - name: user-service-config
+    envs:
+      - config.env

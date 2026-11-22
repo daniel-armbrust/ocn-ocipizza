@@ -1,0 +1,32 @@
+# Customiza a base do notification-service para homologação no OKE de VCP.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ocipizza-homol
+
+# O namespace é criado pelo kustomization.yaml agregador regional.
+resources:
+  - ../../../../base/notification-service
+
+labels:
+  - pairs:
+      env: homol
+      rel: candidate
+    includeSelectors: true
+
+# A imagem permanece armazenada no OCIR de GRU e é consumida pelo OKE de VCP.
+images:
+  - name: notification-service-image
+    newName: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/notification-service
+    newTag: ${RELEASE_VERSION}
+
+# O worker mantém uma única instância, conforme a estratégia Recreate da base.
+replicas:
+  - name: notification-service
+    count: 1
+
+configMapGenerator:
+  - name: notification-service-config
+    envs:
+      - config.env

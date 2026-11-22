@@ -18,7 +18,7 @@ locals {
     dhcp_options_name = "dhcp-options-vcn-oke-gru"
 
     # ------------------------------------------------------------------------
-    # A sub-rede de load balancers é pública; workers e API permanecem
+    # A sub-rede de load balancers é pública; workers, pods e API permanecem
     # privados para que o tráfego de saída seja controlado pelo DRG.
     # ------------------------------------------------------------------------
     subnets = {
@@ -46,6 +46,15 @@ locals {
         cidr_block         = "10.71.30.0/24"
         ipv6_cidr_block    = "fd82:44ee:f100:30::/64"
         dns_label          = "kubeapi"
+        prohibit_public_ip = true
+      }
+
+      # Pods dos futuros clusters Enhanced com rede OCI VCN-Native.
+      pods = {
+        name               = "subnet-oke-pods-gru"
+        cidr_block         = "10.71.64.0/20"
+        ipv6_cidr_block    = "fd82:44ee:f100:40::/64"
+        dns_label          = "pods"
         prohibit_public_ip = true
       }
     }
@@ -85,6 +94,24 @@ locals {
       kube_api = {
         name = "rt-oke-kube-api-gru"
         rules = [
+          {
+            destination      = "0.0.0.0/0"
+            destination_type = "CIDR_BLOCK"
+            target           = "drg"
+          }
+        ]
+      }
+
+      # Tabela de rotas dos pods com endereços nativos da VCN.
+      pods = {
+        name = "rt-oke-pods-gru"
+        rules = [
+          {
+            # Os pods de GRU acessam os serviços OCI pelo SGW local.
+            destination      = "service"
+            destination_type = "SERVICE_CIDR_BLOCK"
+            target           = "service"
+          },
           {
             destination      = "0.0.0.0/0"
             destination_type = "CIDR_BLOCK"
@@ -165,6 +192,27 @@ locals {
           }
         ]
       }
+
+      # Security List dos pods com endereços nativos da VCN.
+      pods = {
+        name = "sl-oke-pods-gru"
+        ingress = [
+          {
+            source      = "0.0.0.0/0"
+            source_type = "CIDR_BLOCK"
+            protocol    = "all"
+            stateless   = true
+          }
+        ]
+        egress = [
+          {
+            destination      = "0.0.0.0/0"
+            destination_type = "CIDR_BLOCK"
+            protocol         = "all"
+            stateless        = true
+          }
+        ]
+      }
     }
   }
 
@@ -181,7 +229,7 @@ locals {
     ipv6_cidr_block   = "fd82:44ee:f101::/48"
     dhcp_options_name = "dhcp-options-vcn-oke-vcp"
 
-    # A sub-rede de load balancers é pública; workers e API permanecem
+    # A sub-rede de load balancers é pública; workers, pods e API permanecem
     # privados para que o tráfego de saída seja controlado pelo DRG.
     subnets = {
       # Load Balancers públicos do OKE.
@@ -208,6 +256,15 @@ locals {
         cidr_block         = "10.81.30.0/24"
         ipv6_cidr_block    = "fd82:44ee:f101:30::/64"
         dns_label          = "kubeapi"
+        prohibit_public_ip = true
+      }
+
+      # Pods dos futuros clusters Enhanced com rede OCI VCN-Native.
+      pods = {
+        name               = "subnet-oke-pods-vcp"
+        cidr_block         = "10.81.64.0/20"
+        ipv6_cidr_block    = "fd82:44ee:f101:40::/64"
+        dns_label          = "pods"
         prohibit_public_ip = true
       }
     }
@@ -240,6 +297,18 @@ locals {
       # Tabela de rotas do Kubernetes API Server.
       kube_api = {
         name = "rt-oke-kube-api-vcp"
+        rules = [
+          {
+            destination      = "0.0.0.0/0"
+            destination_type = "CIDR_BLOCK"
+            target           = "drg"
+          }
+        ]
+      }
+
+      # Tabela de rotas dos pods com endereços nativos da VCN.
+      pods = {
+        name = "rt-oke-pods-vcp"
         rules = [
           {
             destination      = "0.0.0.0/0"
@@ -304,6 +373,27 @@ locals {
       # Security List do Kubernetes API Server.
       kube_api = {
         name = "sl-oke-kube-api-vcp"
+        ingress = [
+          {
+            source      = "0.0.0.0/0"
+            source_type = "CIDR_BLOCK"
+            protocol    = "all"
+            stateless   = true
+          }
+        ]
+        egress = [
+          {
+            destination      = "0.0.0.0/0"
+            destination_type = "CIDR_BLOCK"
+            protocol         = "all"
+            stateless        = true
+          }
+        ]
+      }
+
+      # Security List dos pods com endereços nativos da VCN.
+      pods = {
+        name = "sl-oke-pods-vcp"
         ingress = [
           {
             source      = "0.0.0.0/0"

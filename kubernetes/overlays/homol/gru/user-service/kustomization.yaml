@@ -1,0 +1,32 @@
+# Customiza a base do user-service para homologação no cluster OKE de GRU.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ocipizza-homol
+
+# O namespace é criado pelo kustomization.yaml agregador regional.
+resources:
+  - ../../../../base/user-service
+
+labels:
+  - pairs:
+      env: homol
+      rel: candidate
+    includeSelectors: true
+
+# Os placeholders serão preenchidos pela pipeline do OCI DevOps.
+images:
+  - name: user-service-image
+    newName: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/user-service
+    newTag: ${RELEASE_VERSION}
+
+# Homologação utiliza uma réplica para reduzir o consumo de recursos.
+replicas:
+  - name: user-service
+    count: 1
+
+configMapGenerator:
+  - name: user-service-config
+    envs:
+      - config.env

@@ -1,0 +1,32 @@
+# Customiza a base do order-service para produção no cluster OKE de GRU.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ocipizza-prod
+
+# O namespace é criado pelo kustomization.yaml agregador regional.
+resources:
+  - ../../../../base/order-service
+
+labels:
+  - pairs:
+      env: prod
+      rel: stable
+    includeSelectors: true
+
+# Os placeholders serão preenchidos pela pipeline do OCI DevOps.
+images:
+  - name: order-service-image
+    newName: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/order-service
+    newTag: ${RELEASE_VERSION}
+
+# Produção mantém três réplicas para disponibilidade e distribuição de carga.
+replicas:
+  - name: order-service
+    count: 3
+
+configMapGenerator:
+  - name: order-service-config
+    envs:
+      - config.env

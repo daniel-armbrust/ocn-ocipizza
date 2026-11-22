@@ -1,0 +1,41 @@
+# Customiza a base do frontend-service para homologação no cluster OKE de VCP.
+#
+# O overlay define namespace, labels, imagem, réplicas e configurações
+# específicas de sa-vinhedo-1 sem duplicar os manifests da base.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Aplica o namespace de homologação aos recursos namespaced da base.
+namespace: ocipizza-homol
+
+# Reutiliza somente a base comum do serviço. O namespace é criado pelo
+# kustomization.yaml agregador localizado no diretório regional acima.
+resources:
+  - ../../../../base/frontend-service
+
+# Identifica os recursos e atualiza também selectors e Pod templates.
+labels:
+  - pairs:
+      env: homol
+      rel: candidate
+    includeSelectors: true
+
+# A imagem permanece armazenada no OCIR de GRU e é consumida pelo OKE de VCP.
+# Os placeholders serão preenchidos pela pipeline do OCI DevOps.
+images:
+  - name: frontend-service-image
+    newName: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/frontend-service
+    newTag: ${RELEASE_VERSION}
+
+# Homologação utiliza uma réplica para reduzir o consumo de recursos.
+replicas:
+  - name: frontend-service
+    count: 1
+
+# Gera um ConfigMap versionado a partir das variáveis não sensíveis da região.
+# O hash adicionado ao nome provoca rollout quando a configuração é alterada.
+configMapGenerator:
+  - name: frontend-service-config
+    envs:
+      - config.env

@@ -1,0 +1,22 @@
+# Agrega todos os recursos da aplicação OCI Pizza que serão implantados no
+# ambiente de homologação do cluster OKE de VCP.
+#
+# Este é o ponto de entrada regional do Kustomize. O namespace pertence ao
+# ambiente no cluster e, por isso, é declarado uma única vez, fora dos
+# diretórios específicos dos microsserviços.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Cria o namespace compartilhado e inclui os overlays dos serviços implantados
+# neste ambiente e região.
+resources:
+  - namespace.yaml
+  - admin-service
+  - chatbot-service
+  - delivery-service
+  - frontend-service
+  - notification-service
+  - order-service
+  - pizza-service
+  - user-service

@@ -1,0 +1,41 @@
+# Customiza a base do admin-service para homologação no cluster OKE de GRU.
+#
+# O overlay define namespace, labels, imagem, réplicas e configurações
+# específicas de sa-saopaulo-1 sem duplicar os manifests da base.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Aplica o namespace de homologação aos recursos namespaced da base.
+namespace: ocipizza-homol
+
+# Reutiliza somente a base comum do serviço. O namespace é criado pelo
+# kustomization.yaml agregador localizado no diretório regional acima.
+resources:
+  - ../../../../base/admin-service
+
+# Identifica os recursos e atualiza também selectors e Pod templates.
+labels:
+  - pairs:
+      env: homol
+      rel: candidate
+    includeSelectors: true
+
+# Substitui o nome lógico da imagem declarado no Deployment.
+# Os placeholders serão preenchidos pela pipeline do OCI DevOps.
+images:
+  - name: admin-service-image
+    newName: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/admin-service
+    newTag: ${RELEASE_VERSION}
+
+# Homologação utiliza uma réplica para reduzir o consumo de recursos.
+replicas:
+  - name: admin-service
+    count: 1
+
+# Gera um ConfigMap versionado a partir das variáveis não sensíveis da região.
+# O hash adicionado ao nome provoca rollout quando a configuração é alterada.
+configMapGenerator:
+  - name: admin-service-config
+    envs:
+      - config.env

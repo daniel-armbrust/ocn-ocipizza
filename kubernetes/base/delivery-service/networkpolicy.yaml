@@ -1,0 +1,24 @@
+# Restringe o tráfego de entrada destinado aos Pods do delivery-service.
+#
+# A política permite conexões na porta 8000 originadas somente de outros Pods
+# do mesmo namespace. O tráfego de saída permanece sem restrições nesta etapa.
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: delivery-service
+
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: delivery-service
+
+  policyTypes:
+    - Ingress
+
+  ingress:
+    - from:
+        - podSelector: {}
+      ports:
+        - port: 8000
+          protocol: TCP

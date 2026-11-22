@@ -1,0 +1,163 @@
+# Cria o Deployment base responsável por executar o admin-service.
+#
+# Este arquivo contém somente configurações comuns a todos os ambientes e
+# regiões. Namespace, imagem, quantidade de réplicas e configurações são
+# definidos ou complementados pelos overlays do Kustomize.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-service
+
+  # Labels recomendados para identificar e agrupar os recursos da aplicação.
+  labels:
+    app: admin-service
+    app.kubernetes.io/name: admin-service
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: ocipizza
+spec:
+  # Valor padrão da base. Cada overlay define a quantidade adequada ao
+  # respectivo ambiente.
+  replicas: 1
+
+  # Atualiza os Pods gradualmente sem interromper a interface administrativa.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  # O selector deve sempre corresponder aos labels definidos no Pod template.
+  selector:
+    matchLabels:
+      app: admin-service
+      app.kubernetes.io/name: admin-service
+
+  # Define como cada Pod do admin-service deve ser criado.
+  template:
+    metadata:
+      labels:
+        app: admin-service
+        app.kubernetes.io/name: admin-service
+        app.kubernetes.io/component: web
+        app.kubernetes.io/part-of: ocipizza
+
+    spec:
+      # Deployments exigem Pods de longa duração e reiniciam containers que
+      # sejam encerrados inesperadamente.
+      restartPolicy: Always
+
+      # Identidade Kubernetes utilizada pelo Pod. O token não é montado porque
+      # o serviço ainda não consome diretamente a API do Kubernetes.
+      serviceAccountName: admin-service
+      automountServiceAccountToken: false
+
+      # Secret criado previamente no namespace para autenticação no OCIR.
+      imagePullSecrets:
+        - name: ocir-secret
+
+      # Exige a execução do Pod sem privilégios de root e utiliza o perfil
+      # padrão de seccomp disponibilizado pelo runtime do cluster.
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: admin-service
+
+          # Nome lógico substituído pelo bloco images de cada overlay.
+          image: admin-service-image
+
+          # As releases utilizam tags imutáveis baseadas no hash do commit.
+          imagePullPolicy: IfNotPresent
+
+          # Porta HTTP interna utilizada pela aplicação FastAPI/Uvicorn.
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          # Importa as configurações não sensíveis geradas pelo overlay.
+          envFrom:
+            - configMapRef:
+                name: admin-service-config
+
+          # Segredos são provisionados fora do Git e nunca incluídos nos
+          # arquivos config.env dos overlays.
+          env:
+            - name: REDIS_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: admin-service-secrets
+                  key: redis-endpoint
+
+            - name: SESSION_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: admin-service-secrets
+                  key: session-secret-key
+
+            - name: CSRF_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: admin-service-secrets
+                  key: csrf-secret-key
+
+          # Reduz os privilégios disponíveis dentro do container e impede
+          # alterações na imagem durante a execução.
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+
+          # Disponibiliza uma área temporária gravável sem permitir alterações
+          # no filesystem fornecido pela imagem do container.
+          volumeMounts:
+            - name: temporary-files
+              mountPath: /tmp
+
+          # Aguarda a inicialização do BFF e de suas dependências antes de
+          # ativar as demais verificações.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 30
+            periodSeconds: 2
+
+          # Controla quando o Pod está apto a receber tráfego pelo Service.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          # Reinicia o container quando a aplicação deixa de responder.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          # Reserva recursos mínimos para o agendamento e limita o consumo
+          # máximo permitido ao container.
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+
+      # O conteúdo temporário existe somente durante o ciclo de vida do Pod.
+      volumes:
+        - name: temporary-files
+          emptyDir: {}

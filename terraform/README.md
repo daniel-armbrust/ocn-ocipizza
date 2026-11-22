@@ -21,6 +21,18 @@ Os principais componentes são:
 - IAM dos workloads, do OCI DevOps e dos serviços gerenciados;
 - OCI Notifications, projeto OCI DevOps e conexão externa com o GitHub.
 
+A VCN-OKE de cada região possui sub-redes próprias para Load Balancers,
+worker nodes, endpoint privado do Kubernetes API e pods. A sub-rede privada de
+pods reserva endereços para o futuro cluster Enhanced com OCI VCN-Native Pod
+Networking; ela não é consumida pelos clusters Basic com Flannel atuais.
+
+Os códigos OKE são separados por arquitetura em `oke/basic-flannel/` e
+`oke/enhanced-virtual-nodes/`. O primeiro módulo cria os clusters Basic atuais
+com Flannel e Managed Nodes. O segundo diretório está reservado para a futura
+implementação dos clusters Enhanced com Virtual Nodes. Os blocos alternativos
+permanecem documentados e comentados em `gru.tf` e `vcp.tf`; somente uma
+arquitetura OKE deve ficar habilitada por região.
+
 O módulo `email-delivery/` permanece no repositório, mas suas instanciações em
 `gru.tf` e `vcp.tf` estão comentadas. Nenhum domínio, remetente ou DKIM do Email
 Delivery é criado enquanto essa integração estiver desativada.

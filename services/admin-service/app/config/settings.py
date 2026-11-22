@@ -29,11 +29,9 @@ class Settings(BaseSettings):
         'production'
     ] = 'production'
 
-    # Região utilizada para acessar os serviços do OCI.
-    # Quando OCI_AUTH_MODE for "instance_principal", a 
-    # região é identificada automaticamente de acordo com 
-    # a região onde a aplicação está sendo executada.
-    oci_region: str | None
+    # Região opcional para desenvolvimento local. Em execução na OCI, o
+    # Instance Principal identifica automaticamente a região do ambiente.
+    oci_region: str | None = None
 
     # Nome do cookie utilizado para identificar a sessão 
     # administrativa. 

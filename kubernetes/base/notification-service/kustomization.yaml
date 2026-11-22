@@ -1,0 +1,10 @@
+# Agrega os recursos comuns do notification-service em uma base reutilizável.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - networkpolicy.yaml
+  - service.yaml
+  - serviceaccount.yaml

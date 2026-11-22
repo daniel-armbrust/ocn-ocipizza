@@ -1,0 +1,32 @@
+# Customiza a base do notification-service para produção no OKE de GRU.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ocipizza-prod
+
+# O namespace é criado pelo kustomization.yaml agregador regional.
+resources:
+  - ../../../../base/notification-service
+
+labels:
+  - pairs:
+      env: prod
+      rel: stable
+    includeSelectors: true
+
+# Os placeholders serão preenchidos pela pipeline do OCI DevOps.
+images:
+  - name: notification-service-image
+    newName: ${REGISTRY}/${OCI_NAMESPACE}/ocipizza/notification-service
+    newTag: ${RELEASE_VERSION}
+
+# O worker mantém uma única instância, conforme a estratégia Recreate da base.
+replicas:
+  - name: notification-service
+    count: 1
+
+configMapGenerator:
+  - name: notification-service-config
+    envs:
+      - config.env

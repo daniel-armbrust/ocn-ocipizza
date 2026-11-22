@@ -9,10 +9,10 @@ kind: Kustomization
 # Aplica o namespace de produção aos recursos namespaced da base.
 namespace: ocipizza-prod
 
-# Reutiliza a base comum e cria o namespace quando ele ainda não existir.
+# Reutiliza somente a base comum do serviço. O namespace é criado pelo
+# kustomization.yaml agregador localizado no diretório regional acima.
 resources:
   - ../../../../base/pizza-service
-  - namespace.yaml
 
 # Identifica os recursos e atualiza também selectors e Pod templates.
 labels:

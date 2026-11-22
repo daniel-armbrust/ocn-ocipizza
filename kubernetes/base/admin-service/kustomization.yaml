@@ -1,0 +1,13 @@
+# Agrega os recursos comuns do admin-service em uma base reutilizável.
+#
+# A base não define namespace, região, imagem final, réplicas ou valores de
+# configuração. Essas diferenças são aplicadas pelos overlays.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Recursos Kubernetes compartilhados por todos os ambientes e regiões.
+resources:
+  - deployment.yaml
+  - service.yaml
+  - serviceaccount.yaml

@@ -1,0 +1,137 @@
+# Cria o Deployment base responsável por executar o delivery-service.
+#
+# Este arquivo contém somente configurações comuns a todos os ambientes e
+# regiões. Namespace, imagem, quantidade de réplicas e variáveis de ambiente
+# são definidos pelos overlays do Kustomize.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: delivery-service
+
+  # Labels recomendados para identificar e agrupar os recursos da aplicação.
+  labels:
+    app: delivery-service
+    app.kubernetes.io/name: delivery-service
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: ocipizza
+spec:
+  # Valor padrão da base. Cada overlay define a quantidade adequada ao
+  # respectivo ambiente.
+  replicas: 1
+
+  # Atualiza os Pods gradualmente sem interromper o serviço.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  # O selector deve sempre corresponder aos labels definidos no Pod template.
+  selector:
+    matchLabels:
+      app: delivery-service
+      app.kubernetes.io/name: delivery-service
+
+  # Define como cada Pod do delivery-service deve ser criado.
+  template:
+    metadata:
+      labels:
+        app: delivery-service
+        app.kubernetes.io/name: delivery-service
+        app.kubernetes.io/component: api
+        app.kubernetes.io/part-of: ocipizza
+
+    spec:
+      restartPolicy: Always
+
+      # Identidade Kubernetes utilizada pelo Pod. O token não é montado porque
+      # o serviço ainda não consome diretamente a API do Kubernetes.
+      serviceAccountName: delivery-service
+      automountServiceAccountToken: false
+
+      # Secret criado previamente no namespace para autenticação no OCIR.
+      imagePullSecrets:
+        - name: ocir-secret
+
+      # Exige a execução do Pod sem privilégios de root e utiliza o perfil
+      # padrão de seccomp disponibilizado pelo runtime do cluster.
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: delivery-service
+
+          # Nome lógico substituído pelo bloco images de cada overlay.
+          image: delivery-service-image
+          imagePullPolicy: IfNotPresent
+
+          # Porta HTTP interna utilizada pela aplicação FastAPI/Uvicorn.
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          # Importa as configurações não sensíveis geradas pelo overlay.
+          envFrom:
+            - configMapRef:
+                name: delivery-service-config
+
+          # Reduz os privilégios disponíveis dentro do container e impede
+          # alterações na imagem durante a execução.
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+
+          # Disponibiliza uma área temporária gravável sem permitir alterações
+          # no filesystem fornecido pela imagem do container.
+          volumeMounts:
+            - name: temporary-files
+              mountPath: /tmp
+
+          # Aguarda a inicialização do serviço antes de ativar as demais
+          # verificações, evitando reinicializações prematuras.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 30
+            periodSeconds: 2
+
+          # Controla quando o Pod está apto a receber tráfego pelo Service.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          # Reinicia o container quando a aplicação deixa de responder.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          # Mantém os valores didáticos definidos no manifesto de referência.
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+
+      # O conteúdo temporário existe somente durante o ciclo de vida do Pod.
+      volumes:
+        - name: temporary-files
+          emptyDir: {}

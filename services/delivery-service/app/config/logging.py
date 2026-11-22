@@ -146,7 +146,7 @@ def configure_logging() -> None:
 
         oci_handler = OciLoggingHandler(
             log_id=settings.oci_log_id,
-            source='frontend-service'
+            source='delivery-service'
         )
         
         oci_handler.setFormatter(formatter)

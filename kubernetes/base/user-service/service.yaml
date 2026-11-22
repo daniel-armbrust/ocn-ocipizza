@@ -1,0 +1,25 @@
+# Cria um Service interno para expor o user-service dentro do cluster.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+
+  labels:
+    app: user-service
+    app.kubernetes.io/name: user-service
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: ocipizza
+
+spec:
+  type: ClusterIP
+
+  selector:
+    app: user-service
+    app.kubernetes.io/name: user-service
+
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP

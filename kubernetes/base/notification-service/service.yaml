@@ -1,0 +1,28 @@
+# Cria um Service interno para os endpoints operacionais do notification-service.
+#
+# O worker não recebe tráfego funcional, mas o Service permite que ferramentas
+# internas consultem seu health check sem exposição pública.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+
+  labels:
+    app: notification-service
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: ocipizza
+
+spec:
+  type: ClusterIP
+
+  selector:
+    app: notification-service
+    app.kubernetes.io/name: notification-service
+
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP

@@ -1,0 +1,31 @@
+# Expõe o admin-service para utilização por um Ingress Controller.
+#
+# O OCI Native Ingress Controller utiliza Services do tipo NodePort como
+# backends. A porta externa não é fixada para evitar conflito entre os
+# namespaces de homologação e produção no mesmo cluster.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-service
+
+  labels:
+    app: admin-service
+    app.kubernetes.io/name: admin-service
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: ocipizza
+
+spec:
+  # O Kubernetes seleciona automaticamente uma NodePort livre no cluster.
+  type: NodePort
+
+  # Seleciona os Pods gerenciados pelo Deployment do admin-service.
+  selector:
+    app: admin-service
+    app.kubernetes.io/name: admin-service
+
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP

@@ -1,0 +1,22 @@
+# Restringe o acesso aos endpoints operacionais do notification-service.
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: notification-service
+
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: notification-service
+
+  policyTypes:
+    - Ingress
+
+  # Permite consultas à porta operacional somente por Pods do mesmo namespace.
+  ingress:
+    - from:
+        - podSelector: {}
+      ports:
+        - port: 8000
+          protocol: TCP

@@ -28,10 +28,10 @@ module "vcn_oke_gru" {
   drg_id         = module.drg_gru.drg_id
 }
 
-# Cluster OKE em São Paulo: API privado, Load Balancers públicos e workers
-# privados, cada componente usando a sub-rede correspondente da VCN-OKE.
+# Cluster OKE Basic em São Paulo com Flannel e Managed Nodes. Somente um dos
+# módulos OKE desta região deve permanecer habilitado por vez.
 module "oke_gru" {
-  source = "./oke"
+  source = "./oke/basic-flannel"
 
   providers = {
     oci = oci.gru
@@ -45,6 +45,25 @@ module "oke_gru" {
   worker_subnet_id        = module.vcn_oke_gru.subnet_ids.worker_nodes
   ssh_public_key          = var.oke_worker_ssh_public_key
 }
+
+# Cluster OKE Enhanced em São Paulo com OCI VCN-Native Pod Networking e
+# Virtual Nodes. O módulo será implementado posteriormente. Para usá-lo,
+# comente o módulo Basic acima e descomente este bloco.
+# module "oke_gru" {
+#   source = "./oke/enhanced-virtual-nodes"
+#
+#   providers = {
+#     oci = oci.gru
+#   }
+#
+#   compartment_id          = var.compartment_id
+#   region_key              = "gru"
+#   vcn_id                  = module.vcn_oke_gru.vcn_id
+#   load_balancer_subnet_id = module.vcn_oke_gru.subnet_ids.loadbalancer
+#   kube_api_subnet_id      = module.vcn_oke_gru.subnet_ids.kube_api
+#   worker_subnet_id        = module.vcn_oke_gru.subnet_ids.worker_nodes
+#   pod_subnet_id           = module.vcn_oke_gru.subnet_ids.pods
+# }
 
 # VCN-DB em São Paulo.
 module "vcn_db_gru" {

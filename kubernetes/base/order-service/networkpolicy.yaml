@@ -1,0 +1,22 @@
+# Restringe o tráfego de entrada destinado aos Pods do order-service.
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: order-service
+
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: order-service
+
+  policyTypes:
+    - Ingress
+
+  # Permite conexões na API somente por Pods do mesmo namespace.
+  ingress:
+    - from:
+        - podSelector: {}
+      ports:
+        - port: 8000
+          protocol: TCP

@@ -1,0 +1,138 @@
+# Cria o Deployment base responsável por executar o user-service.
+#
+# Namespace, imagem, réplicas e configurações específicas são definidos pelos
+# overlays. Segredos e chaves criptográficas permanecem fora do Git.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+
+  labels:
+    app: user-service
+    app.kubernetes.io/name: user-service
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: ocipizza
+spec:
+  replicas: 1
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  selector:
+    matchLabels:
+      app: user-service
+      app.kubernetes.io/name: user-service
+
+  template:
+    metadata:
+      labels:
+        app: user-service
+        app.kubernetes.io/name: user-service
+        app.kubernetes.io/component: api
+        app.kubernetes.io/part-of: ocipizza
+
+    spec:
+      restartPolicy: Always
+
+      # Identidade Kubernetes utilizada pelo Pod. A autenticação nos serviços
+      # OCI é realizada pelo Instance Principal do worker node.
+      serviceAccountName: user-service
+      automountServiceAccountToken: false
+
+      # Secret criado previamente no namespace para autenticação no OCIR.
+      imagePullSecrets:
+        - name: ocir-secret
+
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: user-service
+
+          # Nome lógico substituído pelo bloco images de cada overlay.
+          image: user-service-image
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          # Importa as configurações não sensíveis geradas pelo overlay.
+          envFrom:
+            - configMapRef:
+                name: user-service-config
+
+          # A string de conexão contém credenciais e deve ser provisionada por
+          # um mecanismo seguro, fora dos arquivos versionados.
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: user-service-secrets
+                  key: database-url
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+
+          # A chave privada é obtida diretamente do OCI Secret Management. O
+          # Pod recebe somente a chave pública utilizada pelo endpoint JWKS.
+          volumeMounts:
+            - name: jwt-public-key
+              mountPath: /run/secrets/jwt_public_key.pem
+              subPath: jwt_public_key.pem
+              readOnly: true
+
+            - name: temporary-files
+              mountPath: /tmp
+
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 30
+            periodSeconds: 2
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          # Mantém os valores didáticos definidos no manifesto de referência.
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+      volumes:
+        - name: jwt-public-key
+          secret:
+            secretName: user-service-jwt-public-key
+
+        - name: temporary-files
+          emptyDir: {}

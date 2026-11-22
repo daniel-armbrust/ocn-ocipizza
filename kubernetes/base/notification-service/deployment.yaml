@@ -1,0 +1,120 @@
+# Cria o Deployment base responsável por executar o notification-service.
+#
+# O serviço mantém o worker que consome a fila de notificações e também expõe
+# endpoints operacionais, como o health check.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+
+  labels:
+    app: notification-service
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: ocipizza
+spec:
+  # O worker utiliza uma única instância em todos os ambientes nesta etapa.
+  replicas: 1
+
+  # Encerra a instância atual antes de iniciar a substituta, preservando o
+  # comportamento do manifesto didático de referência.
+  strategy:
+    type: Recreate
+
+  selector:
+    matchLabels:
+      app: notification-service
+      app.kubernetes.io/name: notification-service
+
+  template:
+    metadata:
+      labels:
+        app: notification-service
+        app.kubernetes.io/name: notification-service
+        app.kubernetes.io/component: worker
+        app.kubernetes.io/part-of: ocipizza
+
+    spec:
+      restartPolicy: Always
+
+      # Identidade Kubernetes utilizada pelo Pod. O token não é montado porque
+      # o serviço ainda não consome diretamente a API do Kubernetes.
+      serviceAccountName: notification-service
+      automountServiceAccountToken: false
+
+      # Secret criado previamente no namespace para autenticação no OCIR.
+      imagePullSecrets:
+        - name: ocir-secret
+
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: notification-service
+
+          # Nome lógico substituído pelo bloco images de cada overlay.
+          image: notification-service-image
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          # Importa as configurações não sensíveis geradas pelo overlay.
+          envFrom:
+            - configMapRef:
+                name: notification-service-config
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+
+          volumeMounts:
+            - name: temporary-files
+              mountPath: /tmp
+
+          # Aguarda a inicialização do processo e do worker antes de ativar as
+          # demais verificações.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 30
+            periodSeconds: 2
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          # Mantém os valores didáticos definidos no manifesto de referência.
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+
+      volumes:
+        - name: temporary-files
+          emptyDir: {}

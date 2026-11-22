@@ -1,0 +1,29 @@
+# Cria um Service interno para expor o delivery-service dentro do cluster.
+#
+# O Service distribui as conexões recebidas na porta 8000 entre os Pods
+# selecionados e não realiza exposição pública direta.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: delivery-service
+
+  labels:
+    app: delivery-service
+    app.kubernetes.io/name: delivery-service
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: ocipizza
+
+spec:
+  # ClusterIP torna o serviço acessível somente pela rede interna do cluster.
+  type: ClusterIP
+
+  selector:
+    app: delivery-service
+    app.kubernetes.io/name: delivery-service
+
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP

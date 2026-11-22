@@ -1,0 +1,26 @@
+# Cria um Service interno para expor o order-service dentro do cluster.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+
+  labels:
+    app: order-service
+    app.kubernetes.io/name: order-service
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: ocipizza
+
+spec:
+  # O serviço não possui exposição pública direta.
+  type: ClusterIP
+
+  selector:
+    app: order-service
+    app.kubernetes.io/name: order-service
+
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
