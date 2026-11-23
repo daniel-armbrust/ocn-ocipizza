@@ -102,6 +102,25 @@ module "vcn_onpremises_gru" {
   compartment_id = var.compartment_id
 }
 
+# Zona DNS privada regional acessível pelas VCNs da aplicação em São Paulo.
+module "dns_private_gru" {
+  source = "./dns/private-zone"
+
+  providers = {
+    oci = oci.gru
+  }
+
+  compartment_id = var.compartment_id
+  region_key     = "gru"
+  
+  vcn_ids = {
+    firewall = module.vcn_firewall_gru.vcn_id
+    oke      = module.vcn_oke_gru.vcn_id
+    db       = module.vcn_db_gru.vcn_id
+    services = module.vcn_services_gru.vcn_id
+  }
+}
+
 # Cluster OCI Cache primary em São Paulo. Este é o único cluster que aceita
 # operações de escrita na topologia active-passive.
 module "oci_cache_gru" {
@@ -111,11 +130,15 @@ module "oci_cache_gru" {
     oci = oci.gru
   }
 
-  compartment_id = var.compartment_id
-  region         = local.regions.gru
-  region_key     = "gru"
-  vcn_id         = module.vcn_services_gru.vcn_id
-  subnet_id      = module.vcn_services_gru.subnet_ids.services
+  compartment_id     = var.compartment_id
+  region             = local.regions.gru
+  region_key         = "gru"
+  vault_region       = local.regions.gru
+  vault_scripts_path = abspath("${path.root}/vault/scripts")
+  vcn_id             = module.vcn_services_gru.vcn_id
+  subnet_id          = module.vcn_services_gru.subnet_ids.services
+
+  depends_on = [module.vault_gru]
 }
 
 # Grupo e logs dos microsserviços em São Paulo.
@@ -212,14 +235,28 @@ module "vault_gru" {
     oci = oci.gru
   }
 
-  compartment_id = var.compartment_id
-  region         = local.regions.gru
-  github_pat     = var.github_pat
+  compartment_id  = var.compartment_id
+  region          = local.regions.gru
+  github_pat      = var.github_pat
+  ocir_username   = var.ocir_username
+  ocir_auth_token = var.ocir_auth_token
 }
 
 # Repositórios privados de imagens no OCI Container Registry de São Paulo.
 module "ocir_gru" {
   source = "./ocir"
+
+  providers = {
+    oci = oci.gru
+  }
+
+  compartment_id = var.compartment_id
+  region_key     = "gru"
+}
+
+# Repositório Generic dos manifests Kubernetes renderizados para São Paulo.
+module "artifact_registry_gru" {
+  source = "./artifact-registry"
 
   providers = {
     oci = oci.gru

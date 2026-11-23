@@ -52,6 +52,11 @@ output "github_pat_secret_id" {
   value       = module.vault_gru.github_pat_secret_id
 }
 
+output "ocir_credentials_secret_id" {
+  description = "OCID do Secret que contém as credenciais do OCIR."
+  value       = module.vault_gru.ocir_credentials_secret_id
+}
+
 output "ocir_pizza_service_repository_id" {
   description = "OCID do repositório de imagens do pizza-service no OCIR de São Paulo."
   value       = module.ocir_gru.pizza_service_repository_id

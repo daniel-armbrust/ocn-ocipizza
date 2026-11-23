@@ -1,5 +1,5 @@
 #
-# dns/outputs.tf
+# dns/public-zone/outputs.tf
 #
 
 output "zone_id" {

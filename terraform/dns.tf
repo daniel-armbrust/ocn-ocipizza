@@ -4,7 +4,7 @@
 
 # Zona DNS pública global da aplicação OCI Pizza.
 module "dns_public" {
-  source = "./dns"
+  source = "./dns/public-zone"
 
   providers = {
     oci = oci.gru

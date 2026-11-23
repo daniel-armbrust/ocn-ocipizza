@@ -1,5 +1,5 @@
 #
-# dns/providers.tf
+# dns/public-zone/providers.tf
 #
 
 terraform {

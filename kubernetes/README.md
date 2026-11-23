@@ -34,6 +34,41 @@ ponto de entrada e agrega o namespace e os overlays dos microsserviços. Cada
 microsserviço mantém apenas suas customizações específicas no respectivo
 subdiretório.
 
+## Autenticação no OCI Container Registry
+
+Todos os Deployments declaram `imagePullSecrets` na especificação do Pod e
+referenciam um Secret chamado `ocir-secret`:
+
+```yaml
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+        - name: ocir-secret
+```
+
+O Secret deve existir no mesmo namespace do Pod antes do deployment. Como os
+namespaces `ocipizza-homol` e `ocipizza-prod` existem nos clusters de GRU e
+VCP, são necessárias quatro instâncias do Secret. O conteúdo não faz parte dos
+manifests versionados neste repositório.
+
+Enquanto não houver integração com um gerenciador de Secrets, o recurso pode
+ser criado operacionalmente com `kubectl`. No cluster de GRU, utilize o endpoint
+regional `gru.ocir.io`:
+
+```bash
+kubectl create secret docker-registry ocir-secret \
+  --namespace="ocipizza-homol" \
+  --docker-server="gru.ocir.io" \
+  --docker-username="$OCIR_USERNAME" \
+  --docker-password="$OCIR_AUTH_TOKEN"
+```
+
+Repita o comando para `ocipizza-prod`. No cluster de VCP, selecione o contexto
+correspondente, utilize os mesmos namespaces e altere o endpoint para
+`vcp.ocir.io`. `OCIR_USERNAME` e `OCIR_AUTH_TOKEN` devem existir somente no
+ambiente seguro do operador ou da pipeline e nunca devem ser gravados no Git.
+
 ## Configurações sensíveis do admin-service
 
 O `admin-service` espera um Secret chamado `admin-service-secrets` no mesmo
@@ -63,6 +98,37 @@ O `user-service` espera dois recursos sensíveis provisionados fora do Git:
 A chave privada JWT não é montada no Pod. Ela é obtida em tempo de execução
 do OCI Secret Management pelo OCID configurado em
 `JWT_PRIVATE_KEY_SECRET_ID`.
+
+## Scripts de Secrets
+
+O diretório `scripts/` contém os scripts executados pelos Shell Stages das
+Deployment Pipelines para materializar no Kubernetes os valores mantidos no
+OCI Vault:
+
+```text
+scripts/
+├── admin-service-secrets.sh
+├── frontend-service-secrets.sh
+├── user-service-secrets.sh
+└── lib/
+    └── secrets.sh
+```
+
+Os scripts exigem `ENVIRONMENT`, `REGION_KEY`, `KUBERNETES_NAMESPACE` e
+`VAULT_ID`. Os scripts do `admin-service` e do `frontend-service` também
+exigem `REDIS_HOST`; `REDIS_PORT` é opcional e usa `6379` por padrão. A
+autenticação padrão da OCI CLI é `resource_principal`, adequada ao OCI
+DevOps, e pode ser alterada por `OCI_AUTH_MODE`.
+
+Os valores sensíveis são escritos somente em um diretório temporário com
+permissão restrita, aplicado com `kubectl` e removido ao final da execução.
+Nenhum manifesto contendo secrets é publicado no Git ou no Artifact Registry.
+O namespace deve ser aplicado previamente pelo `namespace.yaml` do overlay;
+os scripts apenas validam sua existência e não administram esse recurso.
+
+O script do `user-service` já possui o contrato para
+`ocipizza-<ambiente>-user-service-database-url`, mas falhará de forma segura
+enquanto esse Secret não for criado pelo futuro `database-secrets.sh`.
 
 Por exemplo, o manifesto completo de produção em GRU pode ser renderizado com:
 

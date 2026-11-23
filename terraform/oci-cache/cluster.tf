@@ -20,7 +20,7 @@ resource "oci_redis_redis_cluster" "this" {
 
   lifecycle {
     precondition {
-      condition     = (var.region_key == "gru" && var.primary_cluster_id == null) || (var.region_key == "vcp" && var.primary_cluster_id != null)
+      condition = (var.region_key == "gru" && var.primary_cluster_id == null) || (var.region_key == "vcp" && var.primary_cluster_id != null)
       error_message = "GRU deve ser o cluster primary e VCP deve referenciar o OCID do primary de GRU."
     }
   }
@@ -54,4 +54,50 @@ resource "terraform_data" "delete_redis_security_list" {
   }
 
   depends_on = [oci_redis_redis_cluster.this]
+}
+
+# Gera as credenciais no Vault e configura os OCI Cache Users regionais fora
+# do state, evitando armazenar senhas em texto claro no Terraform.
+resource "terraform_data" "redis_users" {
+  input = {
+    cluster_id     = oci_redis_redis_cluster.this.id
+    compartment_id = var.compartment_id
+    region         = var.region
+    script         = "${var.vault_scripts_path}/redis-secrets.sh"
+    vault_region   = var.vault_region
+  }
+
+  triggers_replace = [
+    oci_redis_redis_cluster.this.id,
+    filesha256("${var.vault_scripts_path}/redis-secrets.sh"),
+    filesha256("${var.vault_scripts_path}/vault.sh"),
+  ]
+
+  provisioner "local-exec" {
+    command = "${self.input.script} apply"
+
+    environment = {
+      COMPARTMENT_ID       = self.input.compartment_id
+      OCI_CACHE_CLUSTER_ID = self.input.cluster_id
+      OCI_CACHE_REGION     = self.input.region
+      VAULT_REGION         = self.input.vault_region
+    }
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "${self.input.script} destroy"
+
+    environment = {
+      COMPARTMENT_ID       = self.input.compartment_id
+      OCI_CACHE_CLUSTER_ID = self.input.cluster_id
+      OCI_CACHE_REGION     = self.input.region
+      VAULT_REGION         = self.input.vault_region
+    }
+  }
+
+  depends_on = [
+    oci_redis_redis_cluster.this,
+    terraform_data.delete_redis_security_list,
+  ]
 }

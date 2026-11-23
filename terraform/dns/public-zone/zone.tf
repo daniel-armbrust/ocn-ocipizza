@@ -1,5 +1,5 @@
 #
-# dns/zone.tf
+# dns/public-zone/zone.tf
 #
 
 # Zona DNS pública primária do domínio da aplicação.

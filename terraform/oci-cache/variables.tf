@@ -22,6 +22,16 @@ variable "region" {
   type        = string
 }
 
+variable "vault_region" {
+  description = "Região do Vault central que armazena as credenciais compartilhadas do OCI Cache."
+  type        = string
+}
+
+variable "vault_scripts_path" {
+  description = "Caminho absoluto do diretório que contém os scripts compartilhados do Vault."
+  type        = string
+}
+
 variable "primary_cluster_id" {
   description = "OCID do cluster primary de GRU. Deve ser null em GRU e informado para o secondary em VCP."
   type        = string

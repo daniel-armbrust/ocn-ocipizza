@@ -1,5 +1,5 @@
 #
-# dns/records.tf
+# dns/public-zone/records.tf
 #
 
 # Registros A para os endereços reservados dos load balancers regionais.

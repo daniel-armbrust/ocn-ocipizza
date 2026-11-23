@@ -35,3 +35,12 @@ data "oci_vault_secrets" "github_pat" {
 
   depends_on = [terraform_data.github_pat]
 }
+
+data "oci_vault_secrets" "ocir_credentials" {
+  compartment_id = var.compartment_id
+  name           = local.ocir_credentials_secret_name
+  state          = "ACTIVE"
+  vault_id       = local.vault.id
+
+  depends_on = [terraform_data.ocir_credentials]
+}

@@ -1,5 +1,5 @@
 #
-# dns/variables.tf
+# dns/public-zone/variables.tf
 #
 
 variable "compartment_id" {

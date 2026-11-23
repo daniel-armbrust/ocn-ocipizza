@@ -21,6 +21,13 @@ Os principais componentes são:
 - IAM dos workloads, do OCI DevOps e dos serviços gerenciados;
 - OCI Notifications, projeto OCI DevOps e conexão externa com o GitHub.
 
+A zona DNS privada `ocipizza.internal` existe de forma independente em GRU e
+VCP. Cada região possui sua própria Private View, associada aos resolvers das
+VCNs de firewall, OKE, banco de dados e serviços. As sub-redes dessas VCNs
+utilizam `VcnLocalPlusInternet` nos DHCP Options e, por isso, consultam
+automaticamente o resolver regional e os registros da zona privada
+correspondente. A VCN on-premises simulada não consulta essa zona.
+
 A VCN-OKE de cada região possui sub-redes próprias para Load Balancers,
 worker nodes, endpoint privado do Kubernetes API e pods. A sub-rede privada de
 pods reserva endereços para o futuro cluster Enhanced com OCI VCN-Native Pod
@@ -57,6 +64,13 @@ recebe replicação assíncrona e aceita somente leituras. Os dois clusters são
 NONSHARDED, possuem 8 GB por nó e usam Configuration Sets regionais com os
 mesmos parâmetros exigidos pela replicação. A conectividade de replicação é
 gerenciada pela OCI e não utiliza o Remote Peering das VCNs.
+
+O script `vault/scripts/redis-secrets.sh` gera credenciais independentes para
+`admin-service` e `frontend-service` nos ambientes `homol` e `prod`. O texto
+claro fica exclusivamente no Vault de GRU; somente o hash SHA-256 é enviado
+ao OCI Cache. Em cada região, o script cria ou atualiza quatro OCI Cache Users
+e os associa ao cluster regional. Os usuários possuem somente as categorias
+de comandos necessárias à persistência de sessões, sem comandos administrativos.
 
 Os parâmetros internos dos Configuration Sets são aplicados durante a criação
 e ignorados em atualizações posteriores pelo Terraform. A OCI não permite
@@ -117,6 +131,8 @@ O Terraform recebe variáveis de ambiente com o prefixo `TF_VAR_`.
 | `TF_VAR_oke_worker_ssh_public_key` | Sim | — | Conteúdo da chave pública dos worker nodes do OKE. |
 | `TF_VAR_notification_email` | Sim | — | E-mail inscrito no Topic usado pelo OCI DevOps. |
 | `TF_VAR_github_pat` | Sim | — | PAT armazenado como Secret no OCI Vault para acesso do OCI DevOps ao GitHub. |
+| `TF_VAR_ocir_username` | Sim | — | Username completo usado pelas pipelines para autenticação no OCIR. |
+| `TF_VAR_ocir_auth_token` | Sim | — | Auth Token armazenado no Vault para criar o `ocir-secret` no OKE. |
 | `TF_VAR_iam_dynamic_group_name` | Não | `ocipizza-instances` | Nome do dynamic group dos workloads. |
 | `TF_VAR_iam_policy_name` | Não | `ocipizza-instance-principals` | Nome da policy dos workloads. |
 | `TF_VAR_devops_dynamic_group_name` | Não | `ocipizza-devops` | Nome do dynamic group do OCI DevOps. |
@@ -132,14 +148,17 @@ export TF_VAR_firewall_ssh_public_key="$(cat $HOME/ocn-ocipizza/terraform/ssh-ke
 export TF_VAR_oke_worker_ssh_public_key="$(cat $HOME/ocn-ocipizza/terraform/ssh-keys/worker-nodes.pub)"
 export TF_VAR_notification_email="seu-email@exemplo.com"
 export TF_VAR_github_pat="github_pat_substitua"
+export TF_VAR_ocir_username="namespace/usuario"
+export TF_VAR_ocir_auth_token="auth_token_substitua"
 ```
 
 As variáveis de chaves recebem somente o conteúdo das chaves públicas. Nunca
 adicione chaves privadas, tokens ou outros segredos ao repositório.
 
-`TF_VAR_github_pat` é sensível e não aparece nos outputs. O Terraform armazena
-somente seu hash no state para detectar mudanças; o conteúdo é enviado ao
-script do Vault por variável de ambiente e armazenado diretamente no Secret.
+`TF_VAR_github_pat` e `TF_VAR_ocir_auth_token` são sensíveis e não aparecem
+nos outputs. O Terraform armazena somente seus hashes no state para detectar
+mudanças; os conteúdos são enviados aos scripts do Vault por variáveis de
+ambiente e armazenados diretamente nos Secrets.
 
 ## IAM
 
@@ -171,13 +190,26 @@ destinatário confirme o link enviado.
 O output `notifications_topic_id` fornece o OCID que será referenciado pelo
 projeto OCI DevOps.
 
-## Vault e PAT do GitHub
+## Vault e secrets da aplicação
 
-O módulo `vault/` chama scripts idempotentes para criar em São Paulo o Vault
-`ocipizza-vault`, uma chave AES de 256 bits protegida por HSM e o Secret
-`ocipizza-github-pat`. Esses recursos são criados pela OCI CLI e ficam fora do
+O módulo `vault/` chama o script idempotente `vault.sh` para criar em São
+Paulo o Vault `ocipizza-vault`, uma chave AES de 256 bits protegida por HSM e
+o Secret `ocipizza-github-pat`. Esses recursos são criados pela OCI CLI e ficam fora do
 state do Terraform. O Secret recebe o PAT informado por `TF_VAR_github_pat` e
 é referenciado pela conexão do OCI DevOps com o GitHub.
+
+O mesmo módulo gera diretamente no Vault, sem registrar o conteúdo no state:
+
+- chaves independentes de sessão e CSRF para `admin-service` e
+  `frontend-service`, nos ambientes `homol` e `prod`;
+- um par de chaves RSA JWT do `user-service` para cada ambiente;
+- username e Auth Token usados pelas pipelines para criar o `ocir-secret` nos
+  clusters OKE.
+
+Os scripts mantêm os secrets existentes para evitar rotação acidental durante
+novos applies. A futura automação do banco de dados está reservada no arquivo
+vazio `database-secrets.sh`. As credenciais e os usuários do OCI Cache são
+administrados por `redis-secrets.sh`.
 
 Quando os recursos já existem, os scripts os reutilizam. Se o PAT mudar, uma
 nova versão do Secret é criada somente quando o conteúdo for diferente. No
@@ -185,9 +217,9 @@ nova versão do Secret é criada somente quando o conteúdo for diferente. No
 excluem o Vault, a chave nem o Secret. Assim, esses recursos persistentes podem
 ser usados novamente por um próximo `terraform apply`.
 
-Esse fluxo requer OCI CLI, `jq` e `base64` instalados na máquina que executa o
-Terraform. A autenticação usada pelos scripts é a mesma configuração local da
-OCI descrita na seção de autenticação.
+Esse fluxo requer OCI CLI, `jq`, `base64` e OpenSSL instalados na máquina que
+executa o Terraform. A autenticação usada pelos scripts é a mesma configuração
+local da OCI descrita na seção de autenticação.
 
 ## Projeto OCI DevOps
 
@@ -215,11 +247,30 @@ publicado no output `devops_mirrored_repository_id`.
 
 ## OCI Container Registry
 
-O módulo `ocir/` cria em São Paulo o repositório privado
-`ocipizza/pizza-service`. As imagens publicadas utilizam tags baseadas no
-identificador da execução do build para distinguir cada versão produzida. A
-configuração de imutabilidade não é declarada porque a API do OCI Container
+O módulo `ocir/` cria repositórios privados dos microsserviços em São Paulo e
+Vinhedo. Os módulos `ocir_gru` e `ocir_vcp` mantêm a mesma estrutura regional
+para que as Build Pipelines possam publicar cada imagem, com a mesma tag, nos
+dois registries Standard. As tags são baseadas no identificador da execução do
+build para distinguir cada versão produzida.
+
+A configuração de imutabilidade não é declarada porque a API do OCI Container
 Registry ainda não permite definir `is_immutable` na criação do repositório.
+Não é utilizado Pull-Through Cache; portanto, a publicação em VCP não depende
+de username ou Auth Token de um usuário OCI.
+
+## OCI Artifact Registry
+
+O módulo `artifact-registry/` cria um repositório Generic e imutável em cada
+região. `ocipizza-kubernetes-manifests-gru` recebe os manifests renderizados
+para São Paulo, enquanto `ocipizza-kubernetes-manifests-vcp` recebe os manifests
+renderizados para Vinhedo. As Build Pipelines publicarão versões únicas desses
+arquivos; o Terraform administra somente os repositórios e não armazena o
+conteúdo dos manifests no state.
+
+Os artefatos devem ser organizados por serviço e ambiente dentro de cada
+repositório, por exemplo `pizza-service/homol` e `pizza-service/prod`. A versão
+do Generic Artifact deverá identificar de forma única a execução ou o commit
+que produziu o manifesto, pois uma versão publicada não pode ser sobrescrita.
 
 O namespace único da tenancy é consultado uma vez no root module, em
 `datasource.tf`, e repassado aos módulos `objectstorage/` e `devops/`. Esse

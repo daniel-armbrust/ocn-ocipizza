@@ -91,6 +91,25 @@ module "vcn_services_vcp" {
   drg_id         = module.drg_vcp.drg_id
 }
 
+# Zona DNS privada regional acessível pelas VCNs da aplicação em Vinhedo.
+module "dns_private_vcp" {
+  source = "./dns/private-zone"
+
+  providers = {
+    oci = oci.vcp
+  }
+
+  compartment_id = var.compartment_id
+  region_key     = "vcp"
+  
+  vcn_ids = {
+    firewall = module.vcn_firewall_vcp.vcn_id
+    oke      = module.vcn_oke_vcp.vcn_id
+    db       = module.vcn_db_vcp.vcn_id
+    services = module.vcn_services_vcp.vcn_id
+  }
+}
+
 # IP público reservado para lb-vcp.ocipizza.com.br.
 module "public_ip_load_balancer_vcp" {
   source = "./public-ip"
@@ -115,9 +134,13 @@ module "oci_cache_vcp" {
   compartment_id     = var.compartment_id
   region             = local.regions.vcp
   region_key         = "vcp"
+  vault_region       = local.regions.gru
+  vault_scripts_path = abspath("${path.root}/vault/scripts")
   vcn_id             = module.vcn_services_vcp.vcn_id
   subnet_id          = module.vcn_services_vcp.subnet_ids.services
   primary_cluster_id = module.oci_cache_gru.cluster_id
+
+  depends_on = [module.vault_gru]
 }
 
 # Grupo e logs dos microsserviços em Vinhedo.
@@ -154,6 +177,31 @@ module "queue_vcp" {
   }
 
   compartment_id = var.compartment_id
+}
+
+# Repositórios privados de imagens no OCI Container Registry de Vinhedo.
+# A futura entrega regional publicará as mesmas tags existentes em GRU.
+module "ocir_vcp" {
+  source = "./ocir"
+
+  providers = {
+    oci = oci.vcp
+  }
+
+  compartment_id = var.compartment_id
+  region_key     = "vcp"
+}
+
+# Repositório Generic dos manifests Kubernetes renderizados para Vinhedo.
+module "artifact_registry_vcp" {
+  source = "./artifact-registry"
+
+  providers = {
+    oci = oci.vcp
+  }
+
+  compartment_id = var.compartment_id
+  region_key     = "vcp"
 }
 
 # DRG regional e attachments das VCNs de Vinhedo.

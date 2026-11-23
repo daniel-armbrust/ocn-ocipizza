@@ -1,5 +1,5 @@
 #
-# dns/locals.tf
+# dns/public-zone/locals.tf
 #
 
 locals {
