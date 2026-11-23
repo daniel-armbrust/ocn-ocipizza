@@ -11,7 +11,17 @@
 *.secret
 *.key
 *.pem
+*.pub
 *.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+credentials.json
+
+.oci/
+.ssh/
 
 secrets/
 credentials/
@@ -43,6 +53,8 @@ ENV/
 
 pip-log.txt
 pip-delete-this-directory.txt
+
+.pypirc
 
 .pytest_cache/
 .coverage
@@ -143,6 +155,8 @@ pnpm-debug.log*
 .yarn/cache/
 .yarn/unplugged/
 
+.npmrc
+
 .next/
 .nuxt/
 .vite/
@@ -168,6 +182,8 @@ oke-fundamentals/terraform/oke/keys/*
 *.tfstate
 *.tfstate.*
 .terraform.tfstate.lock.info
+
+*.tfplan
 
 *.tfvars
 *.tfvars.json
