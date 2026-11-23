@@ -109,7 +109,7 @@ wait_for_oci_cache_user() {
   return 1
 }
 
-# Cria ou atualiza um OCI Cache User sem enviar a senha em texto claro.
+# Cria um OCI Cache User ausente ou reutiliza o usuário regional ativo.
 ensure_oci_cache_user() {
   local environment="$1"
   local service_name="$2"
@@ -159,25 +159,7 @@ ensure_oci_cache_user() {
 
     user_id="$(wait_for_oci_cache_user "$username")"
   else
-    request_file="$TEMPORARY_DIRECTORY/update-${username}.json"
-    jq -cn \
-      --arg user_id "$user_id" \
-      --arg description "Usuário Redis do $service_name no ambiente $environment." \
-      --arg acl_string "$ACL_STRING" \
-      --arg password_hash "$password_hash" \
-      '{ociCacheUserId: $user_id, description: $description,
-        aclString: $acl_string, authenticationModeHashedPasswords: [$password_hash],
-        status: "ON"}' >"$request_file"
-
-    echo "Atualizando o OCI Cache User $username em $OCI_CACHE_REGION..."
-    oci_cli redis oci-cache-user oci-cache-user \
-      update-oci-cache-user-password-authentication-mode \
-      --from-json "file://$request_file" \
-      --force >/dev/null
-
-    # Evita concluir a consulta antes de a atualização assíncrona ser iniciada.
-    sleep 2
-    user_id="$(wait_for_oci_cache_user "$username")"
+    echo "OCI Cache User $username já está ativo em $OCI_CACHE_REGION; mantendo a configuração atual."
   fi
 
   if [[ -z "$user_id" ]]; then
@@ -222,7 +204,7 @@ wait_for_oci_cache_cluster_active() {
   local lifecycle_state
   local lifecycle_details
 
-  for ((attempt = 1; attempt <= 60; attempt++)); do
+  for ((attempt = 1; attempt <= 360; attempt++)); do
     cluster_json="$(oci_cli redis redis-cluster redis-cluster get \
       --redis-cluster-id "$OCI_CACHE_CLUSTER_ID")"
     lifecycle_state="$(jq -r '.data."lifecycle-state" // empty' <<<"$cluster_json")"
@@ -234,7 +216,7 @@ wait_for_oci_cache_cluster_active() {
         ;;
 
       CREATING | UPDATING)
-        echo "Aguardando o OCI Cache cluster ficar ACTIVE: estado $lifecycle_state ($attempt/60)..." >&2
+        echo "Aguardando o OCI Cache cluster ficar ACTIVE: estado $lifecycle_state ($attempt/360)..." >&2
         sleep 10
         ;;
 
@@ -251,7 +233,7 @@ wait_for_oci_cache_cluster_active() {
     esac
   done
 
-  echo "Tempo limite excedido ao aguardar o OCI Cache cluster ficar ACTIVE." >&2
+  echo "Tempo limite de 1 hora excedido ao aguardar o OCI Cache cluster ficar ACTIVE." >&2
   return 1
 }
 

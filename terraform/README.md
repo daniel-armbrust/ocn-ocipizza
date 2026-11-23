@@ -68,9 +68,10 @@ gerenciada pela OCI e não utiliza o Remote Peering das VCNs.
 O script `vault/scripts/redis-secrets.sh` gera credenciais independentes para
 `admin-service` e `frontend-service` nos ambientes `homol` e `prod`. O texto
 claro fica exclusivamente no Vault de GRU; somente o hash SHA-256 é enviado
-ao OCI Cache. Em cada região, o script cria ou atualiza quatro OCI Cache Users
-e os associa ao cluster regional. Os usuários possuem somente as categorias
-de comandos necessárias à persistência de sessões, sem comandos administrativos.
+ao OCI Cache. Em cada região, o script cria os quatro OCI Cache Users ausentes,
+reutiliza os usuários ativos e os associa ao cluster regional. Os usuários
+possuem somente as categorias de comandos necessárias à persistência de
+sessões, sem comandos administrativos.
 
 Os parâmetros internos dos Configuration Sets são aplicados durante a criação
 e ignorados em atualizações posteriores pelo Terraform. A OCI não permite
