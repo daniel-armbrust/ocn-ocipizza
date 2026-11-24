@@ -205,7 +205,9 @@ connection = pymysql.connect(
     password=admin_credentials['password'],
     charset='utf8mb4',
     connect_timeout=15,
-    ssl_verify_cert=True,
+    # O certificado SYSTEM do MySQL HeatWave não possui uma CA disponível no
+    # trust store do Managed Build. A conexão permanece criptografada.
+    ssl_verify_cert=False,
 )
 
 try:
