@@ -21,9 +21,9 @@ validate_channel() {
       --region "$MYSQL_SECONDARY_REGION" \
       mysql channel get \
       --channel-id "$MYSQL_CHANNEL_ID")"
-    
+
     channel_state="$(jq -r '.data."lifecycle-state" // empty' <<<"$channel_json")"
-    
+
     lifecycle_details="$(jq -r '.data."lifecycle-details" // empty' <<<"$channel_json")"
 
     case "$channel_state" in
@@ -37,7 +37,18 @@ validate_channel() {
         sleep "$RETRY_INTERVAL_SECONDS"
         ;;
 
-      NEEDS_ATTENTION | FAILED | DELETING | DELETED | INACTIVE)
+      NEEDS_ATTENTION)
+        if [[ "$lifecycle_details" == *"connection may be in progress"* ]]; then
+          echo "A conexão do canal ainda está em andamento ($attempt/$MAX_ATTEMPTS)..."
+          sleep "$RETRY_INTERVAL_SECONDS"
+          continue
+        fi
+
+        echo "Canal no estado $channel_state: ${lifecycle_details:-detalhes não informados pela OCI}." >&2
+        return 1
+        ;;
+
+      FAILED | DELETING | DELETED | INACTIVE)
         echo "Canal no estado $channel_state: ${lifecycle_details:-detalhes não informados pela OCI}." >&2
         return 1
         ;;
@@ -56,7 +67,6 @@ validate_channel() {
 
 # Valida as entradas e inicia o acompanhamento do canal.
 main() {
-  
   command -v oci >/dev/null 2>&1 || {
     echo "O comando oci é obrigatório." >&2
     return 1
