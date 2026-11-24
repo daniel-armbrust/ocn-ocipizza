@@ -40,8 +40,11 @@ ou publicar mensagens sem passar pelo serviço responsável.
   por injeção de dependências.
 - Tokens originais, senhas e outros segredos nunca devem ser persistidos em
   texto puro.
-- O `bootstrap.sh` prepara migrations, chaves locais e usuários de demonstração.
-  Utilize-o somente no desenvolvimento e não sobrescreva dados reais.
+- O `bootstrap.sh` aceita somente `APP_ENV=development` ou
+  `APP_ENV=production`. Em desenvolvimento, prepara migrations, chaves locais
+  e usuários de demonstração. Em produção, deve usar Resource Principal,
+  credenciais do OCI Vault e migrations existentes, sem criar dados de
+  demonstração nem armazenar secrets em arquivos.
 
 ## Autenticação e tokens JWT
 

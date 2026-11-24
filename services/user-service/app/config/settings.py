@@ -80,9 +80,12 @@ class Settings(BaseSettings):
     #       de desenvolvimento.
     #   "instance_principal" utiliza a identidade da instância Compute
     #       no OCI.
+    #   "resource_principal" utiliza a identidade temporária disponibilizada
+    #       ao bootstrap pelo OCI DevOps.
     oci_auth_mode: Literal[
         'config_file',
         'instance_principal',
+        'resource_principal',
     ] | None = None
 
     # Caminho do arquivo de configuração e profile usados para

@@ -12,6 +12,15 @@ module "bootstrap_build_pipeline" {
   repository_url    = oci_devops_repository.ocipizza.http_url
   repository_branch = local.github_repository_branch
   private_subnet_id = var.private_subnet_id
+
+  mysql_primary_region                        = var.mysql_primary_region
+  mysql_secondary_region                      = var.mysql_secondary_region
+  mysql_primary_host                          = var.mysql_primary_host
+  mysql_primary_db_system_id                  = var.mysql_primary_db_system_id
+  mysql_secondary_db_system_id                = var.mysql_secondary_db_system_id
+  mysql_admin_credentials_secret_id           = var.mysql_admin_credentials_secret_id
+  mysql_replication_credentials_secret_id     = var.mysql_replication_credentials_secret_id
+  user_service_database_credentials_secret_id = var.user_service_database_credentials_secret_id
 }
 
 # Pipeline responsável por validar, testar e construir o pizza-service.

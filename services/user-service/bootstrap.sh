@@ -3,10 +3,10 @@
 #
 # bootstrap.sh - user-service
 #
-# Script de inicialização do ambiente de desenvolvimento do user-service.
+# Script de inicialização do user-service em development ou production.
 #
-# Este script prepara automaticamente todos os componentes necessários para
-# executar o serviço em um ambiente local de desenvolvimento.
+# Este script prepara o ambiente local de desenvolvimento ou o schema de
+# produção por meio do OCI DevOps, conforme o valor de APP_ENV.
 #
 # Etapas executadas:
 #
@@ -50,9 +50,10 @@
 #
 # 16. Exibe uma mensagem indicando a conclusão do processo.
 #
-# Este script foi desenvolvido exclusivamente para o ambiente de desenvolvimento.
-# Ele utiliza configurações simplificadas, incluindo credenciais locais do
-# MySQL, que não devem ser utilizadas em ambientes de produção.
+# Em development, o script utiliza as configurações locais e prepara os dados
+# de demonstração. Em production, ele usa Resource Principal para recuperar as
+# credenciais do OCI Vault, prepara somente o schema do serviço e aplica as
+# migrations existentes.
 #
 # Uso:
 #
@@ -74,6 +75,8 @@ MYSQL_ROOT_PASSWORD='root'
 DATABASE_NAME='users'
 DATABASE_USER='user_service'
 DATABASE_PASSWORD='user_service'
+
+APP_ENV="${APP_ENV:-development}"
 
 VENV_DIR='.venv'
 ENV_FILE='.env'
@@ -103,6 +106,152 @@ display_step() {
     echo
 }
 
+# Executa o bootstrap seguro usado pelo OCI DevOps no ambiente de produção.
+bootstrap_production() {
+    if [ "${OCI_AUTH_MODE:-}" != 'resource_principal' ]; then
+        echo 'Erro: OCI_AUTH_MODE deve ser resource_principal em production.'
+        return 1
+    fi
+
+    : "${MYSQL_ADMIN_CREDENTIALS_SECRET_ID:?Defina MYSQL_ADMIN_CREDENTIALS_SECRET_ID.}"
+    : "${DATABASE_CREDENTIALS_SECRET_ID:?Defina DATABASE_CREDENTIALS_SECRET_ID.}"
+
+    export DATABASE_HOST="${DATABASE_HOST:-mysql-write.ocipizza.internal}"
+    export DATABASE_PORT="${DATABASE_PORT:-3306}"
+    export DATABASE_NAME="${DATABASE_NAME:-users}"
+
+    if [ ! -f 'alembic.ini' ] || [ ! -f 'alembic/env.py' ]; then
+        echo 'Erro: migrations do Alembic não foram encontradas.'
+        return 1
+    fi
+
+    display_step 'Preparando o banco do user-service em production'
+
+    python <<'PYTHON'
+import base64
+import json
+import os
+import re
+from urllib.parse import quote_plus
+
+import oci
+import pymysql
+from alembic import command
+from alembic.config import Config
+
+
+def read_json_secret(
+    secrets_client: oci.secrets.SecretsClient,
+    secret_id: str,
+) -> dict[str, str]:
+    """Recupera e valida um documento JSON de credenciais do OCI Vault."""
+
+    response = secrets_client.get_secret_bundle(
+        secret_id=secret_id,
+        stage='CURRENT',
+    )
+
+    encoded_content = response.data.secret_bundle_content.content
+    content = base64.b64decode(encoded_content).decode('utf-8')
+    credentials = json.loads(content)
+
+    username = credentials.get('username')
+    password = credentials.get('password')
+
+    if not isinstance(username, str) or not username:
+        raise ValueError(f'Secret {secret_id} não contém username válido.')
+
+    if not isinstance(password, str) or not password:
+        raise ValueError(f'Secret {secret_id} não contém password válido.')
+
+    return {
+        'username': username,
+        'password': password,
+    }
+
+
+database_host = os.environ['DATABASE_HOST']
+database_port = int(os.environ['DATABASE_PORT'])
+database_name = os.environ['DATABASE_NAME']
+
+if not re.fullmatch(r'[a-z][a-z0-9_]{0,63}', database_name):
+    raise ValueError('DATABASE_NAME contém caracteres inválidos.')
+
+signer = oci.auth.signers.get_resource_principals_signer()
+secrets_client = oci.secrets.SecretsClient(
+    config={'region': signer.region},
+    signer=signer,
+)
+
+admin_credentials = read_json_secret(
+    secrets_client,
+    os.environ['MYSQL_ADMIN_CREDENTIALS_SECRET_ID'],
+)
+
+database_credentials = read_json_secret(
+    secrets_client,
+    os.environ['DATABASE_CREDENTIALS_SECRET_ID'],
+)
+
+database_username = database_credentials['username']
+
+if not re.fullmatch(r'[a-z][a-z0-9_]{0,31}', database_username):
+    raise ValueError('O username do Secret do user-service é inválido.')
+
+connection = pymysql.connect(
+    host=database_host,
+    port=database_port,
+    user=admin_credentials['username'],
+    password=admin_credentials['password'],
+    charset='utf8mb4',
+    connect_timeout=15,
+    ssl_verify_cert=True,
+)
+
+try:
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f'CREATE DATABASE IF NOT EXISTS `{database_name}` '
+            'CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci'
+        )
+
+        cursor.execute(
+            f"CREATE USER IF NOT EXISTS '{database_username}'@'%' "
+            'IDENTIFIED BY %s',
+            (database_credentials['password'],),
+        )
+
+        cursor.execute(
+            f"ALTER USER '{database_username}'@'%' IDENTIFIED BY %s",
+            (database_credentials['password'],),
+        )
+
+        cursor.execute(
+            f"GRANT ALL PRIVILEGES ON `{database_name}`.* "
+            f"TO '{database_username}'@'%'"
+        )
+
+    connection.commit()
+finally:
+    connection.close()
+
+database_url = (
+    'mysql+pymysql://'
+    f"{quote_plus(database_username)}:"
+    f"{quote_plus(database_credentials['password'])}@"
+    f'{database_host}:{database_port}/{database_name}'
+)
+
+os.environ['DATABASE_URL'] = database_url
+os.environ['PERSISTENCE_PROVIDER'] = 'sqlalchemy'
+
+alembic_config = Config('alembic.ini')
+command.upgrade(alembic_config, 'head')
+
+print('Schema e migrations do user-service configurados com sucesso.')
+PYTHON
+}
+
 # Acrescenta uma configuração ausente ao .env sem sobrescrever valores
 # definidos pelo desenvolvedor.
 ensure_env_variable() {
@@ -126,12 +275,24 @@ for variable in \
     JWT_ACCESS_TOKEN_EXPIRATION_MINUTES JWT_PRIVATE_KEY_PATH \
     JWT_PUBLIC_KEY_PATH JWT_PRIVATE_KEY_SECRET_ID \
     REFRESH_TOKEN_EXPIRATION_DAYS; do
+
     if [[ -v "$variable" ]]; then
         ENVIRONMENT_OVERRIDES["$variable"]="${!variable}"
     fi
+
 done
 
 display_step 'Iniciando o bootstrap do user-service'
+
+case "$APP_ENV" in
+    development | production)
+        ;;
+
+    *)
+        echo 'Erro: APP_ENV deve ser development ou production.'
+        exit 1
+        ;;
+esac
 
 # Verifica se o script está sendo executado na raiz do user-service.
 
@@ -165,6 +326,12 @@ python -m pip install --upgrade pip
 
 display_step 'Instalando as dependências Python'
 python -m pip install --no-cache-dir -r requirements.txt
+
+if [ "$APP_ENV" = 'production' ]; then
+    bootstrap_production
+    display_step 'Bootstrap do user-service concluído com sucesso'
+    exit 0
+fi
 
 # Gera o par de chaves JWT somente quando ele ainda não estiver completo.
 if [ ! -f "$JWT_PRIVATE_KEY_FILE" ] || [ ! -f "$JWT_PUBLIC_KEY_FILE" ]; then

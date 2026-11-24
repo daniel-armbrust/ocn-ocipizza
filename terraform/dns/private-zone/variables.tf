@@ -32,3 +32,19 @@ variable "vcn_ids" {
     error_message = "vcn_ids deve conter somente as chaves firewall, oke, db e services."
   }
 }
+
+variable "mysql_endpoints" {
+  description = "Endereços IPv4 privados dos endpoints MySQL de escrita e leitura."
+  type = object({
+    write = string
+    read  = string
+  })
+
+  validation {
+    condition = (
+      can(cidrhost("${var.mysql_endpoints.write}/32", 0))
+      && can(cidrhost("${var.mysql_endpoints.read}/32", 0))
+    )
+    error_message = "mysql_endpoints.write e mysql_endpoints.read devem conter endereços IPv4 válidos."
+  }
+}

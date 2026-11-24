@@ -61,7 +61,7 @@ definidas em `requirements.txt`.
 | Variável | Padrão | Descrição |
 | --- | --- | --- |
 | `APP_NAME` | `user-service` | Nome da aplicação. |
-| `APP_ENV` | `development` | Ambiente de execução. |
+| `APP_ENV` | `development` | Ambiente de execução: somente `development` ou `production`. |
 | `DEBUG` | `false` | Ativa o modo de depuração. |
 | `PERSISTENCE_PROVIDER` | `sqlalchemy` | Provider de persistência: `sqlalchemy` ou `nosql`. |
 | `DATABASE_URL` | — | URL de conexão utilizada pelo SQLAlchemy. |
@@ -73,7 +73,7 @@ definidas em `requirements.txt`.
 | `QUEUE_NAME` | `notifications-queue` | Nome lógico da fila utilizada pelo provider de mensageria. |
 | `OCI_QUEUE_ID` | — | OCID da fila utilizada pelo provider OCI Queue. |
 | `OCI_REGION` | `sa-saopaulo-1` | Região dos serviços OCI utilizados pela instância. |
-| `OCI_AUTH_MODE` | — (`None` no Python) | Autenticação OCI: vazia, `config_file` ou `instance_principal`. |
+| `OCI_AUTH_MODE` | — (`None` no Python) | Autenticação OCI: vazia, `config_file`, `instance_principal` ou `resource_principal`. |
 | `OCI_CONFIG_FILE` | — | Caminho do arquivo de configuração OCI quando `OCI_AUTH_MODE=config_file`. |
 | `OCI_CONFIG_PROFILE` | `DEFAULT` | Profile usado no arquivo de configuração OCI. |
 | `REFRESH_TOKEN_EXPIRATION_DAYS` | `30` | Validade do refresh token em dias. |
@@ -131,14 +131,28 @@ Fora de `development`, esses três endpoints são desabilitados. O health check
 permanece disponível em `http://localhost:8002/health` para monitoramento da
 instância e deve ter sua exposição controlada pela infraestrutura.
 
-## `bootstrap.sh` — Bootstrap do ambiente local
+## `bootstrap.sh` — Bootstrap por ambiente
 
 O script `bootstrap.sh` automatiza a criação do ambiente Python, a configuração do banco de
 dados, a execução das migrations e a inclusão dos usuários de demonstração.
 
-> O bootstrap foi desenvolvido exclusivamente para desenvolvimento local. As
+> Com `APP_ENV=development`, o bootstrap utiliza as configurações locais. As
 > credenciais padrão usadas pelo script não devem ser reutilizadas em ambientes
 > de produção.
+
+Com `APP_ENV=production`, o script exige `OCI_AUTH_MODE=resource_principal` e
+as variáveis `MYSQL_ADMIN_CREDENTIALS_SECRET_ID` e
+`DATABASE_CREDENTIALS_SECRET_ID`. O OCI DevOps recupera os dois documentos JSON
+do Vault, cria o schema `users`, configura o usuário exclusivo do serviço e
+executa somente as migrations já versionadas. Esse fluxo não cria `.env`,
+chaves locais ou usuários de demonstração e não registra as credenciais nos
+logs.
+
+O OCI DevOps executa esse fluxo por meio do `bootstrap_spec.yaml`, separado do
+`build_spec.yaml` que valida o código e constrói a imagem do serviço. A Build
+Pipeline deve fornecer `MYSQL_ADMIN_CREDENTIALS_SECRET_ID` e
+`DATABASE_CREDENTIALS_SECRET_ID` como parâmetros, sem armazenar OCIDs ou
+credenciais no repositório.
 
 ### Pré-requisitos
 

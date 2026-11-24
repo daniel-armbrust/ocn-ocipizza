@@ -1,0 +1,61 @@
+# Este arquivo define o Build Spec usado pelo OCI DevOps para preparar o banco
+# do user-service nos recursos OCI previamente criados pelo Terraform.
+#
+# A pipeline deve fornecer os OCIDs dos Secrets administrativo e do serviço.
+# Nenhum OCID ou conteúdo sensível deve ser armazenado neste arquivo.
+
+version: 0.1
+component: build
+timeoutInSeconds: 900
+shell: bash
+failImmediatelyOnError: true
+
+env:
+  variables:
+    APP_ENV: "production"
+    OCI_AUTH_MODE: "resource_principal"
+    DATABASE_HOST: "mysql-write.ocipizza.internal"
+    DATABASE_PORT: "3306"
+    DATABASE_NAME: "users"
+
+steps:
+  - type: Command
+    name: "Validar configuração do bootstrap"
+    command: |
+      set -euo pipefail
+
+      : "${OCI_PRIMARY_SOURCE_DIR:?OCI_PRIMARY_SOURCE_DIR não foi definido pelo OCI DevOps}"
+      : "${MYSQL_ADMIN_CREDENTIALS_SECRET_ID:?Defina MYSQL_ADMIN_CREDENTIALS_SECRET_ID como parâmetro da pipeline}"
+      : "${DATABASE_CREDENTIALS_SECRET_ID:?Defina DATABASE_CREDENTIALS_SECRET_ID como parâmetro da pipeline}"
+
+      SERVICE_DIR="${OCI_PRIMARY_SOURCE_DIR}/services/user-service"
+
+      test -f "${SERVICE_DIR}/bootstrap.sh"
+      test -f "${SERVICE_DIR}/requirements.txt"
+      test -f "${SERVICE_DIR}/alembic.ini"
+      test -f "${SERVICE_DIR}/alembic/env.py"
+
+      echo "Configuração do bootstrap do user-service validada."
+
+  - type: Command
+    name: "Preparar banco do user-service"
+    command: |
+      set -euo pipefail
+
+      cd "${OCI_PRIMARY_SOURCE_DIR}/services/user-service"
+
+      echo "Preparando schema, usuário e migrations do user-service..."
+
+      env \
+        -u HTTP_PROXY \
+        -u HTTPS_PROXY \
+        -u ALL_PROXY \
+        -u http_proxy \
+        -u https_proxy \
+        -u all_proxy \
+        -u PIP_PROXY \
+        -u pip_proxy \
+        PIP_CONFIG_FILE=/dev/null \
+        bash ./bootstrap.sh
+
+      echo "Bootstrap do user-service concluído com sucesso."

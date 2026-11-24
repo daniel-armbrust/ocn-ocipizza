@@ -44,3 +44,43 @@ data "oci_vault_secrets" "ocir_credentials" {
 
   depends_on = [terraform_data.ocir_credentials]
 }
+
+# Gera ou recupera as credenciais persistentes do MySQL. O resultado sensível
+# é consumido pelos DB Systems e permanece no state por decisão do projeto.
+data "external" "database_credentials" {
+  program = ["bash", "${path.module}/scripts/database-secrets.sh"]
+
+  query = {
+    compartment_id = var.compartment_id
+    region         = var.region
+  }
+
+  depends_on = [terraform_data.vault]
+}
+
+data "oci_vault_secrets" "mysql_admin_credentials" {
+  compartment_id = var.compartment_id
+  name           = local.mysql_admin_secret_name
+  state          = "ACTIVE"
+  vault_id       = local.vault.id
+
+  depends_on = [data.external.database_credentials]
+}
+
+data "oci_vault_secrets" "mysql_replication_credentials" {
+  compartment_id = var.compartment_id
+  name           = local.mysql_replication_secret_name
+  state          = "ACTIVE"
+  vault_id       = local.vault.id
+
+  depends_on = [data.external.database_credentials]
+}
+
+data "oci_vault_secrets" "user_service_database_credentials" {
+  compartment_id = var.compartment_id
+  name           = local.user_service_database_secret_name
+  state          = "ACTIVE"
+  vault_id       = local.vault.id
+
+  depends_on = [data.external.database_credentials]
+}

@@ -78,6 +78,22 @@ module "vcn_db_gru" {
   drg_id         = module.drg_gru.drg_id
 }
 
+# MySQL primary em São Paulo. O DB System standalone recebe escritas e é a
+# origem da replicação assíncrona para Vinhedo.
+module "mysql_gru" {
+  source = "./mysql"
+
+  providers = {
+    oci = oci.gru
+  }
+
+  compartment_id = var.compartment_id
+  region_key     = "gru"
+  subnet_id      = module.vcn_db_gru.subnet_ids.mysql
+  admin_username = module.vault_gru.mysql_credentials.admin_username
+  admin_password = module.vault_gru.mysql_credentials.admin_password
+}
+
 # VCN-SERVICES em São Paulo.
 module "vcn_services_gru" {
   source = "./vcn-services"
@@ -112,12 +128,17 @@ module "dns_private_gru" {
 
   compartment_id = var.compartment_id
   region_key     = "gru"
-  
+
   vcn_ids = {
     firewall = module.vcn_firewall_gru.vcn_id
     oke      = module.vcn_oke_gru.vcn_id
     db       = module.vcn_db_gru.vcn_id
     services = module.vcn_services_gru.vcn_id
+  }
+
+  mysql_endpoints = {
+    write = module.mysql_gru.endpoint.ip
+    read  = module.mysql_gru.endpoint.ip
   }
 }
 
@@ -279,6 +300,15 @@ module "devops_gru" {
   github_pat_secret_id    = module.vault_gru.github_pat_secret_id
   private_subnet_id       = module.vcn_services_gru.subnet_ids.services
   objectstorage_namespace = data.oci_objectstorage_namespace.ocipizza.namespace
+
+  mysql_primary_region                        = local.regions.gru
+  mysql_secondary_region                      = local.regions.vcp
+  mysql_primary_host                          = "mysql-write.ocipizza.internal"
+  mysql_primary_db_system_id                  = module.mysql_gru.db_system_id
+  mysql_secondary_db_system_id                = module.mysql_vcp.db_system_id
+  mysql_admin_credentials_secret_id           = module.vault_gru.mysql_admin_credentials_secret_id
+  mysql_replication_credentials_secret_id     = module.vault_gru.mysql_replication_credentials_secret_id
+  user_service_database_credentials_secret_id = module.vault_gru.user_service_database_credentials_secret_id
 
   depends_on = [
     oci_identity_policy.ocipizza_devops,

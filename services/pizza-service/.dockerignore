@@ -21,9 +21,6 @@ secrets/
 .git/
 .gitignore
 
-# Configuração do OCI DevOps
-build_spec.yaml
-
 # Testes, cobertura e caches de ferramentas
 tests/
 .pytest_cache/
@@ -55,3 +52,7 @@ docs/
 bootstrap.sh
 startdev.sh
 seeds/
+
+# Especificações usadas exclusivamente pelo OCI DevOps
+build_spec.yaml
+bootstrap_spec.yaml

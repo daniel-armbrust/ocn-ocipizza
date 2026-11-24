@@ -52,3 +52,7 @@ docs/
 bootstrap.sh
 startdev.sh
 seeds/
+
+# Especificações usadas exclusivamente pelo OCI DevOps
+build_spec.yaml
+bootstrap_spec.yaml

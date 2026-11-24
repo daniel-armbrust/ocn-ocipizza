@@ -28,6 +28,13 @@ utilizam `VcnLocalPlusInternet` nos DHCP Options e, por isso, consultam
 automaticamente o resolver regional e os registros da zona privada
 correspondente. A VCN on-premises simulada não consulta essa zona.
 
+Os registros `mysql-write.ocipizza.internal` e
+`mysql-read.ocipizza.internal` abstraem os endpoints privados dos bancos. O
+registro de escrita aponta para o primary de GRU nas duas zonas regionais. O
+registro de leitura aponta para o MySQL local: primary em GRU e secondary
+read-only em VCP. Em um desastre, a promoção de VCP exige atualizar o destino
+de `mysql-write` para o endpoint promovido.
+
 A VCN-OKE de cada região possui sub-redes próprias para Load Balancers,
 worker nodes, endpoint privado do Kubernetes API e pods. A sub-rede privada de
 pods reserva endereços para o futuro cluster Enhanced com OCI VCN-Native Pod
@@ -221,6 +228,54 @@ ser usados novamente por um próximo `terraform apply`.
 Esse fluxo requer OCI CLI, `jq`, `base64` e OpenSSL instalados na máquina que
 executa o Terraform. A autenticação usada pelos scripts é a mesma configuração
 local da OCI descrita na seção de autenticação.
+
+## MySQL HeatWave
+
+O módulo `mysql/` cria um DB System standalone `MySQL.2` independente em cada
+região. GRU é preparado como primary read-write e VCP como secondary read-only.
+Os DB Systems começam com 50 GB, possuem expansão automática até 500 GB,
+backups por sete dias e Point in Time Recovery.
+
+O script `vault/scripts/database-secrets.sh` cria e preserva dois Secrets no
+Vault para a infraestrutura: um para o administrador e outro para o usuário
+exclusivo de replicação. Ele também mantém um Secret separado e com menor
+privilégio para as credenciais de banco do `user-service`.
+As credenciais são recuperadas pelo Terraform, marcadas como sensíveis e, por
+decisão deste ambiente didático, permanecem no state. O state deve receber os
+mesmos controles de acesso aplicados a um segredo.
+
+O Terraform não conecta ao banco, não cria usuários internos e não ativa o
+canal de replicação. Um pipeline exclusivo de bootstrap do MySQL será
+responsável por criar `ocipizza_replicator` com os privilégios mínimos, criar
+os usuários e schemas da aplicação, preparar a cópia inicial dos dados e
+configurar a replicação assíncrona de GRU para VCP. Assim, a máquina que executa
+o Terraform não precisa do cliente MySQL nem de conectividade direta com os
+endpoints privados dos bancos.
+
+A lógica operacional fica em `mysql/bootstrap/`. O Build Spec deve ser
+executado pelo OCI DevOps somente depois do `terraform apply` e antes dos
+bootstraps dos microsserviços. Ele lê as credenciais administrativa e de
+replicação no Vault por Resource Principal, cria o usuário
+`ocipizza_replicator`, cria ou reutiliza o canal `mysql-gru-to-vcp` e aguarda o
+estado `ACTIVE`. Os parâmetros da Build Pipeline `bootstrap-ocipizza` fornecem os OCIDs dos
+dois DB Systems e dos dois Secrets; nenhum desses valores fica fixado nos
+scripts.
+
+As regiões não ficam fixadas no Build Spec. Os scripts usam
+`sa-saopaulo-1` como valor padrão de `MYSQL_PRIMARY_REGION` e
+`sa-vinhedo-1` como valor padrão de `MYSQL_SECONDARY_REGION`. A Build Pipeline
+pode substituir qualquer um desses valores sem modificar os scripts.
+
+O bootstrap acessa o primary por meio de
+`mysql-write.ocipizza.internal`, configurado em `MYSQL_PRIMARY_HOST`. Esse nome
+é publicado nas zonas privadas das duas regiões e evita depender do hostname
+nativo de uma VCN específica. O parâmetro pode ser substituído em um Manual
+Run sem alterar os scripts.
+
+O stage `bootstrap-user-service` é executado depois do stage `bootstrap-mysql`.
+Ele utiliza Resource Principal para ler no Vault as credenciais administrativa
+e específica do serviço, criar o schema `users`, manter o usuário da aplicação
+e aplicar as migrations existentes do Alembic.
 
 ## Projeto OCI DevOps
 

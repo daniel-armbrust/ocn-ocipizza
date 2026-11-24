@@ -1,0 +1,75 @@
+# Este Build Spec configura a replicação assíncrona do MySQL de GRU para VCP.
+# Os DB Systems e os Secrets devem existir antes da execução deste bootstrap.
+
+version: 0.1
+component: build
+timeoutInSeconds: 1800
+shell: bash
+failImmediatelyOnError: true
+
+env:
+  variables:
+    OCI_AUTH_MODE: "resource_principal"
+
+steps:
+  - type: Command
+    name: "Validar configuração do bootstrap"
+    command: |
+      set -euo pipefail
+
+      : "${OCI_PRIMARY_SOURCE_DIR:?OCI_PRIMARY_SOURCE_DIR não foi definido pelo OCI DevOps}"
+      : "${COMPARTMENT_ID:?Defina COMPARTMENT_ID como parâmetro da pipeline}"
+      : "${MYSQL_PRIMARY_DB_SYSTEM_ID:?Defina MYSQL_PRIMARY_DB_SYSTEM_ID como parâmetro da pipeline}"
+      : "${MYSQL_SECONDARY_DB_SYSTEM_ID:?Defina MYSQL_SECONDARY_DB_SYSTEM_ID como parâmetro da pipeline}"
+      : "${MYSQL_ADMIN_CREDENTIALS_SECRET_ID:?Defina MYSQL_ADMIN_CREDENTIALS_SECRET_ID como parâmetro da pipeline}"
+      : "${MYSQL_REPLICATION_CREDENTIALS_SECRET_ID:?Defina MYSQL_REPLICATION_CREDENTIALS_SECRET_ID como parâmetro da pipeline}"
+
+      BOOTSTRAP_DIR="${OCI_PRIMARY_SOURCE_DIR}/terraform/mysql/bootstrap"
+
+      test -f "${BOOTSTRAP_DIR}/bootstrap.sh"
+      test -f "${BOOTSTRAP_DIR}/validate-replication.sh"
+
+      command -v oci >/dev/null
+      command -v jq >/dev/null
+      command -v python3.11 >/dev/null
+
+      echo "Configuração do bootstrap do MySQL validada."
+
+  - type: Command
+    name: "Preparar dependência do bootstrap"
+    command: |
+      set -euo pipefail
+
+      VENV_DIR="${OCI_WORKSPACE_DIR}/mysql-bootstrap-venv"
+      python3.11 -m venv "${VENV_DIR}"
+
+      env \
+        -u HTTP_PROXY \
+        -u HTTPS_PROXY \
+        -u ALL_PROXY \
+        -u http_proxy \
+        -u https_proxy \
+        -u all_proxy \
+        -u PIP_PROXY \
+        -u pip_proxy \
+        PIP_CONFIG_FILE=/dev/null \
+        "${VENV_DIR}/bin/python" \
+        -m pip install \
+        --isolated \
+        --no-cache-dir \
+        --disable-pip-version-check \
+        PyMySQL==1.1.2
+
+  - type: Command
+    name: "Configurar replicação MySQL"
+    timeoutInSeconds: 1500
+    command: |
+      set -euo pipefail
+
+      cd "${OCI_PRIMARY_SOURCE_DIR}/terraform/mysql/bootstrap"
+
+      export PYTHON_BIN="${OCI_WORKSPACE_DIR}/mysql-bootstrap-venv/bin/python"
+
+      echo "Configurando a replicação assíncrona de GRU para VCP..."
+      bash ./bootstrap.sh
+      echo "Bootstrap da replicação MySQL concluído com sucesso."

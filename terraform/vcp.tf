@@ -78,6 +78,22 @@ module "vcn_db_vcp" {
   drg_id         = module.drg_vcp.drg_id
 }
 
+# MySQL secondary em Vinhedo. O DB System nasce como clone cross-region de
+# GRU, mantém um canal assíncrono e não aceita escritas da aplicação.
+module "mysql_vcp" {
+  source = "./mysql"
+
+  providers = {
+    oci = oci.vcp
+  }
+
+  compartment_id = var.compartment_id
+  region_key     = "vcp"
+  subnet_id      = module.vcn_db_vcp.subnet_ids.mysql
+  admin_username = module.vault_gru.mysql_credentials.admin_username
+  admin_password = module.vault_gru.mysql_credentials.admin_password
+}
+
 # VCN-SERVICES em Vinhedo.
 module "vcn_services_vcp" {
   source = "./vcn-services"
@@ -101,12 +117,17 @@ module "dns_private_vcp" {
 
   compartment_id = var.compartment_id
   region_key     = "vcp"
-  
+
   vcn_ids = {
     firewall = module.vcn_firewall_vcp.vcn_id
     oke      = module.vcn_oke_vcp.vcn_id
     db       = module.vcn_db_vcp.vcn_id
     services = module.vcn_services_vcp.vcn_id
+  }
+
+  mysql_endpoints = {
+    write = module.mysql_gru.endpoint.ip
+    read  = module.mysql_vcp.endpoint.ip
   }
 }
 

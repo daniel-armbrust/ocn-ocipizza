@@ -3,10 +3,13 @@
 #
 
 locals {
-  vault_name                   = "ocipizza-vault"
-  key_name                     = "ocipizza-vault-key"
-  secret_name                  = "ocipizza-github-pat"
-  ocir_credentials_secret_name = "ocipizza-ocir-credentials"
+  vault_name                        = "ocipizza-vault"
+  key_name                          = "ocipizza-vault-key"
+  secret_name                       = "ocipizza-github-pat"
+  ocir_credentials_secret_name      = "ocipizza-ocir-credentials"
+  mysql_admin_secret_name           = "ocipizza-mysql-admin-credentials"
+  mysql_replication_secret_name     = "ocipizza-mysql-replication-credentials"
+  user_service_database_secret_name = "ocipizza-user-service-database-credentials"
 
   fastapi_secret_targets = {
     "admin-service-homol" = {
