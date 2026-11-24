@@ -56,11 +56,30 @@ steps:
       require_file "${BOOTSTRAP_DIR}/bootstrap.sh"
       require_file "${BOOTSTRAP_DIR}/validate-replication.sh"
 
-      require_command jq
       require_command base64
       require_command python3.11
 
       echo "Configuração do bootstrap do MySQL validada."
+
+  - type: Command
+    name: "Preparar ferramentas do sistema"
+    command: |
+      set -euo pipefail
+
+      if ! command -v jq >/dev/null 2>&1; then
+        echo "Instalando jq no Managed Build runner..."
+
+        if command -v dnf >/dev/null 2>&1; then
+          dnf install --assumeyes jq
+        elif command -v microdnf >/dev/null 2>&1; then
+          microdnf install --assumeyes jq
+        else
+          echo "Erro: dnf e microdnf não estão disponíveis para instalar jq." >&2
+          exit 1
+        fi
+      fi
+
+      jq --version
 
   - type: Command
     name: "Preparar dependência do bootstrap"
