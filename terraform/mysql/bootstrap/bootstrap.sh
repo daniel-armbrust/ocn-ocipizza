@@ -220,22 +220,38 @@ create_replication_channel() {
   resolve_existing_channel_id
 }
 
-# Reativa um canal existente que esteja apenas desabilitado.
+# Mantém ativo ou retoma um canal existente conforme seu lifecycle state.
 ensure_channel_enabled() {
   local channel_id="$1"
+  local channel_json
   local channel_state
+  local lifecycle_details
 
-  channel_state="$(oci_cli "$MYSQL_SECONDARY_REGION" mysql channel get \
-    --channel-id "$channel_id" \
-    --query 'data."lifecycle-state"' \
-    --raw-output)"
+  channel_json="$(oci_cli "$MYSQL_SECONDARY_REGION" mysql channel get \
+    --channel-id "$channel_id")"
+
+  channel_state="$(jq -er '.data."lifecycle-state"' <<<"$channel_json")"
+  lifecycle_details="$(jq -r '.data."lifecycle-details" // empty' <<<"$channel_json")"
 
   case "$channel_state" in
     ACTIVE | CREATING | UPDATING)
       ;;
 
     INACTIVE)
-      echo "Reativando o canal de replicação existente..."
+      echo "Habilitando o canal de replicação existente..."
+      oci_cli "$MYSQL_SECONDARY_REGION" mysql channel update-from-mysql \
+        --channel-id "$channel_id" \
+        --is-enabled true \
+        --wait-for-state SUCCEEDED \
+        --max-wait-seconds 1200 >/dev/null
+      ;;
+
+    NEEDS_ATTENTION)
+      if [[ -n "$lifecycle_details" ]]; then
+        echo "Detalhes do canal: $lifecycle_details" >&2
+      fi
+
+      echo "Retomando o canal de replicação após o erro..."
       oci_cli "$MYSQL_SECONDARY_REGION" mysql channel resume \
         --channel-id "$channel_id" \
         --wait-for-state SUCCEEDED \
