@@ -22,7 +22,7 @@ validate_channel() {
       mysql channel get \
       --channel-id "$MYSQL_CHANNEL_ID")"
     
-    channel_state="$(jq -r '.data.state // empty' <<<"$channel_json")"
+    channel_state="$(jq -r '.data."lifecycle-state" // empty' <<<"$channel_json")"
     
     lifecycle_details="$(jq -r '.data."lifecycle-details" // empty' <<<"$channel_json")"
 

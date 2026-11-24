@@ -168,7 +168,7 @@ resolve_existing_channel_id() {
       | map(select(
           ."display-name" == $display_name
           and .target."db-system-id" == $target_id
-          and .state != "DELETED"
+          and ."lifecycle-state" != "DELETED"
         ))
       | sort_by(."time-created")
       | last.id // empty
@@ -227,7 +227,7 @@ ensure_channel_enabled() {
 
   channel_state="$(oci_cli "$MYSQL_SECONDARY_REGION" mysql channel get \
     --channel-id "$channel_id" \
-    --query 'data.state' \
+    --query 'data."lifecycle-state"' \
     --raw-output)"
 
   case "$channel_state" in
