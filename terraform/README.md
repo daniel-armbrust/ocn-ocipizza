@@ -291,6 +291,10 @@ O bootstrap acessa o primary por meio de
 nativo de uma VCN específica. O parâmetro pode ser substituído em um Manual
 Run sem alterar os scripts.
 
+Antes de criar o canal, o bootstrap confirma que o primary utiliza
+`GTID_MODE=ON`. O canal adota `ERROR_ON_ANONYMOUS`, apropriado para essa origem
+baseada em GTID e que não exige informar manualmente arquivo e offset de binlog.
+
 O stage `bootstrap-user-service` é executado depois do stage `bootstrap-mysql`.
 Ele utiliza Resource Principal para ler no Vault as credenciais administrativa
 e específica do serviço, criar o schema `users`, manter o usuário da aplicação

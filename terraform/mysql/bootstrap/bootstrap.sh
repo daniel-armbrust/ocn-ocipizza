@@ -117,6 +117,14 @@ try:
         if not ssl_cipher:
             raise RuntimeError('A conexão com o MySQL não está usando TLS.')
 
+        cursor.execute('SELECT @@GLOBAL.gtid_mode')
+        gtid_mode = cursor.fetchone()[0]
+
+        if gtid_mode != 'ON':
+            raise RuntimeError(
+                f'O MySQL primary deve usar GTID_MODE=ON; valor atual: {gtid_mode}.'
+            )
+
         cursor.execute(
             f"CREATE USER IF NOT EXISTS '{replication_username}'@'%%' "
             'IDENTIFIED BY %s REQUIRE SSL',
@@ -195,7 +203,7 @@ create_replication_channel() {
         sourcePassword: $source_password,
         sourceSslMode: "REQUIRED",
         sourceAnonymousTransactionsHandling: {
-          policy: "ASSIGN_TARGET_UUID"
+          policy: "ERROR_ON_ANONYMOUS"
         },
         targetDbSystemId: $target_db_system_id,
         targetChannelName: $target_channel_name,
