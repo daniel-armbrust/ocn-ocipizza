@@ -236,6 +236,11 @@ região. GRU é preparado como primary read-write e VCP como secondary read-only
 Os DB Systems começam com 50 GB, possuem expansão automática até 500 GB,
 backups por sete dias e Point in Time Recovery.
 
+Os dois DB Systems recebem as credenciais administrativas persistidas no
+Vault. A OCI exige usuário e senha administrativos também na criação do DB
+System standalone configurado como `READ_ONLY`; esse acesso não altera sua
+função de target da replicação.
+
 O script `vault/scripts/database-secrets.sh` cria e preserva dois Secrets no
 Vault para a infraestrutura: um para o administrador e outro para o usuário
 exclusivo de replicação. Ele também mantém um Secret separado e com menor

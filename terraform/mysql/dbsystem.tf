@@ -11,8 +11,8 @@ resource "oci_mysql_mysql_db_system" "this" {
   display_name        = local.display_name
   description         = local.is_primary ? "MySQL primary da OCI Pizza em GRU." : "MySQL secondary read-only da OCI Pizza em VCP."
 
-  admin_username = local.is_primary ? var.admin_username : null
-  admin_password = local.is_primary ? var.admin_password : null
+  admin_username = var.admin_username
+  admin_password = var.admin_password
   database_mode  = local.is_primary ? "READ_WRITE" : "READ_ONLY"
 
   data_storage_size_in_gb = 50

@@ -17,21 +17,48 @@ steps:
     command: |
       set -euo pipefail
 
-      : "${OCI_PRIMARY_SOURCE_DIR:?OCI_PRIMARY_SOURCE_DIR não foi definido pelo OCI DevOps}"
-      : "${COMPARTMENT_ID:?Defina COMPARTMENT_ID como parâmetro da pipeline}"
-      : "${MYSQL_PRIMARY_DB_SYSTEM_ID:?Defina MYSQL_PRIMARY_DB_SYSTEM_ID como parâmetro da pipeline}"
-      : "${MYSQL_SECONDARY_DB_SYSTEM_ID:?Defina MYSQL_SECONDARY_DB_SYSTEM_ID como parâmetro da pipeline}"
-      : "${MYSQL_ADMIN_CREDENTIALS_SECRET_ID:?Defina MYSQL_ADMIN_CREDENTIALS_SECRET_ID como parâmetro da pipeline}"
-      : "${MYSQL_REPLICATION_CREDENTIALS_SECRET_ID:?Defina MYSQL_REPLICATION_CREDENTIALS_SECRET_ID como parâmetro da pipeline}"
+      require_variable() {
+        local variable_name="$1"
+
+        if [[ -z "${!variable_name:-}" ]]; then
+          echo "Erro: ${variable_name} não foi definido pela Build Pipeline." >&2
+          return 1
+        fi
+      }
+
+      require_file() {
+        local file_path="$1"
+
+        if [[ ! -f "${file_path}" ]]; then
+          echo "Erro: arquivo obrigatório não encontrado: ${file_path}" >&2
+          return 1
+        fi
+      }
+
+      require_command() {
+        local command_name="$1"
+
+        if ! command -v "${command_name}" >/dev/null 2>&1; then
+          echo "Erro: comando obrigatório não encontrado: ${command_name}" >&2
+          return 1
+        fi
+      }
+
+      require_variable OCI_PRIMARY_SOURCE_DIR
+      require_variable COMPARTMENT_ID
+      require_variable MYSQL_PRIMARY_DB_SYSTEM_ID
+      require_variable MYSQL_SECONDARY_DB_SYSTEM_ID
+      require_variable MYSQL_ADMIN_CREDENTIALS_SECRET_ID
+      require_variable MYSQL_REPLICATION_CREDENTIALS_SECRET_ID
 
       BOOTSTRAP_DIR="${OCI_PRIMARY_SOURCE_DIR}/terraform/mysql/bootstrap"
 
-      test -f "${BOOTSTRAP_DIR}/bootstrap.sh"
-      test -f "${BOOTSTRAP_DIR}/validate-replication.sh"
+      require_file "${BOOTSTRAP_DIR}/bootstrap.sh"
+      require_file "${BOOTSTRAP_DIR}/validate-replication.sh"
 
-      command -v oci >/dev/null
-      command -v jq >/dev/null
-      command -v python3.11 >/dev/null
+      require_command jq
+      require_command base64
+      require_command python3.11
 
       echo "Configuração do bootstrap do MySQL validada."
 
@@ -58,7 +85,10 @@ steps:
         --isolated \
         --no-cache-dir \
         --disable-pip-version-check \
+        oci-cli==3.87.0 \
         PyMySQL==1.1.2
+
+      "${VENV_DIR}/bin/oci" --version
 
   - type: Command
     name: "Configurar replicação MySQL"
@@ -68,6 +98,7 @@ steps:
 
       cd "${OCI_PRIMARY_SOURCE_DIR}/terraform/mysql/bootstrap"
 
+      export PATH="${OCI_WORKSPACE_DIR}/mysql-bootstrap-venv/bin:${PATH}"
       export PYTHON_BIN="${OCI_WORKSPACE_DIR}/mysql-bootstrap-venv/bin/python"
 
       echo "Configurando a replicação assíncrona de GRU para VCP..."
