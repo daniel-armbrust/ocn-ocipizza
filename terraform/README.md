@@ -243,9 +243,17 @@ função de target da replicação.
 
 Os bootstraps exigem conexão TLS com os DB Systems. Como o certificado
 `SYSTEM` gerenciado pelo MySQL HeatWave utiliza uma cadeia que não está no
-trust store do Managed Build, o cliente mantém a criptografia sem validar a
-CA e a identidade do hostname. Uma evolução para validação completa requer
-configurar um certificado `BYOC` e disponibilizar sua CA aos clientes.
+trust store do Managed Build, os clientes utilizam um `SSLContext` explícito
+que obriga TLS sem validar a CA e a identidade do hostname. Cada bootstrap
+também consulta `Ssl_cipher` e falha se a sessão não estiver criptografada. Uma
+evolução para validação completa requer configurar um certificado `BYOC` e
+disponibilizar sua CA aos clientes.
+
+A URL SQLAlchemy gerada para as migrations do `user-service` inclui
+`ssl_verify_cert=false`. No PyMySQL 1.1.2, o valor textual ativa TLS e configura
+`CERT_NONE`, permitindo o certificado `SYSTEM` sem transformar a conexão em
+texto claro. As URLs armazenadas futuramente nos Secrets Kubernetes devem
+preservar o mesmo parâmetro enquanto o projeto não utilizar `BYOC`.
 
 O script `vault/scripts/database-secrets.sh` cria e preserva dois Secrets no
 Vault para a infraestrutura: um para o administrador e outro para o usuário

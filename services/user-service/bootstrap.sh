@@ -132,6 +132,7 @@ import base64
 import json
 import os
 import re
+import ssl
 from urllib.parse import quote_plus
 
 import oci
@@ -198,6 +199,10 @@ database_username = database_credentials['username']
 if not re.fullmatch(r'[a-z][a-z0-9_]{0,31}', database_username):
     raise ValueError('O username do Secret do user-service é inválido.')
 
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
 connection = pymysql.connect(
     host=database_host,
     port=database_port,
@@ -205,26 +210,33 @@ connection = pymysql.connect(
     password=admin_credentials['password'],
     charset='utf8mb4',
     connect_timeout=15,
-    # O certificado SYSTEM do MySQL HeatWave não possui uma CA disponível no
-    # trust store do Managed Build. A conexão permanece criptografada.
-    ssl_verify_cert=False,
+    # O SSLContext explícito torna TLS obrigatório. A validação da CA e do
+    # hostname permanece desabilitada porque o certificado SYSTEM não possui
+    # uma CA disponível no trust store do Managed Build.
+    ssl=ssl_context,
 )
 
 try:
     with connection.cursor() as cursor:
+        cursor.execute("SHOW SESSION STATUS LIKE 'Ssl_cipher'")
+        ssl_cipher = cursor.fetchone()[1]
+
+        if not ssl_cipher:
+            raise RuntimeError('A conexão com o MySQL não está usando TLS.')
+
         cursor.execute(
             f'CREATE DATABASE IF NOT EXISTS `{database_name}` '
             'CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci'
         )
 
         cursor.execute(
-            f"CREATE USER IF NOT EXISTS '{database_username}'@'%' "
+            f"CREATE USER IF NOT EXISTS '{database_username}'@'%%' "
             'IDENTIFIED BY %s',
             (database_credentials['password'],),
         )
 
         cursor.execute(
-            f"ALTER USER '{database_username}'@'%' IDENTIFIED BY %s",
+            f"ALTER USER '{database_username}'@'%%' IDENTIFIED BY %s",
             (database_credentials['password'],),
         )
 
@@ -242,6 +254,7 @@ database_url = (
     f"{quote_plus(database_username)}:"
     f"{quote_plus(database_credentials['password'])}@"
     f'{database_host}:{database_port}/{database_name}'
+    '?ssl_verify_cert=false'
 )
 
 os.environ['DATABASE_URL'] = database_url

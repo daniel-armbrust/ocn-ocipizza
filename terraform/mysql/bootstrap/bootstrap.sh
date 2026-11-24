@@ -73,6 +73,7 @@ configure_replication_user() {
 import json
 import os
 import re
+import ssl
 import sys
 
 import pymysql
@@ -91,6 +92,10 @@ replication_username = replication_credentials['username']
 if not re.fullmatch(r'[a-z][a-z0-9_]{0,31}', replication_username):
     raise ValueError('O username de replicação contém caracteres inválidos.')
 
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
 connection = pymysql.connect(
     host=os.environ['MYSQL_PRIMARY_HOST'],
     port=int(os.environ['MYSQL_PRIMARY_PORT']),
@@ -98,22 +103,28 @@ connection = pymysql.connect(
     password=admin_credentials['password'],
     charset='utf8mb4',
     connect_timeout=15,
-    # O certificado SYSTEM do MySQL HeatWave não possui uma CA disponível no
-    # trust store do Managed Build. A conexão permanece criptografada, em
-    # alinhamento com o modo REQUIRED usado pelo canal de replicação.
-    ssl_verify_cert=False,
+    # O SSLContext explícito torna TLS obrigatório. A validação da CA e do
+    # hostname permanece desabilitada porque o certificado SYSTEM não possui
+    # uma CA disponível no trust store do Managed Build.
+    ssl=ssl_context,
 )
 
 try:
     with connection.cursor() as cursor:
+        cursor.execute("SHOW SESSION STATUS LIKE 'Ssl_cipher'")
+        ssl_cipher = cursor.fetchone()[1]
+
+        if not ssl_cipher:
+            raise RuntimeError('A conexão com o MySQL não está usando TLS.')
+
         cursor.execute(
-            f"CREATE USER IF NOT EXISTS '{replication_username}'@'%' "
+            f"CREATE USER IF NOT EXISTS '{replication_username}'@'%%' "
             'IDENTIFIED BY %s REQUIRE SSL',
             (replication_credentials['password'],),
         )
 
         cursor.execute(
-            f"ALTER USER '{replication_username}'@'%' "
+            f"ALTER USER '{replication_username}'@'%%' "
             'IDENTIFIED BY %s REQUIRE SSL',
             (replication_credentials['password'],),
         )
