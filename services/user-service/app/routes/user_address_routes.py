@@ -4,7 +4,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, status, Depends, Query
+from fastapi import APIRouter, status, Depends
 from fastapi.responses import JSONResponse
 
 from app.schemas.user_address_schema import (

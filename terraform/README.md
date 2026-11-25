@@ -21,7 +21,7 @@ Os principais componentes são:
 - IAM dos workloads, do OCI DevOps e dos serviços gerenciados;
 - OCI Notifications, projeto OCI DevOps e conexão externa com o GitHub.
 
-As tabelas `remote-peering-drg-rt` possuem rotas estáticas para as VCNs spoke
+As tabelas `remote-peering-drg-rt` possuem rotas estáticas para todas as VCNs
 locais, sempre com o attachment da VCN-FIREWALL regional como próximo salto.
 Isso submete à inspeção o tráfego recebido pelo RPC antes de encaminhá-lo ao
 destino. A distribuição `remote-peering-import` permanece associada a essas
@@ -30,9 +30,10 @@ os spokes locais e possui rotas estáticas para as redes da outra região por
 meio do RPC. A exportação dinâmica dos attachments RPC permanece desabilitada
 para impedir a reflexão de rotas.
 
-A tabela regional `rt-to-firewall-ip` encaminha os CIDRs das VCNs e a rota
-padrão `0.0.0.0/0` ao NLB do firewall. Dessa forma, a saída à Internet das
-sub-redes privadas atravessa o firewall antes de utilizar o NAT Gateway.
+A tabela regional `rt-to-firewall-ip` possui somente a rota padrão
+`0.0.0.0/0` apontando ao NLB do firewall. Essa regra atende tanto as redes
+privadas quanto a saída à Internet, que atravessa o firewall antes de utilizar
+o NAT Gateway.
 
 A zona DNS privada `ocipizza.internal` existe de forma independente em GRU e
 VCP. Cada região possui sua própria Private View, associada aos resolvers das

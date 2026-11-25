@@ -303,7 +303,7 @@ module "devops_gru" {
 
   mysql_primary_region                        = local.regions.gru
   mysql_secondary_region                      = local.regions.vcp
-  mysql_primary_host                          = module.mysql_gru.endpoint.ip
+  mysql_primary_host                          = "mysql-write.ocipizza.internal"
   mysql_primary_db_system_id                  = module.mysql_gru.db_system_id
   mysql_secondary_db_system_id                = module.mysql_vcp.db_system_id
   mysql_admin_credentials_secret_id           = module.vault_gru.mysql_admin_credentials_secret_id

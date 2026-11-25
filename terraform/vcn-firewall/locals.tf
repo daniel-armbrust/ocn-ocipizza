@@ -59,17 +59,8 @@ locals {
             }
           ],
           [
-            for destination in [
-              "10.71.0.0/16",
-              "10.72.0.0/16",
-              "10.73.0.0/16",
-              "10.74.0.0/16",
-              "10.81.0.0/16",
-              "10.82.0.0/16",
-              "10.83.0.0/16",
-              "10.84.0.0/16"
-              ] : {
-              destination      = destination
+            {
+              destination      = "10.0.0.0/8"
               destination_type = "CIDR_BLOCK"
               target           = "drg"
             }
@@ -175,17 +166,8 @@ locals {
             }
           ],
           [
-            for destination in [
-              "10.71.0.0/16",
-              "10.72.0.0/16",
-              "10.73.0.0/16",
-              "10.74.0.0/16",
-              "10.81.0.0/16",
-              "10.82.0.0/16",
-              "10.83.0.0/16",
-              "10.84.0.0/16"
-              ] : {
-              destination      = destination
+            {
+              destination      = "10.0.0.0/8"
               destination_type = "CIDR_BLOCK"
               target           = "drg"
             }
