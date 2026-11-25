@@ -188,6 +188,7 @@ create_replication_channel() {
     --arg compartment_id "$COMPARTMENT_ID" \
     --arg display_name "$CHANNEL_DISPLAY_NAME" \
     --arg source_hostname "$MYSQL_PRIMARY_HOST" \
+    --arg source_port "$MYSQL_PRIMARY_PORT" \
     --arg source_username "$replication_username" \
     --arg source_password "$replication_password" \
     --arg target_db_system_id "$MYSQL_SECONDARY_DB_SYSTEM_ID" \
@@ -198,7 +199,7 @@ create_replication_channel() {
         description: "Replicação assíncrona do MySQL primary de GRU para VCP.",
         isEnabled: true,
         sourceHostname: $source_hostname,
-        sourcePort: 3306,
+        sourcePort: ($source_port | tonumber),
         sourceUsername: $source_username,
         sourcePassword: $source_password,
         sourceSslMode: "REQUIRED",
@@ -226,12 +227,29 @@ ensure_channel_enabled() {
   local channel_json
   local channel_state
   local lifecycle_details
+  local source_hostname
 
   channel_json="$(oci_cli "$MYSQL_SECONDARY_REGION" mysql channel get \
     --channel-id "$channel_id")"
 
   channel_state="$(jq -er '.data."lifecycle-state"' <<<"$channel_json")"
   lifecycle_details="$(jq -r '.data."lifecycle-details" // empty' <<<"$channel_json")"
+  source_hostname="$(jq -er '.data.source.hostname' <<<"$channel_json")"
+
+  if [[ "$source_hostname" != "$MYSQL_PRIMARY_HOST" ]]; then
+    echo "Atualizando o destino do canal de ${source_hostname} para ${MYSQL_PRIMARY_HOST}..."
+    oci_cli "$MYSQL_SECONDARY_REGION" mysql channel update-from-mysql \
+      --channel-id "$channel_id" \
+      --source-hostname "$MYSQL_PRIMARY_HOST" \
+      --source-port "$MYSQL_PRIMARY_PORT" \
+      --wait-for-state SUCCEEDED \
+      --max-wait-seconds 1200 >/dev/null
+
+    channel_json="$(oci_cli "$MYSQL_SECONDARY_REGION" mysql channel get \
+      --channel-id "$channel_id")"
+    channel_state="$(jq -er '.data."lifecycle-state"' <<<"$channel_json")"
+    lifecycle_details="$(jq -r '.data."lifecycle-details" // empty' <<<"$channel_json")"
+  fi
 
   case "$channel_state" in
     ACTIVE | CREATING | UPDATING)
