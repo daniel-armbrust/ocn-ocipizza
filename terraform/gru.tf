@@ -108,15 +108,15 @@ module "vcn_services_gru" {
 }
 
 # VCN isolada que simula a origem do ambiente on-premises em GRU.
-module "vcn_onpremises_gru" {
-  source = "./vcn-onpremises"
+# module "vcn_onpremises_gru" {
+#   source = "./vcn-onpremises"
 
-  providers = {
-    oci = oci.gru
-  }
+#   providers = {
+#     oci = oci.gru
+#   }
 
-  compartment_id = var.compartment_id
-}
+#   compartment_id = var.compartment_id
+# }
 
 # Zona DNS privada regional acessível pelas VCNs da aplicação em São Paulo.
 module "dns_private_gru" {
@@ -139,6 +139,13 @@ module "dns_private_gru" {
   mysql_endpoints = {
     write = module.mysql_gru.endpoint.ip
     read  = module.mysql_gru.endpoint.ip
+  }
+
+  redis_fqdn = module.oci_cache_gru.primary_fqdn
+
+  queue_messages_endpoints = {
+    gru = module.queue_gru.messages_endpoint
+    vcp = module.queue_vcp.messages_endpoint
   }
 }
 

@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     redis_user: str | None = None
     redis_password: str | None = None
 
+    # Tempo máximo para estabelecer conexão com o Redis, em segundos.
+    redis_connect_timeout: float = 3.0
+    
+    # Tempo máximo de espera por uma resposta do Redis, em segundos.
+    redis_socket_timeout: float = 3.0
+    
     # Nome do cookie utilizado para identificar o cookie de
     # sessão.
     session_cookie_name: str = 'ocpssid'

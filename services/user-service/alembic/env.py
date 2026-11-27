@@ -31,14 +31,14 @@ if config.config_file_name is not None:
 
 
 #
-# Substitui a URL configurada no alembic.ini pela DATABASE_URL utilizada pela
-# aplicação. O ConfigParser exige %% para representar o caractere % presente
-# em credenciais codificadas para URL.
+# Substitui a URL configurada no alembic.ini pela DATABASE_WRITE_URL. Migrations
+# sempre são aplicadas no banco primário. O ConfigParser exige %% para
+# representar o caractere % presente em credenciais codificadas para URL.
 #
 
 config.set_main_option(
     'sqlalchemy.url',
-    settings.database_url.replace('%', '%%')
+    settings.database_write_url.replace('%', '%%')
 )
 
 #

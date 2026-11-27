@@ -64,7 +64,8 @@ definidas em `requirements.txt`.
 | `APP_ENV` | `development` | Ambiente de execução: somente `development` ou `production`. |
 | `DEBUG` | `false` | Ativa o modo de depuração. |
 | `PERSISTENCE_PROVIDER` | `sqlalchemy` | Provider de persistência: `sqlalchemy` ou `nosql`. |
-| `DATABASE_URL` | — | URL de conexão utilizada pelo SQLAlchemy. |
+| `DATABASE_WRITE_URL` | — | URL do MySQL primário, utilizada para escritas e leituras que exigem consistência imediata. |
+| `DATABASE_READ_URL` | — | URL do MySQL regional, utilizada para leituras que toleram consistência eventual. |
 | `MESSAGING_PROVIDER` | `rabbitmq` | Provider de mensageria: `rabbitmq` ou `oci_queue`. |
 | `RABBITMQ_HOST` | — | Host do RabbitMQ. |
 | `RABBITMQ_PORT` | — | Porta do RabbitMQ. |

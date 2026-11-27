@@ -92,7 +92,8 @@ utilizadas pelo `admin-service`.
 
 O `user-service` espera dois recursos sensíveis provisionados fora do Git:
 
-- `user-service-secrets`, contendo a chave `database-url`;
+- `user-service-secrets`, contendo as chaves `database-write-url` e
+  `database-read-url`;
 - `user-service-jwt-public-key`, contendo `jwt_public_key.pem`.
 
 A chave privada JWT não é montada no Pod. Ela é obtida em tempo de execução
@@ -126,9 +127,11 @@ Nenhum manifesto contendo secrets é publicado no Git ou no Artifact Registry.
 O namespace deve ser aplicado previamente pelo `namespace.yaml` do overlay;
 os scripts apenas validam sua existência e não administram esse recurso.
 
-O script do `user-service` já possui o contrato para
-`ocipizza-<ambiente>-user-service-database-url`, mas falhará de forma segura
-enquanto esse Secret não for criado pelo futuro `database-secrets.sh`.
+O script do `user-service` lê o documento JSON
+`ocipizza-user-service-database-credentials` do OCI Vault e monta as URLs sem
+registrá-las nos logs. A URL de escrita utiliza
+`mysql-write.ocipizza.internal`; a URL de leitura utiliza
+`mysql-read.ocipizza.internal`.
 
 Por exemplo, o manifesto completo de produção em GRU pode ser renderizado com:
 

@@ -40,7 +40,9 @@ def get_redis_client() -> Redis:
     # nas implementações dos repositórios.
     _redis_client = Redis.from_url(
         settings.redis_endpoint,
-        decode_responses=True
+        decode_responses=True,
+        socket_connect_timeout=settings.redis_connect_timeout,
+        socket_timeout=settings.redis_socket_timeout
     )
 
     return _redis_client

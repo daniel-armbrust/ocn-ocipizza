@@ -74,7 +74,8 @@ services:
 
       # Provider de persistência.
       PERSISTENCE_PROVIDER: ${PERSISTENCE_PROVIDER:-sqlalchemy}
-      DATABASE_URL: ${DATABASE_URL:-mysql+pymysql://user_service:user_service@mysql:3306/users}
+      DATABASE_WRITE_URL: ${DATABASE_WRITE_URL:-mysql+pymysql://user_service:user_service@mysql:3306/users}
+      DATABASE_READ_URL: ${DATABASE_READ_URL:-mysql+pymysql://user_service:user_service@mysql:3306/users}
 
       # Mensageria
       MESSAGING_PROVIDER: ${MESSAGING_PROVIDER:-rabbitmq}

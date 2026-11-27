@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.config.settings import settings
 
-from app.repositories.sqlalchemy.connection import get_session
+from app.repositories.sqlalchemy.connection import get_session, get_read_session
 from app.repositories.nosql.connection import get_nosql_handle
 
 from app.repositories.unit_of_work import UnitOfWork
@@ -75,23 +75,66 @@ def get_unit_of_work(
 
 
 def get_user_repository(
-        session: Session | None = Depends(get_session),
-        handle: NoSQLHandle | None = Depends(get_nosql_handle)
+    session: Session | None = Depends(get_session),
+    handle: NoSQLHandle | None = Depends(get_nosql_handle)
 ) -> UserRepository:
     """
-    Monta o repositório de usuários de acordo com o provider
-    de persistência configurado.
+    Fornece o repositório de usuários utilizando o banco primário.
 
     Args:
-        session: Sessão SQLAlchemy compartilhada pela requisição.
+        session: Sessão SQLAlchemy para escrita e leituras consistentes.
         handle: Handle Oracle NoSQL compartilhado pela requisição.
 
     Returns:
-        Repositório de usuários correspondente ao provider configurado.
+        UserRepository: Repositório de usuários configurado.
 
     Raises:
-        RuntimeError: Caso o provider não seja suportado ou a sessão
-            SQLAlchemy não esteja disponível.
+        RuntimeError: Quando o provider não é suportado ou uma
+            dependência de persistência está indisponível.
+    """
+
+    return _create_user_repository(session, handle)
+
+
+def get_read_user_repository(
+    session: Session | None = Depends(get_read_session),
+    handle: NoSQLHandle | None = Depends(get_nosql_handle)
+) -> UserRepository:
+    """
+    Fornece o repositório de usuários utilizando o banco de leitura.
+
+    Args:
+        session: Sessão SQLAlchemy para leituras que toleram consistência eventual.
+        handle: Handle Oracle NoSQL compartilhado pela requisição.
+
+    Returns:
+        UserRepository: Repositório de usuários configurado.
+
+    Raises:
+        RuntimeError: Quando o provider não é suportado ou uma
+            dependência de persistência está indisponível.
+    """
+
+    return _create_user_repository(session, handle)
+
+
+def _create_user_repository(
+        session: Session | None,
+        handle: NoSQLHandle | None
+) -> UserRepository:
+    """
+    Cria o repositório de usuários conforme o provider configurado.
+
+    Args:
+        session: Sessão SQLAlchemy de leitura ou escrita.
+        handle: Handle Oracle NoSQL.
+
+    Returns:
+        UserRepository: Repositório correspondente ao provider.
+
+    Raises:
+        RuntimeError: Quando o provider não é suportado ou
+            uma dependência necessária está indisponível.
     """
 
     if settings.persistence_provider == 'sqlalchemy':
@@ -100,11 +143,12 @@ def get_user_repository(
         )
 
     if settings.persistence_provider == 'nosql':
-        return NosqlUserRepository(handle=_require_nosql_handle(handle))
+        return NosqlUserRepository(
+            handle=_require_nosql_handle(handle)
+        )
 
     raise RuntimeError(
-        'Unsupported persistence provider: '
-        f'{settings.persistence_provider}'
+        f'Unsupported persistence provider: {settings.persistence_provider}'
     )
 
 
@@ -253,23 +297,66 @@ def get_user_refresh_token_repository(
 
 
 def get_user_address_repository(
-        session: Session | None = Depends(get_session),
-        handle: NoSQLHandle | None = Depends(get_nosql_handle)
+    session: Session | None = Depends(get_session),
+    handle: NoSQLHandle | None = Depends(get_nosql_handle)
 ) -> UserAddressRepository:
     """
-    Monta o repositório responsável pela persistência dos
-    endereços dos usuários.
+    Fornece o repositório de endereços utilizando o banco primário.
 
     Args:
-        session: Sessão SQLAlchemy compartilhada pela requisição.
+        session: Sessão SQLAlchemy para escrita e leituras consistentes.
         handle: Handle Oracle NoSQL compartilhado pela requisição.
 
     Returns:
-        Repositório de endereços correspondente ao provider configurado.
+        UserAddressRepository: Repositório de endereços configurado.
 
     Raises:
-        RuntimeError: Caso o provider não seja suportado ou a sessão
-            SQLAlchemy não esteja disponível.
+        RuntimeError: Quando o provider não é suportado ou uma
+            dependência de persistência está indisponível.
+    """
+
+    return _create_user_address_repository(session, handle)
+
+
+def get_read_user_address_repository(
+    session: Session | None = Depends(get_read_session),
+    handle: NoSQLHandle | None = Depends(get_nosql_handle)
+) -> UserAddressRepository:
+    """
+    Fornece o repositório de endereços utilizando o banco de leitura.
+
+    Args:
+        session: Sessão SQLAlchemy para leituras que toleram consistência eventual.
+        handle: Handle Oracle NoSQL compartilhado pela requisição.
+
+    Returns:
+        UserAddressRepository: Repositório de endereços configurado.
+
+    Raises:
+        RuntimeError: Quando o provider não é suportado ou uma
+            dependência de persistência está indisponível.
+    """
+
+    return _create_user_address_repository(session, handle)
+
+
+def _create_user_address_repository(
+    session: Session | None,
+    handle: NoSQLHandle | None
+) -> UserAddressRepository:
+    """
+    Cria o repositório de endereços conforme o provider configurado.
+
+    Args:
+        session: Sessão SQLAlchemy de leitura ou escrita.
+        handle: Handle Oracle NoSQL compartilhado pela requisição.
+
+    Returns:
+        UserAddressRepository: Repositório de endereços configurado.
+
+    Raises:
+        RuntimeError: Quando o provider não é suportado ou uma
+            dependência de persistência está indisponível.
     """
 
     if settings.persistence_provider == 'sqlalchemy':

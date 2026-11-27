@@ -49,6 +49,17 @@ registro de leitura aponta para o MySQL local: primary em GRU e secondary
 read-only em VCP. Em um desastre, a promoção de VCP exige atualizar o destino
 de `mysql-write` para o endpoint promovido.
 
+O registro CNAME `redis.ocipizza.internal`, com TTL de 30 segundos, existe nas
+duas zonas regionais e aponta para o FQDN primário disponibilizado pelo OCI
+Cache em GRU. Em uma promoção futura de VCP, esse destino deve ser atualizado
+para o FQDN do novo cluster active.
+
+Os registros CNAME `queue-gru.ocipizza.internal` e
+`queue-vcp.ocipizza.internal`, com TTL de 60 segundos, também existem nas duas
+zonas privadas. Cada nome aponta para o hostname do `messages_endpoint` da fila
+OCI Queue criada na região correspondente, sem armazenar protocolo ou caminho
+no registro DNS.
+
 A VCN-OKE de cada região possui sub-redes próprias para Load Balancers,
 worker nodes, endpoint privado do Kubernetes API e pods. A sub-rede privada de
 pods reserva endereços para o futuro cluster Enhanced com OCI VCN-Native Pod

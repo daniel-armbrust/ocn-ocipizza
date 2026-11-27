@@ -35,10 +35,18 @@ class Settings(BaseSettings):
     oci_region: str | None = None
 
     # Persistência
+    # TODO: Implementar suporte ao OCI NoSQL neste serviço.
     persistence_provider: Literal['nosql', 'sqlalchemy'] = 'sqlalchemy'
 
     # SQLAlchemy
-    database_url: str | None = None
+    #   URL de conexão com o MySQL primário, utilizada para escrita
+    #   e leituras que exigem consistência imediata.
+    database_write_url: str | None = None
+
+    # SQLAlchemy
+    #   URL de conexão com o MySQL regional, utilizada para leituras
+    #   que toleram consistência eventual.
+    database_read_url: str | None = None
 
     # Mensageria
     messaging_provider: Literal['rabbitmq', 'oci_queue'] = 'oci_queue'
@@ -53,16 +61,22 @@ class Settings(BaseSettings):
     # OCI Queue
     oci_queue_id: str | None = None
 
-    # JWT
-    jwt_key_provider: str = 'local'
+    # Provedor da chave privada utilizada para assinar JWTs.
+    jwt_key_provider: Literal['file', 'oci'] = 'file'
+
     jwt_issuer: str = 'user-service'
     jwt_audience: str = 'ocipizza'
     jwt_access_token_expiration_minutes: int = 15
-   
+
+    # Caminhos das chaves JWT utilizadas quando JWT_KEY_PROVIDER for "file".
     jwt_private_key_path: str = '/run/secrets/jwt_private_key.pem'
     jwt_public_key_path: str = '/run/secrets/jwt_public_key.pem'
 
+    # OCID do Secret no OCI Vault que armazena a chave privada JWT.
     jwt_private_key_secret_id: str | None = None
+
+    # OCID do Secret no OCI Vault que armazena a chave pública JWT.
+    jwt_public_key_secret_id: str | None = None
 
     # Refresh token
     refresh_token_expiration_days: int = 30
@@ -72,26 +86,23 @@ class Settings(BaseSettings):
     log_level: str = 'INFO'
     oci_log_id: str | None = None
 
-    # Define o método de autenticação utilizado para acessar os
-    # serviços OCI:
-    #   None desabilita a autenticação OCI, permitindo o uso de
-    #       serviços locais.
-    #   "config_file" utiliza as credenciais configuradas na máquina
-    #       de desenvolvimento.
-    #   "instance_principal" utiliza a identidade da instância Compute
-    #       no OCI.
-    #   "resource_principal" utiliza a identidade temporária disponibilizada
-    #       ao bootstrap pelo OCI DevOps.
+    # Define o método de autenticação utilizado para acessar os serviços OCI:
+    #   None: desabilita a autenticação OCI, permitindo o uso de serviços locais.
+    #   "config_file": utiliza as credenciais configuradas na máquina de desenvolvimento.
+    #   "instance_principal": utiliza a identidade de uma instância Compute.
+    #   "resource_principal": utiliza a identidade do recurso OCI, como Container Instances.
+    #   "workload_identity": utiliza a identidade do workload executado no OKE.
     oci_auth_mode: Literal[
         'config_file',
         'instance_principal',
         'resource_principal',
+        'workload_identity'
     ] | None = None
 
     # Caminho do arquivo de configuração e profile usados para
     # autenticação nos serviços do OCI.
     oci_config_file: str | None = None
-    oci_config_profile: str | None = None
+    oci_config_profile: str = 'DEFAULT'
 
 
 @lru_cache

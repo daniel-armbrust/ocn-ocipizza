@@ -48,3 +48,30 @@ variable "mysql_endpoints" {
     error_message = "mysql_endpoints.write e mysql_endpoints.read devem conter endereços IPv4 válidos."
   }
 }
+
+variable "redis_fqdn" {
+  description = "FQDN do endpoint primário do OCI Cache em GRU."
+  type        = string
+
+  validation {
+    condition     = length(trimspace(var.redis_fqdn)) > 0
+    error_message = "redis_fqdn não pode ser vazio."
+  }
+}
+
+variable "queue_messages_endpoints" {
+  description = "URLs dos endpoints regionais do OCI Queue em GRU e VCP."
+  type = object({
+    gru = string
+    vcp = string
+  })
+
+  validation {
+    condition = alltrue([
+      for endpoint in values(var.queue_messages_endpoints) :
+      startswith(trimspace(endpoint), "https://") &&
+      length(split("/", trimprefix(trimspace(endpoint), "https://"))[0]) > 0
+    ])
+    error_message = "queue_messages_endpoints.gru e queue_messages_endpoints.vcp devem conter URLs HTTPS válidas."
+  }
+}

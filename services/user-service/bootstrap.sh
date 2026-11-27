@@ -257,7 +257,7 @@ database_url = (
     '?ssl_verify_cert=false'
 )
 
-os.environ['DATABASE_URL'] = database_url
+os.environ['DATABASE_WRITE_URL'] = database_url
 os.environ['PERSISTENCE_PROVIDER'] = 'sqlalchemy'
 
 alembic_config = Config('alembic.ini')
@@ -282,7 +282,7 @@ ensure_env_variable() {
 # Variáveis exportadas pelo ambiente externo têm precedência sobre o .env.
 for variable in \
     APP_NAME APP_ENV DEBUG LOG_LEVEL OCI_LOG_ID \
-    PERSISTENCE_PROVIDER DATABASE_URL \
+    PERSISTENCE_PROVIDER DATABASE_WRITE_URL DATABASE_READ_URL \
     MESSAGING_PROVIDER QUEUE_NAME RABBITMQ_HOST RABBITMQ_PORT \
     RABBITMQ_USERNAME RABBITMQ_PASSWORD OCI_QUEUE_ID \
     OCI_REGION OCI_AUTH_MODE OCI_CONFIG_FILE OCI_CONFIG_PROFILE \
@@ -395,7 +395,8 @@ OCI_CONFIG_PROFILE=DEFAULT
 # Persistência
 PERSISTENCE_PROVIDER=sqlalchemy
 
-DATABASE_URL=mysql+pymysql://${DATABASE_USER}:${DATABASE_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${DATABASE_NAME}
+DATABASE_WRITE_URL=mysql+pymysql://${DATABASE_USER}:${DATABASE_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${DATABASE_NAME}
+DATABASE_READ_URL=mysql+pymysql://${DATABASE_USER}:${DATABASE_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${DATABASE_NAME}
 
 # Mensageria
 MESSAGING_PROVIDER=rabbitmq
@@ -435,7 +436,8 @@ ensure_env_variable 'APP_NAME' 'user-service'
 ensure_env_variable 'APP_ENV' 'development'
 ensure_env_variable 'DEBUG' 'true'
 ensure_env_variable 'PERSISTENCE_PROVIDER' 'sqlalchemy'
-ensure_env_variable 'DATABASE_URL' "mysql+pymysql://${DATABASE_USER}:${DATABASE_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${DATABASE_NAME}"
+ensure_env_variable 'DATABASE_WRITE_URL' "mysql+pymysql://${DATABASE_USER}:${DATABASE_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${DATABASE_NAME}"
+ensure_env_variable 'DATABASE_READ_URL' "mysql+pymysql://${DATABASE_USER}:${DATABASE_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${DATABASE_NAME}"
 ensure_env_variable 'MESSAGING_PROVIDER' 'rabbitmq'
 ensure_env_variable 'QUEUE_NAME' 'notifications-queue'
 ensure_env_variable 'RABBITMQ_HOST' '127.0.0.1'
@@ -478,7 +480,8 @@ export DEBUG="${DEBUG:-true}"
 export LOG_LEVEL="${LOG_LEVEL:-INFO}"
 export OCI_LOG_ID="${OCI_LOG_ID:-}"
 export PERSISTENCE_PROVIDER="${PERSISTENCE_PROVIDER:-sqlalchemy}"
-export DATABASE_URL="${DATABASE_URL:-mysql+pymysql://${DATABASE_USER}:${DATABASE_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${DATABASE_NAME}}"
+export DATABASE_WRITE_URL="${DATABASE_WRITE_URL:-mysql+pymysql://${DATABASE_USER}:${DATABASE_PASSWORD}@${MYSQL_HOST}:${MYSQL_PORT}/${DATABASE_NAME}}"
+export DATABASE_READ_URL="${DATABASE_READ_URL:-$DATABASE_WRITE_URL}"
 export MESSAGING_PROVIDER="${MESSAGING_PROVIDER:-rabbitmq}"
 export QUEUE_NAME="${QUEUE_NAME:-notifications-queue}"
 export RABBITMQ_HOST="${RABBITMQ_HOST:-127.0.0.1}"
@@ -595,14 +598,14 @@ if config.config_file_name is not None:
 
 
 #
-# Substitui a URL configurada no alembic.ini pela DATABASE_URL utilizada pela
-# aplicação. O ConfigParser exige %% para representar o caractere % presente
-# em credenciais codificadas para URL.
+# Substitui a URL configurada no alembic.ini pela DATABASE_WRITE_URL. Migrations
+# sempre são aplicadas no banco primário. O ConfigParser exige %% para
+# representar o caractere % presente em credenciais codificadas para URL.
 #
 
 config.set_main_option(
     'sqlalchemy.url',
-    settings.database_url.replace('%', '%%')
+    settings.database_write_url.replace('%', '%%')
 )
 
 #
@@ -804,11 +807,11 @@ USERS_TO_SEED = [
 ]
 
 #
-# Cria uma conexão SQLAlchemy utilizando a mesma DATABASE_URL
+# Cria uma conexão SQLAlchemy utilizando a mesma DATABASE_WRITE_URL
 # configurada para a aplicação.
 #
 engine = create_engine(
-    settings.database_url
+    settings.database_write_url
 )
 
 #

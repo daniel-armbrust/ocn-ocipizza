@@ -79,7 +79,10 @@ spec:
         - name: PERSISTENCE_PROVIDER
           value: "sqlalchemy"
         
-        - name: DATABASE_URL
+        - name: DATABASE_WRITE_URL
+          value: "mysql+pymysql://user_service:user_service@mysql.ocipizza-infra.svc.cluster.local:3306/users"
+
+        - name: DATABASE_READ_URL
           value: "mysql+pymysql://user_service:user_service@mysql.ocipizza-infra.svc.cluster.local:3306/users"
 
         - name: MESSAGING_PROVIDER

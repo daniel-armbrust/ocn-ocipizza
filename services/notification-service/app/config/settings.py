@@ -107,7 +107,7 @@ class Settings(BaseSettings):
     # Caminho do arquivo de configuração e profile usados para
     # autenticação nos serviços do OCI.
     oci_config_file: str | None = None
-    oci_config_profile: str | None = None
+    oci_config_profile: str = 'DEFAULT'
     
 
 @lru_cache

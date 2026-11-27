@@ -72,11 +72,16 @@ spec:
           # A string de conexão contém credenciais e deve ser provisionada por
           # um mecanismo seguro, fora dos arquivos versionados.
           env:
-            - name: DATABASE_URL
+            - name: DATABASE_WRITE_URL
               valueFrom:
                 secretKeyRef:
                   name: user-service-secrets
-                  key: database-url
+                  key: database-write-url
+            - name: DATABASE_READ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: user-service-secrets
+                  key: database-read-url
 
           securityContext:
             allowPrivilegeEscalation: false

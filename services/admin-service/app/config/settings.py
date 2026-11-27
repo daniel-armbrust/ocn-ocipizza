@@ -53,6 +53,12 @@ class Settings(BaseSettings):
     redis_user: str | None = None
     redis_password: str | None = None
 
+    # Tempo máximo para estabelecer conexão com o Redis, em segundos.
+    redis_connect_timeout: float = 3.0
+
+    # Tempo máximo de espera por uma resposta do Redis, em segundos.
+    redis_socket_timeout: float = 3.0
+
     # URL dos serviços acessados pelo admin-service.
     pizza_service_url: str
     user_service_url: str

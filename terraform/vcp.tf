@@ -129,6 +129,13 @@ module "dns_private_vcp" {
     write = module.mysql_gru.endpoint.ip
     read  = module.mysql_vcp.endpoint.ip
   }
+
+  redis_fqdn = module.oci_cache_gru.primary_fqdn
+
+  queue_messages_endpoints = {
+    gru = module.queue_gru.messages_endpoint
+    vcp = module.queue_vcp.messages_endpoint
+  }
 }
 
 # IP público reservado para lb-vcp.ocipizza.com.br.
